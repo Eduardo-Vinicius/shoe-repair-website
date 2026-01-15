@@ -246,7 +246,7 @@ export async function getOrdersService() {
   }
   
   const result = await response.json();
-  return result.data; // Retorna apenas o array de pedidos
+  return result.data || result; // Retorna result.data se existir, senão result
 }
 
 // Atualiza o status de um pedido
@@ -352,4 +352,54 @@ export async function generateOrderPDFService(pedidoId: string) {
 
   // Retorna o blob do PDF para download
   return response.blob();
+}
+
+// Busca informações do usuário logado
+export async function getUserInfoService() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Token não encontrado");
+  }
+
+  try {
+    // Tenta decodificar o token JWT para obter informações básicas
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return {
+      id: payload.id || payload.sub,
+      email: payload.email,
+      role: payload.role || payload.perfil || 'user',
+      departamento: payload.departamento || payload.department,
+      nome: payload.nome || payload.name,
+      // Se não conseguir decodificar, tenta buscar da API
+      ...payload
+    };
+  } catch (error) {
+    // Se não conseguir decodificar o token, tenta buscar da API
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao buscar informações do usuário");
+      }
+
+      const result = await response.json();
+      return result.data || result;
+    } catch (apiError) {
+      // Se a API não tiver endpoint /auth/me, retorna informações básicas do token
+      console.warn("Não foi possível obter informações completas do usuário:", apiError);
+      return {
+        id: '',
+        email: '',
+        role: 'user',
+        departamento: null,
+        nome: 'Usuário'
+      };
+    }
+  }
 }
