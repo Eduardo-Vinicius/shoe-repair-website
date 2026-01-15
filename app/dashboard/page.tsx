@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Package, Clock, CheckCircle, Search, LogOut } from "lucide-react"
+import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User } from "lucide-react"
 import { apiFetch, getDashboardService } from "@/lib/apiService"
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME
 import Cookies from "js-cookie"
@@ -49,19 +49,19 @@ const getStatusBadge = (status: string) => {
   switch (status) {
     case "iniciado":
       return (
-        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
           Iniciado
         </Badge>
       )
     case "em-processamento":
       return (
-        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+        <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
           Em Processamento
         </Badge>
       )
     case "concluido":
       return (
-        <Badge variant="secondary" className="bg-green-100 text-green-800">
+        <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
           Concluído
         </Badge>
       )
@@ -98,10 +98,10 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Carregando dashboard...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl font-semibold text-slate-700">Carregando dashboard...</p>
         </div>
       </div>
     )
@@ -109,31 +109,58 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
+            <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 text-xl mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()} className="w-full">
+              Tentar novamente
+            </Button>
+          </div>
         </div>
       </div>
     )
   }
 
   if (!dashboardData) return null
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+      {/* Header Moderno */}
+      <header className="bg-white shadow-lg border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold font-serif">{APP_NAME}</h1>
-              <span className="text-sm opacity-75">Sistema de Gestão</span>
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center space-x-6">
+              <img
+                src="/favicon.ico"
+                alt="Logo da Empresa"
+                className="h-12 w-auto"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800 font-serif">{APP_NAME}</h1>
+                <p className="text-sm text-slate-600">Painel Administrativo</p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
+              <div className="text-right hidden sm:block">
+                <p className="text-sm text-slate-600">Bem-vindo,</p>
+                <p className="text-lg font-semibold text-slate-800">{dashboardData.user.name}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-blue-600" />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-600 hover:text-slate-800 hover:bg-slate-100"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -142,174 +169,238 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground font-serif mb-2">Bem-vindo ao Dashboard</h2>
-          <p className="text-muted-foreground">Gerencie seus clientes e pedidos de reforma de tênis</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-4xl font-bold text-slate-800 font-serif mb-2">
+                Bem-vindo, {dashboardData.user.name.split(' ')[0]}! 👋
+              </h2>
+              <p className="text-slate-600 text-lg">
+                Aqui está o resumo das operações de hoje
+              </p>
+            </div>
+            <div className="hidden md:block">
+              <div className="text-right">
+                <p className="text-sm text-slate-500">Data de hoje</p>
+                <p className="text-2xl font-bold text-slate-800">
+                  {new Date().toLocaleDateString('pt-BR', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+        {/* KPI Cards Modernos */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-blue-100">Total de Clientes</CardTitle>
+              <Users className="h-5 w-5 text-blue-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.stats.totalClients}</div>
-              <p className="text-xs text-muted-foreground">Clientes cadastrados</p>
+              <div className="text-3xl font-bold mb-1">{dashboardData.stats.totalClients}</div>
+              <p className="text-xs text-blue-200">Clientes cadastrados</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pedidos Ativos</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-green-100">Pedidos Ativos</CardTitle>
+              <Package className="h-5 w-5 text-green-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.stats.activeOrders}</div>
-              <p className="text-xs text-muted-foreground">Em andamento</p>
+              <div className="text-3xl font-bold mb-1">{dashboardData.stats.activeOrders}</div>
+              <p className="text-xs text-green-200">Em andamento</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-orange-100">Pendentes</CardTitle>
+              <Clock className="h-5 w-5 text-orange-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.stats.pendingOrders}</div>
-              <p className="text-xs text-muted-foreground">Aguardando início</p>
+              <div className="text-3xl font-bold mb-1">{dashboardData.stats.pendingOrders}</div>
+              <p className="text-xs text-orange-200">Aguardando início</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Concluídos Hoje</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-purple-100">Concluídos Hoje</CardTitle>
+              <CheckCircle className="h-5 w-5 text-purple-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.stats.completedToday}</div>
-              <p className="text-xs text-muted-foreground">Finalizados hoje</p>
+              <div className="text-3xl font-bold mb-1">{dashboardData.stats.completedToday}</div>
+              <p className="text-xs text-purple-200">Finalizados hoje</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {/* Card único para clientes */}
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="w-5 h-5 mr-2 text-accent" />
-                Clientes
-              </CardTitle>
-              <CardDescription>Visualize ou cadastre clientes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-2">
-                <Link href="/clientes">
-                  <Button className="w-full">Ver Todos Clientes</Button>
+        {/* Ações Rápidas - Design Moderno */}
+        <div className="mb-8">
+          <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+            <Settings className="w-6 h-6 mr-3 text-blue-600" />
+            Ações Rápidas
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-blue-800">
+                  <Users className="w-6 h-6 mr-3 text-blue-600" />
+                  Gerenciar Clientes
+                </CardTitle>
+                <CardDescription className="text-blue-600">
+                  Visualize e cadastre novos clientes
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Link href="/clientes" className="block">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    <Users className="w-4 h-4 mr-2" />
+                    Ver Todos
+                  </Button>
                 </Link>
-                <Link href="/clientes/novo">
-                  <Button className="w-full" variant="secondary">Cadastrar Cliente</Button>
+                <Link href="/clientes/novo" className="block">
+                  <Button variant="outline" className="w-full border-blue-300 text-blue-700 hover:bg-blue-50">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Cadastrar Novo
+                  </Button>
                 </Link>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Package className="w-5 h-5 mr-2 text-accent" />
-                Novo Pedido
-              </CardTitle>
-              <CardDescription>Criar um novo pedido de reforma</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="justify-center mt-5">
-                <Link href="/pedidos/novo">
-                  <Button className="w-full">Criar Pedido</Button>
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-green-800">
+                  <Package className="w-6 h-6 mr-3 text-green-600" />
+                  Novo Pedido
+                </CardTitle>
+                <CardDescription className="text-green-600">
+                  Criar pedido de reforma de tênis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/pedidos/novo" className="block">
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Criar Pedido
+                  </Button>
                 </Link>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Search className="w-5 h-5 mr-2 text-accent" />
-                Consultar
-              </CardTitle>
-              <CardDescription>Buscar clientes e pedidos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="justify-center mt-5">
-                <Link href="/consultas">
-                  <Button className="w-full bg-transparent" variant="outline">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-purple-800">
+                  <Search className="w-6 h-6 mr-3 text-purple-600" />
+                  Consultas
+                </CardTitle>
+                <CardDescription className="text-purple-600">
+                  Buscar clientes e pedidos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/consultas" className="block">
+                  <Button variant="outline" className="w-full border-purple-300 text-purple-700 hover:bg-purple-50">
+                    <Search className="w-4 h-4 mr-2" />
                     Fazer Consulta
                   </Button>
                 </Link>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Novo Card para Status */}
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-2 text-accent" />
-                Status dos Pedidos
-              </CardTitle>
-              <CardDescription>Gerencie o status dos pedidos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="justify-center mt-5">
-                <Link href="/status">
-                  <Button className="w-full bg-transparent" variant="outline">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-orange-800">
+                  <BarChart3 className="w-6 h-6 mr-3 text-orange-600" />
+                  Controle de Status
+                </CardTitle>
+                <CardDescription className="text-orange-600">
+                  Gerenciar status dos pedidos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/status" className="block">
+                  <Button variant="outline" className="w-full border-orange-300 text-orange-700 hover:bg-orange-50">
+                    <BarChart3 className="w-4 h-4 mr-2" />
                     Ver Status
                   </Button>
                 </Link>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Recent Orders */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pedidos Recentes</CardTitle>
-            <CardDescription>Últimos pedidos registrados no sistema</CardDescription>
+        {/* Pedidos Recentes - Design Moderno */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl text-slate-800 flex items-center">
+                  <Calendar className="w-6 h-6 mr-3 text-slate-600" />
+                  Pedidos Recentes
+                </CardTitle>
+                <CardDescription className="text-slate-600 mt-1">
+                  Últimos pedidos registrados no sistema
+                </CardDescription>
+              </div>
+              <Link href="/pedidos">
+                <Button className="bg-slate-600 hover:bg-slate-700 text-white">
+                  <Package className="w-4 h-4 mr-2" />
+                  Ver Todos
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <div className="space-y-4">
-              {dashboardData.recentOrders.map((order: RecentOrder) => (
-                <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+              {dashboardData.recentOrders.slice(0, 5).map((order: RecentOrder) => (
+                <div key={order.id} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-shadow">
                   <div className="flex-1">
                     <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
+                        <Package className="w-6 h-6 text-slate-600" />
+                      </div>
                       <div>
-                        <p className="font-medium">{order.clientName}</p>
-                        <p className="text-sm text-muted-foreground">{order.sneaker}</p>
+                        <p className="font-semibold text-slate-800">{order.clientName}</p>
+                        <p className="text-sm text-slate-600">{order.sneaker}</p>
+                        <p className="text-xs text-slate-500">
+                          Criado em {new Date(order.createdDate).toLocaleDateString('pt-BR')}
+                        </p>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">#{order.id}</p>
-                      <p className="text-sm text-muted-foreground">{order.createdDate}</p>
+                    <div className="text-right hidden sm:block">
+                      <p className="text-sm text-slate-500">ID #{order.id}</p>
+                      <p className="text-sm font-medium text-slate-700">
+                        R$ {order.price.toFixed(2)}
+                      </p>
                     </div>
                     {getStatusBadge(order.status)}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t">
-              <Link href="/pedidos">
-                <Button variant="outline" className="w-full bg-transparent">
-                  Ver Todos os Pedidos
-                </Button>
-              </Link>
-            </div>
+            {dashboardData.recentOrders.length === 0 && (
+              <div className="text-center py-8">
+                <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500 text-lg">Nenhum pedido recente</p>
+                <p className="text-slate-400 text-sm">Os novos pedidos aparecerão aqui</p>
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <div className="text-center mt-8 text-slate-500">
+          <p className="text-sm">Sistema de Gestão de Pedidos • Versão 1.0</p>
+        </div>
       </div>
     </div>
   )
