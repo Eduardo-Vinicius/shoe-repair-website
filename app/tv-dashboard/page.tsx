@@ -217,14 +217,14 @@ export default function TvDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-red-100">Com Atraso</CardTitle>
-              <AlertTriangle className="h-5 w-5 text-red-200" />
+              <CardTitle className="text-sm font-medium text-purple-100">Pares na Loja</CardTitle>
+              <Package className="h-5 w-5 text-purple-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{overdueOrders.length}</div>
-              <p className="text-xs text-red-200 mt-1">Precisam de atenção</p>
+              <div className="text-3xl font-bold">{totalOrders - completedOrders}</div>
+              <p className="text-xs text-purple-200 mt-1">Aguardando processamento</p>
             </CardContent>
           </Card>
         </div>
@@ -306,51 +306,19 @@ export default function TvDashboardPage() {
           </Card>
         </div>
 
-        {/* Pedidos em Atraso */}
+        {/* Pares na Loja */}
         <Card className="bg-white shadow-lg border-0">
           <CardHeader>
             <CardTitle className="flex items-center text-2xl text-slate-800">
-              <AlertTriangle className="w-7 h-7 mr-3 text-red-600" />
-              Pedidos em Atraso
-              <Badge className="ml-3 bg-red-100 text-red-800 border-red-300">
-                {overdueOrders.length} pedidos
-              </Badge>
+              <Package className="w-7 h-7 mr-3 text-blue-600" />
+              Pares na Loja
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {overdueOrders.length === 0 ? (
-              <div className="text-center py-12">
-                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <p className="text-2xl text-slate-700 font-semibold">Excelente trabalho! 🎉</p>
-                <p className="text-slate-600 mt-2">Nenhum pedido em atraso no momento</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {overdueOrders.slice(0, 9).map((order) => (
-                  <div key={order.id} className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-slate-800 mb-1">{order.clienteNome}</h3>
-                        <p className="text-slate-600 text-sm mb-2">{order.modeloTenis}</p>
-                        <div className="flex items-center text-sm text-slate-500 mb-3">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          Previsão: {new Date(order.dataPrevistaEntrega).toLocaleDateString('pt-BR')}
-                        </div>
-                      </div>
-                      {getStatusBadge(order.status)}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="text-center">
-                        <p className="text-3xl font-bold text-red-600">{order.diasAtraso}</p>
-                        <p className="text-sm text-red-500 font-medium">dias de atraso</p>
-                      </div>
-                      {getOverdueBadge(order.diasAtraso)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="text-center py-12">
+              <div className="text-8xl font-bold text-blue-600 mb-4">{totalOrders - completedOrders}</div>
+              <p className="text-2xl text-slate-600">pares aguardando processamento ou em andamento</p>
+            </div>
           </CardContent>
         </Card>
 
