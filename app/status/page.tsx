@@ -646,7 +646,12 @@ export default function StatusControlPage() {
 
                     {/* Agrupar colunas por departamento */}
                     {(() => {
-                      const groupedColumns = Object.keys(statusColumns).reduce((acc, columnName) => {
+                      // Para admin, mostra todas as colunas; para outros usuários, apenas as filtradas
+                      const columnsToShow = (userInfo && (userInfo.role === 'admin' || userInfo.role === 'ADM' || userInfo.role === 'administrator'))
+                        ? statusColumns
+                        : filteredStatusColumns;
+
+                      const groupedColumns = Object.keys(columnsToShow).reduce((acc, columnName) => {
                         const lowerName = columnName.toLowerCase();
                         let department = 'Outros';
 
