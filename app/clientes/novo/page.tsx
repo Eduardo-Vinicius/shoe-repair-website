@@ -152,25 +152,28 @@ export default function NewClientPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header Moderno */}
+      <header className="bg-white shadow-lg border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-4">
               <Link href="/clientes">
-                <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80">
+                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-800 hover:bg-slate-100">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar
                 </Button>
               </Link>
-              <h1 className="text-xl font-bold font-serif">Novo Cliente</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800 font-serif">Novo Cliente</h1>
+                <p className="text-sm text-slate-600">Cadastrar cliente no sistema</p>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {success && (
           <Alert className="mb-6 border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -178,13 +181,13 @@ export default function NewClientPage() {
           </Alert>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Cadastrar Novo Cliente</CardTitle>
-            <CardDescription>Preencha os dados do cliente para cadastrá-lo no sistema</CardDescription>
+        <Card className="shadow-lg border-0 bg-white">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-100">
+            <CardTitle className="text-2xl text-slate-800">Cadastrar Novo Cliente</CardTitle>
+            <CardDescription className="text-slate-600">Preencha os dados do cliente para cadastrá-lo no sistema</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome Completo *</Label>
@@ -345,11 +348,11 @@ export default function NewClientPage() {
                 />
               </div>
 
-              <div className="flex gap-4 pt-4">
-                <Button type="submit" disabled={isLoading} className="flex-1">
+              <div className="flex gap-6 pt-8 border-t border-slate-200">
+                <Button type="submit" disabled={isLoading} className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium">
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Cadastrando...
                     </>
                   ) : (
@@ -357,7 +360,7 @@ export default function NewClientPage() {
                   )}
                 </Button>
                 <Link href="/clientes">
-                  <Button type="button" variant="outline">
+                  <Button type="button" variant="outline" className="h-12 px-8 border-slate-300 hover:bg-slate-50">
                     Cancelar
                   </Button>
                 </Link>
