@@ -16,7 +16,7 @@ const sourceSans = Source_Sans_3({
 })
 
 export const metadata: Metadata = {
-  title: `${process.env.NEXT_PUBLIC_APP_NAME} - Sistema de Gestão`,
+  title: `${process.env.NEXT_PUBLIC_APP_NAME || "Worqera"} - Sistema de Gestão`,
   description: "Sistema de gestão para loja de reforma de tênis"
 }
 

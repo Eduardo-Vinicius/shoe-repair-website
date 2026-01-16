@@ -82,7 +82,7 @@ export default function TvDashboardPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-4xl font-bold text-slate-800 tracking-tight">Gestão de Calçados</h1>
+              <h1 className="text-4xl font-bold text-slate-800 tracking-tight">Worqera</h1>
               <p className="text-lg text-slate-600 mt-1">Cuidado e Qualidade em Tempo Real</p>
             </div>
             <div className="text-right">

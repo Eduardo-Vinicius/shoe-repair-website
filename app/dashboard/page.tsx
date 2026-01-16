@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User, Monitor } from "lucide-react"
 import { apiFetch, getDashboardService } from "@/lib/apiService"
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Worqera"
 import Cookies from "js-cookie"
 import Link from "next/link"
 
@@ -147,8 +147,8 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-6">
               <img
-                src="/favicon.ico"
-                alt="Logo da Empresa"
+                src="/worqera_icon.png"
+                alt="Worqera"
                 className="h-12 w-auto"
               />
               <div>

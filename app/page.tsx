@@ -37,12 +37,12 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
-              <ShieldCheck className="w-8 h-8 text-primary-foreground" />
+            <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden bg-white border">
+              <img src="/worqera_icon.png" alt="Worqera" className="w-12 h-12" />
             </div>
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground font-serif">{process.env.NEXT_PUBLIC_APP_NAME}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground font-serif">{process.env.NEXT_PUBLIC_APP_NAME || "Worqera"}</h1>
             <p className="text-muted-foreground">Sistema de Gestão para Reforma de Tênis</p>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>© 2025 {process.env.NEXT_PUBLIC_APP_NAME}. Todos os direitos reservados.</p>
+          <p>© 2025 {process.env.NEXT_PUBLIC_APP_NAME || "Worqera"}. Todos os direitos reservados.</p>
         </div>
       </div>
     </div>

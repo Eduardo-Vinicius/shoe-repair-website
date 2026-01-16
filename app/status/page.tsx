@@ -496,8 +496,8 @@ export default function StatusControlPage() {
             <div className="flex justify-between items-center h-20">
               <div className="flex items-center space-x-6">
                 <img
-                  src="/placeholder-logo.svg"
-                  alt="Logo da Empresa"
+                  src="/worqera_icon.png"
+                  alt="Worqera"
                   className="h-12 w-auto"
                 />
                 <div>
@@ -552,9 +552,9 @@ export default function StatusControlPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Package className="w-8 h-8 text-blue-600" />
+              <img src="/worqera_icon.png" alt="Worqera" className="w-8 h-8" />
               <div>
-                <h1 className="text-xl font-semibold text-slate-800">Controle de Status</h1>
+                <h1 className="text-xl font-semibold text-slate-800">Worqera • Controle de Status</h1>
                 <p className="text-xs text-slate-500">
                   {userInfo ? (
                     userInfo.role === 'admin' ? 
@@ -842,7 +842,7 @@ export default function StatusControlPage() {
 
         {/* Footer */}
         <div className="text-center mt-8 text-slate-500">
-          <p className="text-sm">Sistema de Controle de Status • Arrastar pedidos entre colunas para alterar status</p>
+          <p className="text-sm">Worqera • Sistema de Controle de Status • Arrastar pedidos entre colunas para alterar status</p>
         </div>
       </div>
     </div>
