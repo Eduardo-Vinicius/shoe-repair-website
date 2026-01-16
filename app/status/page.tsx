@@ -422,38 +422,33 @@ export default function StatusControlPage() {
   const getFilteredStatusColumns = () => {
     if (!userInfo) return statusColumns;
 
-    // Se for ADM ou admin, mostra todas as colunas
-    if (userInfo.role === 'admin' || userInfo.role === 'ADM' || userInfo.role === 'administrator') {
+    // Se for admin, mostra todas as colunas
+    if (userInfo.role === 'admin') {
       return statusColumns;
     }
 
-    // Se for de um departamento específico, filtra apenas as colunas do seu departamento
-    if (userInfo.departamento) {
-      const filteredColumns: StatusColumn = {};
-      const departamento = userInfo.departamento.toLowerCase();
+    // Para outros roles (atendimento, lavagem, pintura), filtra apenas as colunas do seu departamento
+    const departamento = userInfo.role.toLowerCase();
+    const filteredColumns: StatusColumn = {};
 
-      Object.keys(statusColumns).forEach(columnName => {
-        const columnLower = columnName.toLowerCase();
-        // Mostra colunas que contenham o nome do departamento do usuário
-        if (departamento === 'atendimento' && columnLower.includes('atendimento')) {
-          filteredColumns[columnName] = statusColumns[columnName];
-        } else if (departamento === 'lavagem' && columnLower.includes('lavagem')) {
-          filteredColumns[columnName] = statusColumns[columnName];
-        } else if (departamento === 'pintura' && columnLower.includes('pintura')) {
-          filteredColumns[columnName] = statusColumns[columnName];
-        } else if (departamento === 'montagem' && columnLower.includes('montagem')) {
-          filteredColumns[columnName] = statusColumns[columnName];
-        } else if (departamento === 'acabamento' && columnLower.includes('acabamento')) {
-          filteredColumns[columnName] = statusColumns[columnName];
-        }
-        // Adicione mais departamentos conforme necessário
-      });
+    Object.keys(statusColumns).forEach(columnName => {
+      const columnLower = columnName.toLowerCase();
+      // Mostra colunas que contenham o nome do departamento do usuário
+      if (departamento === 'atendimento' && columnLower.includes('atendimento')) {
+        filteredColumns[columnName] = statusColumns[columnName];
+      } else if (departamento === 'lavagem' && columnLower.includes('lavagem')) {
+        filteredColumns[columnName] = statusColumns[columnName];
+      } else if (departamento === 'pintura' && columnLower.includes('pintura')) {
+        filteredColumns[columnName] = statusColumns[columnName];
+      } else if (departamento === 'montagem' && columnLower.includes('montagem')) {
+        filteredColumns[columnName] = statusColumns[columnName];
+      } else if (departamento === 'acabamento' && columnLower.includes('acabamento')) {
+        filteredColumns[columnName] = statusColumns[columnName];
+      }
+      // Adicione mais departamentos conforme necessário
+    });
 
-      return filteredColumns;
-    }
-
-    // Se não tiver departamento definido, mostra todas as colunas (fallback)
-    return statusColumns;
+    return filteredColumns;
   };
 
   // Organiza os pedidos por status baseado nas colunas filtradas
@@ -562,9 +557,9 @@ export default function StatusControlPage() {
                 <h1 className="text-xl font-semibold text-slate-800">Controle de Status</h1>
                 <p className="text-xs text-slate-500">
                   {userInfo ? (
-                    userInfo.role === 'admin' || userInfo.role === 'ADM' ? 
+                    userInfo.role === 'admin' ? 
                       'Administrador' : 
-                      `${userInfo.departamento || 'N/A'} • ${Object.keys(filteredStatusColumns).length} colunas`
+                      `${userInfo.role} • ${Object.keys(filteredStatusColumns).length} colunas`
                   ) : (
                     'Gestão de pedidos'
                   )}
@@ -647,7 +642,7 @@ export default function StatusControlPage() {
                     {/* Agrupar colunas por departamento */}
                     {(() => {
                       // Para admin, mostra todas as colunas; para outros usuários, apenas as filtradas
-                      const columnsToShow = (userInfo && (userInfo.role === 'admin' || userInfo.role === 'ADM' || userInfo.role === 'administrator'))
+                      const columnsToShow = (userInfo && userInfo.role === 'admin')
                         ? statusColumns
                         : filteredStatusColumns;
 
