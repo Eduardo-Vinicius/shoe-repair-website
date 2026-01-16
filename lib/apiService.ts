@@ -108,7 +108,7 @@ export async function createPedidoService(pedido: {
   valorSinal: number;
   valorRestante: number;
   dataPrevistaEntrega: string;
-  departamento: string;
+  departamento: string;  
   observacoes: string;
   garantia: {
     ativa: boolean;
