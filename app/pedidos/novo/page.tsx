@@ -466,25 +466,28 @@ export default function NewOrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header Moderno */}
+      <header className="bg-white shadow-lg border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-4">
               <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary/80">
+                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-800 hover:bg-slate-100">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar
                 </Button>
               </Link>
-              <h1 className="text-xl font-bold font-serif">Novo Pedido</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800 font-serif">Novo Pedido</h1>
+                <p className="text-sm text-slate-600">Criar pedido de reforma</p>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {success && (
           <Alert className="mb-6 border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -492,13 +495,13 @@ export default function NewOrderPage() {
           </Alert>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Criar Novo Pedido</CardTitle>
-            <CardDescription>Preencha os dados do pedido de reforma</CardDescription>
+        <Card className="shadow-lg border-0 bg-white">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-100">
+            <CardTitle className="text-2xl text-slate-800">Criar Novo Pedido</CardTitle>
+            <CardDescription className="text-slate-600">Preencha os dados do pedido de reforma de calçados</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
               {/* Client Selection */}
               <div className="space-y-2">
                 <Label htmlFor="client">Cliente *</Label>
