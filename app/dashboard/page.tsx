@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User } from "lucide-react"
+import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User, Monitor } from "lucide-react"
 import { apiFetch, getDashboardService } from "@/lib/apiService"
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME
 import Cookies from "js-cookie"
@@ -148,6 +148,17 @@ export default function DashboardPage() {
                 <p className="text-lg font-semibold text-slate-800">{dashboardData.user.name}</p>
               </div>
               <div className="flex items-center space-x-2">
+                <Link href="/tv-dashboard">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-slate-600 border-slate-300 hover:bg-slate-50 hover:text-slate-800"
+                    title="Dashboard para TV"
+                  >
+                    <Monitor className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">TV Dashboard</span>
+                  </Button>
+                </Link>
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   <User className="w-6 h-6 text-blue-600" />
                 </div>
@@ -248,7 +259,7 @@ export default function DashboardPage() {
             Ações Rápidas
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-blue-800">
                   <Users className="w-6 h-6 mr-3 text-blue-600" />
@@ -274,7 +285,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-green-800">
                   <Package className="w-6 h-6 mr-3 text-green-600" />
@@ -294,7 +305,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-purple-800">
                   <Search className="w-6 h-6 mr-3 text-purple-600" />
@@ -314,7 +325,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-orange-800">
                   <BarChart3 className="w-6 h-6 mr-3 text-orange-600" />
