@@ -46,28 +46,42 @@ interface DashboardData {
 }
 
 const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "iniciado":
-      return (
-        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-          Iniciado
-        </Badge>
-      )
-    case "em-processamento":
-      return (
-        <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
-          Em Processamento
-        </Badge>
-      )
-    case "concluido":
-      return (
-        <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
-          Concluído
-        </Badge>
-      )
-    default:
-      return <Badge variant="outline">{status}</Badge>
+  if (["Atendimento - Recebido", "Atendimento - Orçado", "Atendimento - Aprovado"].includes(status)) {
+    return (
+      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+        Atendimento
+      </Badge>
+    )
   }
+  if (["Lavagem - A Fazer", "Lavagem - Em Andamento", "Lavagem - Concluído"].includes(status)) {
+    return (
+      <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
+        Lavagem
+      </Badge>
+    )
+  }
+  if (["Pintura - A Fazer", "Pintura - Em Andamento", "Pintura - Concluído"].includes(status)) {
+    return (
+      <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-300">
+        Pintura
+      </Badge>
+    )
+  }
+  if (status === "Atendimento - Finalizado") {
+    return (
+      <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
+        Finalizado
+      </Badge>
+    )
+  }
+  if (status === "Atendimento - Entregue") {
+    return (
+      <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
+        Entregue
+      </Badge>
+    )
+  }
+  return <Badge variant="outline">{status}</Badge>
 }
 
 export default function DashboardPage() {

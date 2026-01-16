@@ -39,9 +39,12 @@ export default function TvDashboardPage() {
   }, [])
 
   const totalOrders = allOrders.length
-  const completedOrders = allOrders.filter(order => order.status === 'concluido').length
-  const inProgressOrders = allOrders.filter(order => order.status === 'em-processamento').length
-  const pendingOrders = allOrders.filter(order => order.status === 'iniciado').length
+  const pendingStatuses = ["Atendimento - Recebido", "Atendimento - Orçado", "Atendimento - Aprovado"]
+  const inProgressStatuses = ["Lavagem - A Fazer", "Lavagem - Em Andamento", "Lavagem - Concluído", "Pintura - A Fazer", "Pintura - Em Andamento", "Pintura - Concluído", "Atendimento - Finalizado"]
+  const completedStatuses = ["Atendimento - Entregue"]
+  const completedOrders = allOrders.filter(order => completedStatuses.includes(order.status)).length
+  const inProgressOrders = allOrders.filter(order => inProgressStatuses.includes(order.status)).length
+  const pendingOrders = allOrders.filter(order => pendingStatuses.includes(order.status)).length
   const completionRate = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0
   const activePairs = totalOrders - completedOrders
 
