@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Caminhos que não precisam de autenticação
-const PUBLIC_PATHS = ['/', '/api/auth'];
+const PUBLIC_PATHS = ['/', '/api/auth', '/tv'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -317,6 +317,24 @@ export async function getDashboardService() {
   return result; // Retorna o objeto completo, não result.data
 }
 
+// Estatísticas por setor
+export async function getSetoresEstatisticasService() {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/setores/estatisticas`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar estatísticas de setores");
+  }
+  const result = await response.json();
+  return result.data || result;
+}
+
 export async function apiFetch(
   endpoint: string,
   options: RequestInit = {}
@@ -352,6 +370,43 @@ export async function generateOrderPDFService(pedidoId: string) {
 
   // Retorna o blob do PDF para download
   return response.blob();
+}
+
+// Próximo setor para o pedido
+export async function getProximoSetorService(pedidoId: string) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/pedidos/${pedidoId}/proximo-setor`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar próximo setor");
+  }
+  const result = await response.json();
+  return result.data || result;
+}
+
+// Mover pedido para setor específico
+export async function moverPedidoSetorService(pedidoId: string, setorId: string) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/pedidos/${pedidoId}/mover-setor`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify({ setorId }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao mover pedido de setor");
+  }
+  const result = await response.json();
+  return result.data || result;
 }
 
 // Busca informações do usuário logado

@@ -30,6 +30,7 @@ import {
 import Link from "next/link"
 import { CardDetalhesPedido } from "@/components/CardDetalhesPedido"
 import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService } from "@/lib/apiService"
+import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 
 // Interface para as colunas de status
 interface StatusColumn {
@@ -76,6 +77,22 @@ interface Order {
     data?: string;
   };
   acessorios: string[];
+  // Sistema de setores (novos campos)
+  setorAtual?: string;
+  setoresFluxo?: string[];
+  setoresHistorico?: Array<{
+    setorId: string;
+    setorNome?: string;
+    entradaEm: string;
+    saidaEm?: string | null;
+  }>;
+  // Quem criou o pedido
+  createdBy?: {
+    userId: string;
+    userName: string;
+    userEmail: string;
+    userRole: string;
+  };
 }
 
 interface UserInfo {
@@ -782,6 +799,17 @@ export default function StatusControlPage() {
                               <p className="text-sm text-slate-500">
                                 {order.modeloTenis}
                               </p>
+                              {order.setorAtual && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
+                                  />
+                                  <span className="text-xs text-slate-600">
+                                    {SETORES_NOMES[order.setorAtual] || order.setorAtual}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
