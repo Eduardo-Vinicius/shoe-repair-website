@@ -105,7 +105,7 @@ export default function NewOrderPage() {
   }, []);
 
   // Fotos do tênis (armazenamos também a preview para poder revogar URLs e evitar leaks)
-  const MAX_PHOTOS = parseInt(process.env.NEXT_PUBLIC_MAX_PHOTOS || "5", 10) || 5;
+  const MAX_PHOTOS = parseInt(process.env.NEXT_PUBLIC_MAX_PHOTOS || "8", 10) || 8;
   const MAX_FILE_MB = 5; // limite por arquivo antes da compressão
   type PhotoItem = { file: File; preview: string; uploadedUrl?: string };
   const [photos, setPhotos] = useState<PhotoItem[]>([])
@@ -913,7 +913,7 @@ export default function NewOrderPage() {
                   <label htmlFor="photo-upload" className="cursor-pointer">
                     <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">
-                      Clique para adicionar fotos (máximo 5 fotos, até 5MB cada)
+                      Clique para adicionar fotos (máximo 8 fotos, até 5MB cada)
                     </p>
                   </label>
                 </div>

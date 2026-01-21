@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { getClienteByIdService } from "@/lib/apiService";
+import SetorProgress from "@/components/SetorProgress";
+import MoverSetorButton from "@/components/MoverSetorButton";
 
 export interface PedidoDetalhes {
   id: string;
@@ -42,6 +44,22 @@ export interface PedidoDetalhes {
     data?: string;
   };
   acessorios?: string[];
+  // Sistema de setores
+  setoresFluxo?: string[];
+  setorAtual?: string;
+  setoresHistorico?: Array<{
+    setorId: string;
+    setorNome?: string;
+    entradaEm: string;
+    saidaEm?: string | null;
+  }>;
+  // Informações de criação
+  createdBy?: {
+    userId: string;
+    userName: string;
+    userEmail: string;
+    userRole: string;
+  };
   [key: string]: any; // Para permitir campos extras
 }
 
@@ -128,6 +146,18 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
               </>
             )}
           </DialogDescription>
+          {/* Progresso dos Setores */}
+          {pedido.setoresFluxo && pedido.setorAtual && pedido.setoresHistorico && (
+            <div className="mt-3">
+              <SetorProgress
+                pedido={{
+                  setoresFluxo: pedido.setoresFluxo,
+                  setorAtual: pedido.setorAtual,
+                  setoresHistorico: pedido.setoresHistorico,
+                }}
+              />
+            </div>
+          )}
         </DialogHeader>
         <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-2">{/*Conteúdo com scroll*/}
           <div><strong>Tênis:</strong> {pedido.modeloTenis || pedido.sneaker}</div>
@@ -147,6 +177,31 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
           <div><strong>Status:</strong> {pedido.status}</div>
           <div><strong>Data de Criação:</strong> {pedido.dataCriacao || pedido.createdDate}</div>
           <div><strong>Previsão de Entrega:</strong> {pedido.dataPrevistaEntrega || pedido.expectedDate}</div>
+
+          {/* Informações de criação */}
+          {pedido.createdBy && (
+            <div className="border-t pt-3 mt-4 bg-gray-50 p-3 rounded">
+              <div className="text-sm font-medium text-gray-700 mb-2">Informações de Criação</div>
+              <div className="space-y-1 text-sm">
+                <div>
+                  <span className="text-gray-500">Criado por:</span>{" "}
+                  <span className="font-medium">{pedido.createdBy.userName}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Email:</span>{" "}
+                  <span>{pedido.createdBy.userEmail}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Cargo:</span>{" "}
+                  <span className="capitalize">{pedido.createdBy.userRole}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Data:</span>{" "}
+                  <span>{new Date(pedido.dataCriacao || pedido.createdDate).toLocaleString('pt-BR')}</span>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Garantia */}
           {pedido.garantia?.ativa && (
@@ -244,6 +299,15 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
           >
             {loadingCliente ? "Carregando..." : "Ver Cliente"}
           </Button>
+          {/* Botão para mover entre setores */}
+          {pedido.id && (
+            <MoverSetorButton
+              pedidoId={pedido.id}
+              onSuccess={() => {
+                // sem ações adicionais aqui; componente pai pode recarregar dados
+              }}
+            />
+          )}
           <DialogClose asChild>
             <Button variant="outline" className="flex-1">Fechar</Button>
           </DialogClose>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User, Monitor } from "lucide-react"
 import { apiFetch, getDashboardService } from "@/lib/apiService"
+import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Worqera"
 import Cookies from "js-cookie"
 import Link from "next/link"
@@ -33,6 +34,8 @@ interface RecentOrder {
     date: string
     time: string
   }>
+  // setor atual opcional
+  setorAtual?: string
 }
 
 interface DashboardData {
@@ -397,6 +400,17 @@ export default function DashboardPage() {
                         <p className="text-xs text-slate-500">
                           Criado em {new Date(order.createdDate).toLocaleDateString('pt-BR')}
                         </p>
+                        {order.setorAtual && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
+                            />
+                            <span className="text-xs text-slate-600">
+                              {SETORES_NOMES[order.setorAtual] || order.setorAtual}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Search, ArrowLeft, User, Package, Calendar, Filter, FileText, CheckCircle, Edit } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
+import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -110,7 +111,13 @@ export default function ConsultasPage() {
       fotos: order.fotos || [],
       observacoes: order.observacoes || '',
       garantia: order.garantia || { ativa: false, preco: 0, duracao: '' },
-      acessorios: order.acessorios || []
+      acessorios: order.acessorios || [],
+      // Sistema de setores
+      setoresFluxo: order.setoresFluxo || order.setores || [],
+      setorAtual: order.setorAtual || order.setor || '',
+      setoresHistorico: order.setoresHistorico || [],
+      // Informações de criação
+      createdBy: order.createdBy || undefined,
     };
     
     setSelectedOrder(pedidoDetalhes);
@@ -534,6 +541,17 @@ export default function ConsultasPage() {
                               <div className="flex items-center gap-4 mb-2">
                                 <h3 className="font-semibold">Pedido #{order.id}</h3>
                                 {getStatusBadge(order.status)}
+                                {order.setorAtual && (
+                                  <div className="flex items-center gap-2 ml-2">
+                                    <div
+                                      className="w-3 h-3 rounded-full"
+                                      style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
+                                    />
+                                    <span className="text-xs">
+                                      {SETORES_NOMES[order.setorAtual] || order.setorAtual}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                               <p className="text-sm text-muted-foreground mb-2">
                                 Cliente ID: {order.clientId}
