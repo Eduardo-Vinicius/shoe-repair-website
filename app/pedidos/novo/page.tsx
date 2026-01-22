@@ -14,6 +14,7 @@ import { ArrowLeft, Loader2, CheckCircle, Search, Upload, X, Plus, Minus } from 
 import Link from "next/link"
 import { createPedidoService, getClientesService, getStatusColumnsService } from "@/lib/apiService"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 // Serviços disponíveis com preços sugeridos
 const availableServices = [
@@ -72,6 +73,7 @@ export default function NewOrderPage() {
     department: "atendimento", // Departamento de destino
     observations: "",
   })
+  const [prioridade, setPrioridade] = useState<string>("2")
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([])
   const [totalPrice, setTotalPrice] = useState(0)
   const [signalType, setSignalType] = useState("50") // "50", "100", "custom"
@@ -407,6 +409,12 @@ export default function NewOrderPage() {
       return;
     }
 
+    // Validação explícita de máximo de 8 fotos
+    if (photos.length > 8) {
+      toast.error('Máximo de 8 fotos permitidas');
+      return;
+    }
+
     setIsLoading(true);
     setErrors({});
     setSuccess(false);
@@ -448,6 +456,7 @@ export default function NewOrderPage() {
         dataPrevistaEntrega: formData.expectedDate,
         departamento: formData.department,
         observacoes: observacoesFinais,
+        prioridade: Number(prioridade),
         garantia: garantiaData,
         acessorios: selectedAccessories,
         status: getFirstStatusForSector(formData.department) || undefined,
@@ -582,6 +591,24 @@ export default function NewOrderPage() {
                     </SelectContent>
                   </Select>
                   {errors.department && <p className="text-sm text-destructive">{errors.department}</p>}
+                </div>
+              </div>
+
+              {/* Prioridade */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="prioridade">Prioridade</Label>
+                  <Select value={prioridade} onValueChange={(value) => setPrioridade(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar prioridade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Alta (I) - Urgente</SelectItem>
+                      <SelectItem value="2">Média (II) - Normal</SelectItem>
+                      <SelectItem value="3">Baixa (III) - Sem pressa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">Se não informado, assume Média (II).</p>
                 </div>
               </div>
 

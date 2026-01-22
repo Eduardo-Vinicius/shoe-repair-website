@@ -111,6 +111,7 @@ export async function createPedidoService(pedido: {
   dataPrevistaEntrega: string;
   departamento: string;  
   observacoes: string;
+  prioridade?: number;
   garantia: {
     ativa: boolean;
     preco: number;
@@ -251,7 +252,7 @@ export async function getOrdersService() {
 }
 
 // Atualiza o status de um pedido
-export async function updateOrderStatusService(orderId: string, newStatus: string) {
+export async function updateOrderStatusService(orderId: string, newStatus: string, funcionarioNome: string, observacao?: string) {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos/${orderId}/status`, {
     method: "PATCH",
@@ -259,7 +260,7 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-    body: JSON.stringify({ status: newStatus }),
+    body: JSON.stringify({ status: newStatus, funcionarioNome, observacao }),
   });
   
   if (!response.ok) {
@@ -279,6 +280,7 @@ export async function updateOrderService(orderId: string, orderData: {
   price?: number;
   status?: string;
   dataPrevistaEntrega?: string;
+  prioridade?: number;
 }) {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos/${orderId}`, {

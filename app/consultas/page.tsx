@@ -581,6 +581,14 @@ export default function ConsultasPage() {
                                   <p>{order.dataPrevistaEntrega || order.expectedDate}</p>
                                 </div>
                               </div>
+
+                              {/* Criado por */}
+                              <div className="mt-2 text-sm">
+                                <span className="font-medium text-muted-foreground">Criado por:</span>{' '}
+                                <span title={order.createdBy?.userEmail || ''}>
+                                  {order.createdBy?.userName || 'Usuário Legado'}
+                                </span>
+                              </div>
                               
                               {/* Informações adicionais */}
                               <div className="mt-3 space-y-2">
