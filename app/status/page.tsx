@@ -42,6 +42,7 @@ interface StatusColumn {
 // Interface para um pedido
 interface Order {
   id: string;
+  codigo?: string;
   clientName: string;
   clientId: string;
   clientCpf: string;
@@ -88,6 +89,8 @@ interface Order {
     setorNome?: string;
     entradaEm: string;
     saidaEm?: string | null;
+    funcionarioEntrada?: string;
+    funcionarioSaida?: string | null;
   }>;
   // Quem criou o pedido
   createdBy?: {
@@ -241,22 +244,18 @@ export default function StatusControlPage() {
           if (order.id === orderId) {
             return {
               ...order,
-              status: newStatus,
-              statusHistory: updatedOrder.statusHistory || [
-                ...order.statusHistory,
-                {
-                  status: newStatus,
-                  date: new Date().toISOString().split("T")[0],
-                  time: new Date().toTimeString().slice(0, 5),
-                }
-              ]
+              ...updatedOrder,
+              status: updatedOrder.status || newStatus,
+              statusHistory: updatedOrder.statusHistory || order.statusHistory || [],
+              setoresHistorico: updatedOrder.setoresHistorico || order.setoresHistorico || [],
             };
           }
           return order;
         }),
       );
 
-      setSuccessMessage(`Pedido #${orderId} atualizado para ${getStatusInfo(newStatus).label}`);
+      setSuccessMessage(`Pedido #${updatedOrder?.codigo || orderId} atualizado para ${getStatusInfo(newStatus).label}`);
+      toast.success(`Movido por ${nome}`);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       console.error("Erro ao atualizar status:", error);
@@ -293,6 +292,24 @@ export default function StatusControlPage() {
       setMovedByNote("");
     }
   };
+  const getResponsavelAtual = (order: Order): string | null => {
+    // Preferir funcionário do setor atual, se presente
+    const hist = order.setoresHistorico || [];
+    if (hist.length > 0) {
+      const atual = hist[hist.length - 1];
+      if (atual?.funcionarioEntrada) return atual.funcionarioEntrada;
+    }
+    // Caso contrário, último usuário que moveu status
+    const sh = order.statusHistory || [];
+    if (sh.length > 0) {
+      const last = sh[sh.length - 1];
+      if (last?.userName) return last.userName;
+    }
+    // Fallback: quem criou
+    if (order.createdBy?.userName) return order.createdBy.userName;
+    return null;
+  };
+
 
   // Função para gerar PDF do pedido
   const generateOrderPDF = async (order: Order) => {
@@ -312,7 +329,7 @@ export default function StatusControlPage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      setSuccessMessage(`PDF do pedido #${order.id} gerado com sucesso!`);
+      setSuccessMessage(`PDF do pedido #${order.codigo || order.id} gerado com sucesso!`);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       console.error("Erro ao gerar PDF:", error);
@@ -383,10 +400,10 @@ export default function StatusControlPage() {
 
       if (nextStatus) {
         updateOrderStatus(foundOrder.id, nextStatus);
-        setSuccessMessage(`Pedido #${foundOrder.id} ${actionMessage}`);
+        setSuccessMessage(`Pedido #${foundOrder.codigo || foundOrder.id} ${actionMessage}`);
       } else {
         if (selectedSector === "next") {
-          setSuccessMessage(`Pedido #${foundOrder.id} já está no status final`);
+          setSuccessMessage(`Pedido #${foundOrder.codigo || foundOrder.id} já está no status final`);
         } else {
           setSuccessMessage(`Não foi possível mover para o setor ${selectedSector}`);
         }
@@ -807,29 +824,48 @@ export default function StatusControlPage() {
                           className="bg-slate-50 border border-slate-200 rounded-lg p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group"
                         >
                           <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-slate-800 mb-1">
-                                #{order.id}
-                              </h4>
-                              {typeof order.prioridade === 'number' && (
-                                <div className="mb-2">
-                                  {order.prioridade === 1 && (
-                                    <Badge className="bg-red-500 text-white">I - Alta</Badge>
-                                  )}
-                                  {order.prioridade === 2 && (
-                                    <Badge className="bg-yellow-500 text-white">II - Média</Badge>
-                                  )}
-                                  {order.prioridade === 3 && (
-                                    <Badge className="bg-green-500 text-white">III - Baixa</Badge>
-                                  )}
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-slate-800">#{order.codigo || order.id}</h4>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-slate-600 hover:text-slate-800"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(order.codigo || order.id);
+                                    toast.success("Número do pedido copiado");
+                                  }}
+                                >
+                                  Copiar
+                                </Button>
+                                {typeof order.prioridade === 'number' && (
+                                  <span>
+                                    {order.prioridade === 1 && (
+                                      <Badge className="bg-red-500 text-white">I - Alta</Badge>
+                                    )}
+                                    {order.prioridade === 2 && (
+                                      <Badge className="bg-yellow-500 text-white">II - Média</Badge>
+                                    )}
+                                    {order.prioridade === 3 && (
+                                      <Badge className="bg-green-500 text-white">III - Baixa</Badge>
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-600">{order.clientName}</p>
+                              <p className="text-sm text-slate-500">{order.modeloTenis}</p>
+                              <div className="text-xs text-slate-500">
+                                {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
+                              </div>
+                              <div className="text-xs">
+                                <span className="text-slate-500">Responsável: </span>
+                                <span className="font-medium text-slate-700">{getResponsavelAtual(order) || '—'}</span>
+                              </div>
+                              {order.servicos && (
+                                <div className="text-xs text-slate-600">
+                                  Serviços: <span className="text-slate-700">{String(order.servicos).slice(0, 80)}{String(order.servicos).length > 80 ? '…' : ''}</span>
                                 </div>
                               )}
-                              <p className="text-sm text-slate-600 mb-1">
-                                {order.clientName}
-                              </p>
-                              <p className="text-sm text-slate-500">
-                                {order.modeloTenis}
-                              </p>
                               {order.setorAtual && (
                                 <div className="flex items-center gap-2 mt-1">
                                   <div
@@ -864,15 +900,7 @@ export default function StatusControlPage() {
                               </Button>
                             </div>
                           </div>
-
-                          <div className="flex items-center justify-between text-xs text-slate-500">
-                            <span>
-                              {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
-                            </span>
-                            <span className="font-medium">
-                              R$ {order.precoTotal?.toFixed(2) || order.price?.toFixed(2)}
-                            </span>
-                          </div>
+                          
                         </div>
                       ))}
 

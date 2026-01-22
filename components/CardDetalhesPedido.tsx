@@ -8,6 +8,7 @@ import MoverSetorButton from "@/components/MoverSetorButton";
 
 export interface PedidoDetalhes {
   id: string;
+  codigo?: string;
   clientId: string;
   clientName: string;
   clientCpf: string;
@@ -128,7 +129,17 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
     <Dialog open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Detalhes do Pedido #{pedido.id}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            Detalhes do Pedido #{pedido.codigo || pedido.id}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2"
+              onClick={() => navigator.clipboard.writeText(pedido.codigo || pedido.id)}
+            >
+              Copiar
+            </Button>
+          </DialogTitle>
           <DialogDescription>
             {loadingCliente ? (
               "Carregando dados do cliente..."

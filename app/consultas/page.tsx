@@ -186,7 +186,7 @@ export default function ConsultasPage() {
       // Chama a API para atualizar o pedido
       const updatedOrder = await updateOrderService(editingOrder.id, editForm);
       
-      setSuccessMessage(`Pedido #${editingOrder.id} atualizado com sucesso!`);
+      setSuccessMessage(`Pedido #${editingOrder.codigo || editingOrder.id} atualizado com sucesso!`);
       setTimeout(() => setSuccessMessage(""), 3000);
       
       // Fechar modal e recarregar dados
@@ -227,7 +227,7 @@ export default function ConsultasPage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      setSuccessMessage(`PDF do pedido #${order.id} gerado com sucesso!`);
+      setSuccessMessage(`PDF do pedido #${order.codigo || order.id} gerado com sucesso!`);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       console.error("Erro ao gerar PDF:", error);
@@ -539,7 +539,7 @@ export default function ConsultasPage() {
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-4 mb-2">
-                                <h3 className="font-semibold">Pedido #{order.id}</h3>
+                                <h3 className="font-semibold">Pedido #{order.codigo || order.id}</h3>
                                 {getStatusBadge(order.status)}
                                 {order.setorAtual && (
                                   <div className="flex items-center gap-2 ml-2">

@@ -20,6 +20,7 @@ interface DashboardStats {
 
 interface RecentOrder {
   id: string
+  codigo?: string
   clientName: string
   clientCpf: string
   sneaker: string
@@ -416,7 +417,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="text-right hidden sm:block">
-                      <p className="text-sm text-slate-500">ID #{order.id}</p>
+                      <p className="text-sm text-slate-500">Código #{order.codigo || order.id}</p>
                       <p className="text-sm font-medium text-slate-700">
                         R$ {order.price.toFixed(2)}
                       </p>
