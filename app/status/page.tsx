@@ -354,8 +354,8 @@ export default function StatusControlPage() {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
 
-    // Busca por número do pedido
-    let foundOrder = orders.find(o => o.id === trimmed);
+    // Busca por número do pedido (id) ou código visível
+    let foundOrder = orders.find(o => o.id === trimmed || (o.codigo && o.codigo === trimmed));
     // Se não achou, busca por CPF do cliente
     if (!foundOrder) {
       foundOrder = orders.find(o => o.clientCpf.replace(/\D/g, "") === trimmed.replace(/\D/g, ""));
@@ -399,8 +399,12 @@ export default function StatusControlPage() {
       }
 
       if (nextStatus) {
-        updateOrderStatus(foundOrder.id, nextStatus);
-        setSuccessMessage(`Pedido #${foundOrder.codigo || foundOrder.id} ${actionMessage}`);
+        // Abrir diálogo para capturar funcionário antes de mover
+        setMoveDialogOpen(true);
+        setMoveOrderId(foundOrder.id);
+        setMoveNewStatus(nextStatus);
+        setMovedByName(userInfo?.nome || "");
+        setMovedByNote("");
       } else {
         if (selectedSector === "next") {
           setSuccessMessage(`Pedido #${foundOrder.codigo || foundOrder.id} já está no status final`);
@@ -472,35 +476,8 @@ export default function StatusControlPage() {
 
   // Filtra as colunas baseado no tipo de usuário
   const getFilteredStatusColumns = () => {
-    if (!userInfo) return statusColumns;
-
-    // Se for admin, mostra todas as colunas
-    if (userInfo.role === 'admin') {
-      return statusColumns;
-    }
-
-    // Para outros roles (atendimento, lavagem, pintura), filtra apenas as colunas do seu departamento
-    const departamento = userInfo.role.toLowerCase();
-    const filteredColumns: StatusColumn = {};
-
-    Object.keys(statusColumns).forEach(columnName => {
-      const columnLower = columnName.toLowerCase();
-      // Mostra colunas que contenham o nome do departamento do usuário
-      if (departamento === 'atendimento' && columnLower.includes('atendimento')) {
-        filteredColumns[columnName] = statusColumns[columnName];
-      } else if (departamento === 'lavagem' && columnLower.includes('lavagem')) {
-        filteredColumns[columnName] = statusColumns[columnName];
-      } else if (departamento === 'pintura' && columnLower.includes('pintura')) {
-        filteredColumns[columnName] = statusColumns[columnName];
-      } else if (departamento === 'montagem' && columnLower.includes('montagem')) {
-        filteredColumns[columnName] = statusColumns[columnName];
-      } else if (departamento === 'acabamento' && columnLower.includes('acabamento')) {
-        filteredColumns[columnName] = statusColumns[columnName];
-      }
-      // Adicione mais departamentos conforme necessário
-    });
-
-    return filteredColumns;
+    // Exibir todas as colunas para todos os usuários
+    return statusColumns;
   };
 
   // Organiza os pedidos por status baseado nas colunas filtradas
@@ -657,7 +634,7 @@ export default function StatusControlPage() {
                   <Input
                     ref={inputRef}
                     type="text"
-                    placeholder="ID do pedido ou CPF..."
+                    placeholder="Código do pedido ou CPF..."
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleQuickAdvance()}
@@ -737,7 +714,7 @@ export default function StatusControlPage() {
               <Button
                 onClick={handleQuickAdvance}
                 disabled={!inputValue.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8"
+                className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-6 sm:mt-0 mt-2"
               >
                 <Move className="w-4 h-4 mr-2" />
                 Mover
@@ -825,7 +802,7 @@ export default function StatusControlPage() {
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <h4 className="font-semibold text-slate-800">#{order.codigo || order.id}</h4>
                                 <Button
                                   size="sm"
@@ -859,7 +836,7 @@ export default function StatusControlPage() {
                               </div>
                               <div className="text-xs">
                                 <span className="text-slate-500">Responsável: </span>
-                                <span className="font-medium text-slate-700">{getResponsavelAtual(order) || '—'}</span>
+                                <span className="font-medium text-slate-700 break-all">{getResponsavelAtual(order) || '—'}</span>
                               </div>
                               {order.servicos && (
                                 <div className="text-xs text-slate-600">
@@ -934,6 +911,18 @@ export default function StatusControlPage() {
               <DialogTitle>Registrar movimentação</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
+              {moveOrderId && moveNewStatus && (() => {
+                const order = orders.find(o => o.id === moveOrderId);
+                const currentLabel = getStatusInfo(order?.status || "").label;
+                const newLabel = getStatusInfo(moveNewStatus).label;
+                return (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded">
+                    <p className="text-sm text-slate-700">
+                      Pedido #{order?.codigo || moveOrderId}: {currentLabel || ""} → {newLabel}
+                    </p>
+                  </div>
+                );
+              })()}
               <div>
                 <p className="text-sm text-slate-600">
                   Informe quem está movendo o pedido para o novo status.
