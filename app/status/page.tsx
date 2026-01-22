@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import {
   ArrowLeft,
   ArrowRight,
@@ -30,6 +31,7 @@ import {
 import Link from "next/link"
 import { CardDetalhesPedido } from "@/components/CardDetalhesPedido"
 import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService } from "@/lib/apiService"
+import { toast } from "sonner"
 import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 
 // Interface para as colunas de status
@@ -49,6 +51,7 @@ interface Order {
   description: string;
   observacoes: string;
   price: number;
+  prioridade?: number;
   status: string;
   createdDate: string;
   expectedDate: string;
@@ -172,6 +175,13 @@ export default function StatusControlPage() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Dialog de movimento
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveOrderId, setMoveOrderId] = useState<string | null>(null);
+  const [moveNewStatus, setMoveNewStatus] = useState<string | null>(null);
+  const [movedByName, setMovedByName] = useState<string>("");
+  const [movedByNote, setMovedByNote] = useState<string>("");
+
   // Carrega as colunas de status, pedidos e informações do usuário
   useEffect(() => {
     const loadData = async () => {
@@ -215,10 +225,15 @@ export default function StatusControlPage() {
     loadData();
   }, []);
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string, movedByName?: string, note?: string) => {
     try {
+      const nome = (movedByName || userInfo?.nome || "").trim();
+      if (!nome) {
+        toast.error("Informe o nome do funcionário.");
+        return;
+      }
       // Atualiza no backend
-      const updatedOrder = await updateOrderStatusService(orderId, newStatus);
+      const updatedOrder = await updateOrderStatusService(orderId, newStatus, nome, note);
 
       // Atualiza localmente com os dados retornados do backend
       setOrders((prevOrders) =>
@@ -271,8 +286,11 @@ export default function StatusControlPage() {
 
   const handleDrop = (status: string) => {
     if (draggedOrderId) {
-      updateOrderStatus(draggedOrderId, status);
-      setDraggedOrderId(null);
+      setMoveDialogOpen(true);
+      setMoveOrderId(draggedOrderId);
+      setMoveNewStatus(status);
+      setMovedByName(userInfo?.nome || "");
+      setMovedByNote("");
     }
   };
 
@@ -793,6 +811,19 @@ export default function StatusControlPage() {
                               <h4 className="font-semibold text-slate-800 mb-1">
                                 #{order.id}
                               </h4>
+                              {typeof order.prioridade === 'number' && (
+                                <div className="mb-2">
+                                  {order.prioridade === 1 && (
+                                    <Badge className="bg-red-500 text-white">I - Alta</Badge>
+                                  )}
+                                  {order.prioridade === 2 && (
+                                    <Badge className="bg-yellow-500 text-white">II - Média</Badge>
+                                  )}
+                                  {order.prioridade === 3 && (
+                                    <Badge className="bg-green-500 text-white">III - Baixa</Badge>
+                                  )}
+                                </div>
+                              )}
                               <p className="text-sm text-slate-600 mb-1">
                                 {order.clientName}
                               </p>
@@ -867,6 +898,68 @@ export default function StatusControlPage() {
             onClose={() => setShowOrderDetails(false)}
           />
         )}
+
+        {/* Dialog para confirmar movimento e registrar funcionário */}
+        <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Registrar movimentação</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-slate-600">
+                  Informe quem está movendo o pedido para o novo status.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Funcionário</label>
+                <Input
+                  value={movedByName}
+                  onChange={(e) => setMovedByName(e.target.value)}
+                  placeholder="Nome do funcionário"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Observação (opcional)</label>
+                <Input
+                  value={movedByNote}
+                  onChange={(e) => setMovedByNote(e.target.value)}
+                  placeholder="Ex.: Motivo da mudança"
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setMoveDialogOpen(false);
+                  setMoveOrderId(null);
+                  setMoveNewStatus(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (moveOrderId && moveNewStatus) {
+                    const nome = movedByName.trim();
+                    if (!nome) {
+                      toast.error("Informe o nome do funcionário.");
+                      return;
+                    }
+                    await updateOrderStatus(moveOrderId, moveNewStatus, nome, movedByNote);
+                  }
+                  setMoveDialogOpen(false);
+                  setMoveOrderId(null);
+                  setMoveNewStatus(null);
+                  setDraggedOrderId(null);
+                }}
+              >
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Footer */}
         <div className="text-center mt-8 text-slate-500">
