@@ -90,7 +90,8 @@ export async function getPedidoByIdService(id: string) {
 }
 // lib/apiService.ts
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+// Normalize to avoid trailing slashes that can cause double // in paths
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/+$/, "")
 
 // Cria um novo pedido
 export async function createPedidoService(pedido: {
