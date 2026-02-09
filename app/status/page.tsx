@@ -293,20 +293,43 @@ export default function StatusControlPage() {
     }
   };
   const getResponsavelAtual = (order: Order): string | null => {
+    // Helper para ler diferentes chaves possíveis vindas do backend
+    const readAny = (obj: any, keys: string[]): string | null => {
+      for (const k of keys) {
+        const v = obj?.[k];
+        if (typeof v === 'string' && v.trim()) return v;
+      }
+      return null;
+    };
+
     // Preferir funcionário do setor atual, se presente
     const hist = order.setoresHistorico || [];
     if (hist.length > 0) {
-      const atual = hist[hist.length - 1];
-      if (atual?.funcionarioEntrada) return atual.funcionarioEntrada;
+      const atual: any = hist[hist.length - 1] as any;
+      const nome = readAny(atual, [
+        'funcionarioEntrada',
+        'funcionarioNome',
+        'funcionario',
+        'responsavelEntrada',
+      ]);
+      if (nome) return nome;
     }
     // Caso contrário, último usuário que moveu status
     const sh = order.statusHistory || [];
     if (sh.length > 0) {
-      const last = sh[sh.length - 1];
-      if (last?.userName) return last.userName;
+      const last: any = sh[sh.length - 1] as any;
+      const nome = readAny(last, [
+        'userName',
+        'funcionarioNome',
+        'funcionario',
+        'movedByName',
+        'responsavel',
+      ]);
+      if (nome) return nome;
     }
-    // Fallback: quem criou
-    if (order.createdBy?.userName) return order.createdBy.userName;
+    // Fallback: quem criou o pedido
+    const createdByNome = readAny(order.createdBy as any, ['userName', 'nome', 'name']);
+    if (createdByNome) return createdByNome;
     return null;
   };
 
@@ -814,10 +837,14 @@ export default function StatusControlPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-6 px-2 text-slate-600 hover:text-slate-800"
-                                  onClick={() => {
+                                  draggable={false}
+                                  onMouseDown={(e) => { e.stopPropagation(); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     navigator.clipboard.writeText(order.codigo || order.id);
                                     toast.success("Número do pedido copiado");
                                   }}
+                                  title="Copiar número do pedido"
                                 >
                                   Copiar
                                 </Button>
@@ -866,6 +893,8 @@ export default function StatusControlPage() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 p-0 hover:bg-slate-200"
+                                draggable={false}
+                                onMouseDown={(e) => { e.stopPropagation(); }}
                                 onClick={() => {
                                   setSelectedOrder(order);
                                   setShowOrderDetails(true);
@@ -877,6 +906,8 @@ export default function StatusControlPage() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 p-0 hover:bg-slate-200"
+                                draggable={false}
+                                onMouseDown={(e) => { e.stopPropagation(); }}
                                 onClick={() => generateOrderPDF(order)}
                               >
                                 <FileText className="w-4 h-4" />
