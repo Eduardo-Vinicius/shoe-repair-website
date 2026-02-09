@@ -384,22 +384,37 @@ export default function NewOrderPage() {
   const getFirstStatusForSector = (sector: string): string | null => {
     const columnNames = Object.keys(statusColumns);
 
-    switch (sector) {
-      case "atendimento":
-        // Prioriza "A Fazer" do atendimento, senão pega o primeiro disponível
-        return columnNames.find(col => col.includes("Atendimento") && col.includes("Recebido")) ||
-          columnNames.find(col => col.includes("Atendimento")) || null;
-      case "lavagem":
-        // Prioriza "A Fazer" da lavagem, senão pega o primeiro disponível
-        return columnNames.find(col => col.includes("Lavagem") && col.includes("A Fazer")) ||
-          columnNames.find(col => col.includes("Lavagem")) || null;
-      case "pintura":
-        // Prioriza "A Fazer" da pintura, senão pega o primeiro disponível
-        return columnNames.find(col => col.includes("Pintura") && col.includes("A Fazer")) ||
-          columnNames.find(col => col.includes("Pintura")) || null;
-      default:
-        return null;
-    }
+    // Padrões de identificação por setor (case-insensitive)
+    const sectorPatterns: Record<string, string[]> = {
+      atendimento: ['atendimento', 'Atendimento', 'ATENDIMENTO'],
+      sapataria: ['sapataria', 'Sapataria', 'SAPATARIA'],
+      costura: ['costura', 'Costura', 'COSTURA'],
+      lavagem: ['lavagem', 'Lavagem', 'LAVAGEM'],
+      pintura: ['pintura', 'Pintura', 'PINTURA'],
+      acabamento: ['acabamento', 'Acabamento', 'ACABAMENTO'],
+    };
+
+    const patterns = sectorPatterns[sector];
+    if (!patterns) return null;
+
+    // Prioriza colunas com indicação de primeiro passo (ex.: "A Fazer", "Recebido")
+    const firstStepHints = ['a fazer', 'recebido', 'início', 'inicial'];
+
+    // Busca primeiro por um nome de coluna que contenha o setor e um hint de primeiro passo
+    const foundWithHint = columnNames.find((col) => {
+      const lower = col.toLowerCase();
+      const matchesSector = patterns.some((p) => lower.includes(p.toLowerCase()));
+      const matchesHint = firstStepHints.some((h) => lower.includes(h));
+      return matchesSector && matchesHint;
+    });
+    if (foundWithHint) return foundWithHint;
+
+    // Senão, retorna a primeira coluna que contenha o setor
+    const foundAny = columnNames.find((col) => {
+      const lower = col.toLowerCase();
+      return patterns.some((p) => lower.includes(p.toLowerCase()));
+    });
+    return foundAny || null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

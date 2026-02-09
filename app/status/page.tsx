@@ -428,6 +428,8 @@ export default function StatusControlPage() {
     // Mapeamento mais robusto de setores para padrões de coluna
     const sectorPatterns = {
       atendimento: ['atendimento', 'Atendimento', 'ATENDIMENTO'],
+      sapataria: ['sapataria', 'Sapataria', 'SAPATARIA'],
+      costura: ['costura', 'Costura', 'COSTURA'],
       lavagem: ['lavagem', 'Lavagem', 'LAVAGEM'],
       pintura: ['pintura', 'Pintura', 'PINTURA'],
       montagem: ['montagem', 'Montagem', 'MONTAGEM'],
@@ -456,6 +458,8 @@ export default function StatusControlPage() {
     // Mapeamento de setores e seus padrões
     const sectorDefinitions = [
       { value: "atendimento", label: "Atendimento", patterns: ['atendimento', 'Atendimento', 'ATENDIMENTO'] },
+      { value: "sapataria", label: "Sapataria", patterns: ['sapataria', 'Sapataria', 'SAPATARIA'] },
+      { value: "costura", label: "Costura", patterns: ['costura', 'Costura', 'COSTURA'] },
       { value: "lavagem", label: "Lavagem", patterns: ['lavagem', 'Lavagem', 'LAVAGEM'] },
       { value: "pintura", label: "Pintura", patterns: ['pintura', 'Pintura', 'PINTURA'] },
       { value: "montagem", label: "Montagem", patterns: ['montagem', 'Montagem', 'MONTAGEM'] },
@@ -678,6 +682,8 @@ export default function StatusControlPage() {
                         let department = 'Outros';
 
                         if (lowerName.includes('atendimento')) department = '🏢 Atendimento';
+                        else if (lowerName.includes('sapataria')) department = '👞 Sapataria';
+                        else if (lowerName.includes('costura')) department = '🪡 Costura';
                         else if (lowerName.includes('lavagem')) department = '🧼 Lavagem';
                         else if (lowerName.includes('pintura')) department = '🎨 Pintura';
                         else if (lowerName.includes('montagem')) department = '🔧 Montagem';
