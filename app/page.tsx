@@ -116,6 +116,16 @@ export default function LoginPage() {
                   <p>Senha: 123456</p>
                 </div>
                 <div>
+                  <p><strong>Sapataria:</strong></p>
+                  <p>Email: sapataria@email.com</p>
+                  <p>Senha: 123456</p>
+                </div>
+                <div>
+                  <p><strong>Costura:</strong></p>
+                  <p>Email: costura@email.com</p>
+                  <p>Senha: 123456</p>
+                </div>
+                <div>
                   <p><strong>Pintura:</strong></p>
                   <p>Email: pintura@email.com</p>
                   <p>Senha: 123456</p>
@@ -123,6 +133,11 @@ export default function LoginPage() {
                 <div>
                   <p><strong>Lavagem:</strong></p>
                   <p>Email: lavagem@email.com</p>
+                  <p>Senha: 123456</p>
+                </div>
+                <div>
+                  <p><strong>Acabamento:</strong></p>
+                  <p>Email: acabamento@email.com</p>
                   <p>Senha: 123456</p>
                 </div>
               </div>
