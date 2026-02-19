@@ -125,6 +125,47 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
   }, [open]);
 
   if (!pedido) return null;
+
+  const extractHttpPhotoUrl = (value: unknown): string | null => {
+    if (!value) return null;
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (/^https?:\/\//i.test(trimmed)) return trimmed;
+      if (trimmed.startsWith("blob:")) return null;
+
+      try {
+        return extractHttpPhotoUrl(JSON.parse(trimmed));
+      } catch {
+        return null;
+      }
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const parsed = extractHttpPhotoUrl(item);
+        if (parsed) return parsed;
+      }
+      return null;
+    }
+
+    if (typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      const candidates = [obj.url, obj.fotoUrl, obj.uploadedUrl, obj.s3Url, obj.location, obj.src];
+      for (const candidate of candidates) {
+        const parsed = extractHttpPhotoUrl(candidate);
+        if (parsed) return parsed;
+      }
+      return null;
+    }
+
+    return null;
+  };
+
+  const fotosValidas = (pedido.fotos || [])
+    .map((foto) => extractHttpPhotoUrl(foto))
+    .filter((foto): foto is string => Boolean(foto));
+
   return (
     <Dialog open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -243,11 +284,11 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
           )}
           
           {/* Fotos */}
-          {pedido.fotos && pedido.fotos.length > 0 && (
+          {fotosValidas.length > 0 && (
             <div className="border-t pt-3 mt-4">
               <div className="font-semibold mb-2">Fotos do Tênis:</div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {pedido.fotos.map((foto, index) => (
+                {fotosValidas.map((foto, index) => (
                   <img 
                     key={index}
                     src={foto} 

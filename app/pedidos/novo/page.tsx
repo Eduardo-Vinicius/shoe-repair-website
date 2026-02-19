@@ -435,7 +435,9 @@ export default function NewOrderPage() {
     setSuccess(false);
 
     try {
-  const fotosUrls = photos.map((p) => p.uploadedUrl || p.preview);
+      const fotosUrls = photos
+        .map((p) => p.uploadedUrl)
+        .filter((url): url is string => Boolean(url && /^https?:\/\//i.test(url)));
 
       // Agregar informações dos serviços
       const servicosInfo = selectedServices.map(service => ({
