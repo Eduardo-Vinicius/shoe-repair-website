@@ -19,6 +19,7 @@ export interface Pedido {
   observacoes: string;
   departamento: string;
   status: string;
+  funcionarioAtual?: string;
   fotos: string[];
   createdAt: string;
   precoTotal: number;
@@ -394,15 +395,24 @@ export async function getProximoSetorService(pedidoId: string) {
 }
 
 // Mover pedido para setor específico
-export async function moverPedidoSetorService(pedidoId: string, setorId: string) {
+export async function moverPedidoSetorService(
+  pedidoId: string,
+  setorId: string,
+  funcionarioNome?: string,
+  observacao?: string,
+) {
   const token = localStorage.getItem("token");
+  const payload: Record<string, string> = { setorId };
+  if (funcionarioNome?.trim()) payload.funcionarioNome = funcionarioNome.trim();
+  if (observacao?.trim()) payload.observacao = observacao.trim();
+
   const response = await fetch(`${API_BASE_URL}/pedidos/${pedidoId}/mover-setor`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-    body: JSON.stringify({ setorId }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

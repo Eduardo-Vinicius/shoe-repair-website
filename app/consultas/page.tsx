@@ -79,6 +79,7 @@ export default function ConsultasPage() {
   const handleViewOrder = (order: any) => {
     const pedidoDetalhes: PedidoDetalhes = {
       id: order.id?.toString() || '',
+      funcionarioAtual: order.funcionarioAtual || '',
       clientId: order.clientId?.toString() || '',
       clientName: order.clientName || `Cliente #${order.clienteId}`,
       clientCpf: order.clientCpf || '',
@@ -589,6 +590,13 @@ export default function ConsultasPage() {
                                   {order.createdBy?.userName || 'Usuário Legado'}
                                 </span>
                               </div>
+
+                              {!!order.funcionarioAtual && (
+                                <div className="mt-1 text-sm">
+                                  <span className="font-medium text-muted-foreground">Funcionário atual:</span>{' '}
+                                  <span>{order.funcionarioAtual}</span>
+                                </div>
+                              )}
                               
                               {/* Informações adicionais */}
                               <div className="mt-3 space-y-2">

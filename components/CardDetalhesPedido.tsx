@@ -9,6 +9,7 @@ import MoverSetorButton from "@/components/MoverSetorButton";
 export interface PedidoDetalhes {
   id: string;
   codigo?: string;
+  funcionarioAtual?: string;
   clientId: string;
   clientName: string;
   clientCpf: string;
@@ -225,6 +226,9 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
           </div>
           {(pedido.valorRestante && pedido.valorRestante > 0) && (
             <div className="text-orange-600"><strong>Valor Restante:</strong> R$ {pedido.valorRestante.toFixed(2)}</div>
+          )}
+          {pedido.funcionarioAtual && (
+            <div><strong>Funcionário Atual:</strong> {pedido.funcionarioAtual}</div>
           )}
           <div><strong>Status:</strong> {pedido.status}</div>
           <div><strong>Data de Criação:</strong> {pedido.dataCriacao || pedido.createdDate}</div>

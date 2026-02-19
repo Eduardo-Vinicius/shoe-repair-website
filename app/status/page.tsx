@@ -43,6 +43,7 @@ interface StatusColumn {
 interface Order {
   id: string;
   codigo?: string;
+  funcionarioAtual?: string;
   clientName: string;
   clientId: string;
   clientCpf: string;
@@ -293,6 +294,10 @@ export default function StatusControlPage() {
     }
   };
   const getResponsavelAtual = (order: Order): string | null => {
+    if (order.funcionarioAtual?.trim()) {
+      return order.funcionarioAtual.trim();
+    }
+
     // Helper para ler diferentes chaves possíveis vindas do backend
     const readAny = (obj: any, keys: string[]): string | null => {
       for (const k of keys) {
@@ -868,7 +873,7 @@ export default function StatusControlPage() {
                                 {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
                               </div>
                               <div className="text-xs">
-                                <span className="text-slate-500">Responsável: </span>
+                                <span className="text-slate-500">Funcionário atual: </span>
                                 <span className="font-medium text-slate-700 break-all">{getResponsavelAtual(order) || '—'}</span>
                               </div>
                               {order.servicos && (
