@@ -1,5 +1,3 @@
-import { log } from "node:console";
-
 export interface ServicoPedido {
   preco: number;
   nome: string;
@@ -78,21 +76,136 @@ export async function updateClienteService(id: string, cliente: Partial<{
 
 // Busca pedido por ID
 export async function getPedidoByIdService(id: string) {
-  const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/pedidos/${id}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-    },
-  });
-  if (!response.ok) throw new Error("Erro ao buscar pedido");
-  return response.json();
+  return getPedidoService(id);
 }
 // lib/apiService.ts
 
 // Normalize to avoid trailing slashes that can cause double // in paths
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/+$/, "")
+
+function getAuthToken() {
+  return localStorage.getItem("token");
+}
+
+function getAuthHeaders(contentType = "application/json") {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    "Authorization": `Bearer ${token || ""}`,
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache",
+  };
+
+  if (contentType) {
+    headers["Content-Type"] = contentType;
+  }
+
+  return headers;
+}
+
+function resolveApiPayload(payload: any) {
+  return payload?.data ?? payload;
+}
+
+function extractPedidoIdFromPayload(payload: any): string | null {
+  const resolved = resolveApiPayload(payload);
+  const id = resolved?.id ?? resolved?._id ?? resolved?.pedidoId;
+  return typeof id === "string" && id.trim() ? id : null;
+}
+
+export interface PedidoPdfAsset {
+  id?: string;
+  nome?: string;
+  fileName?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  url: string;
+}
+
+export async function getPedidoService(id: string) {
+  const response = await fetch(`${API_BASE_URL}/pedidos/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar pedido");
+  }
+
+  const result = await response.json();
+  return resolveApiPayload(result);
+}
+
+export async function listPedidoPdfsService(pedidoId: string): Promise<PedidoPdfAsset[]> {
+  const response = await fetch(`${API_BASE_URL}/pedidos/${pedidoId}/pdfs`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao listar PDFs do pedido");
+  }
+
+  const result = await response.json();
+  const payload = resolveApiPayload(result);
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function uploadPedidoFotosService(pedidoId: string, files: File[]): Promise<string[]> {
+  const formData = new FormData();
+  formData.append("pedidoId", pedidoId);
+  files.forEach((file) => formData.append("fotos", file));
+
+  const response = await fetch(`${API_BASE_URL}/upload/fotos`, {
+    method: "POST",
+    headers: getAuthHeaders(""),
+    body: formData,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao fazer upload das fotos");
+  }
+
+  const result = await response.json().catch(() => ({}));
+  const payload = resolveApiPayload(result);
+  const urls = payload?.urls || payload?.fotos || payload?.photos || [];
+  return Array.isArray(urls) ? urls.filter((url): url is string => typeof url === "string") : [];
+}
+
+export async function downloadPedidoFotosZipService(pedidoId: string) {
+  const response = await fetch(`${API_BASE_URL}/pedidos/${pedidoId}/fotos/zip`, {
+    method: "GET",
+    headers: getAuthHeaders(""),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao baixar fotos em ZIP");
+  }
+
+  return response.blob();
+}
+
+export function downloadBlobAsFile(blob: Blob, filename: string) {
+  const objectUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(objectUrl);
+}
+
+export function getPedidoIdFromCreateResponse(payload: any) {
+  return extractPedidoIdFromPayload(payload);
+}
 
 // Cria um novo pedido
 export async function createPedidoService(pedido: {
@@ -357,14 +470,11 @@ export async function apiFetch(
 
 // Gera PDF de um pedido
 export async function generateOrderPDFService(pedidoId: string) {
-  const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos/document/pdf`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ pedidoId }),
+    cache: "no-store",
   });
 
   if (!response.ok) {

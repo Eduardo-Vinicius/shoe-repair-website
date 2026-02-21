@@ -29,8 +29,8 @@ import {
   Filter
 } from "lucide-react"
 import Link from "next/link"
-import { CardDetalhesPedido } from "@/components/CardDetalhesPedido"
-import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService } from "@/lib/apiService"
+import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
+import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile } from "@/lib/apiService"
 import { toast } from "sonner"
 import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 
@@ -346,16 +346,7 @@ export default function StatusControlPage() {
 
       // Chama o service do backend para gerar o PDF
       const pdfBlob = await generateOrderPDFService(order.id);
-
-      // Cria URL para o blob e faz o download
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `pedido-${order.id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      downloadBlobAsFile(pdfBlob, `pedido-${order.id}.pdf`);
 
       setSuccessMessage(`PDF do pedido #${order.codigo || order.id} gerado com sucesso!`);
       setTimeout(() => setSuccessMessage(""), 3000);
@@ -375,6 +366,11 @@ export default function StatusControlPage() {
       setSuccessMessage(errorMessage);
       setTimeout(() => setSuccessMessage(""), 5000);
     }
+  };
+
+  const handlePedidoUpdated = (updated: PedidoDetalhes) => {
+    setSelectedOrder(updated as unknown as Order);
+    setOrders((prev) => prev.map((order) => (order.id === updated.id ? { ...order, ...updated } : order)));
   };
 
   // Função para avançar pedido por número do pedido ou CPF do cliente
@@ -943,6 +939,7 @@ export default function StatusControlPage() {
             pedido={selectedOrder}
             open={showOrderDetails}
             onClose={() => setShowOrderDetails(false)}
+            onPedidoUpdated={handlePedidoUpdated}
           />
         )}
 

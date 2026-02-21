@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getClienteByIdService } from "@/lib/apiService";
 import SetorProgress from "@/components/SetorProgress";
 import MoverSetorButton from "@/components/MoverSetorButton";
+import { usePedidoAssets } from "@/hooks/usePedidoAssets";
 
 export interface PedidoDetalhes {
   id: string;
@@ -85,24 +86,39 @@ export interface CardDetalhesPedidoProps {
   open: boolean;
   pedido: PedidoDetalhes | null;
   onClose: () => void;
+  onPedidoUpdated?: (pedido: PedidoDetalhes) => void;
 }
 
-export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, onClose, pedido }) => {
+export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, onClose, pedido, onPedidoUpdated }) => {
   const router = useRouter();
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loadingCliente, setLoadingCliente] = useState(false);
   const [errorCliente, setErrorCliente] = useState("");
+  const [renewedPhotos, setRenewedPhotos] = useState<Record<number, boolean>>({});
+  const {
+    pedido: pedidoAtualizado,
+    setPedido,
+    error: assetsError,
+    refreshState,
+    pdfState,
+    zipState,
+    refreshPedido,
+    generateAndDownloadPdf,
+    downloadFotosZip,
+  } = usePedidoAssets(pedido?.id, pedido);
+
+  const pedidoAtual = (pedidoAtualizado || pedido) as PedidoDetalhes | null;
 
   // Busca os dados do cliente quando o modal é aberto
   useEffect(() => {
     const fetchCliente = async () => {
-      if (!open || !pedido?.clientId) return;
+      if (!open || !pedidoAtual?.clientId) return;
 
       try {
         setLoadingCliente(true);
         setErrorCliente("");
-        console.log("Buscando dados do cliente para ID:", pedido.clientId);
-        const clienteData = await getClienteByIdService(pedido.clientId);
+        console.log("Buscando dados do cliente para ID:", pedidoAtual.clientId);
+        const clienteData = await getClienteByIdService(pedidoAtual.clientId);
         setCliente(clienteData);
       } catch (err: any) {
         console.error("Erro ao carregar cliente:", err);
@@ -114,7 +130,13 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
     };
 
     fetchCliente();
-  }, [open, pedido?.clientId]);
+  }, [open, pedidoAtual?.clientId]);
+
+  useEffect(() => {
+    if (pedido) {
+      setPedido(pedido);
+    }
+  }, [pedido, setPedido]);
 
   // Reset do estado quando o modal fecha
   useEffect(() => {
@@ -122,10 +144,11 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
       setCliente(null);
       setErrorCliente("");
       setLoadingCliente(false);
+      setRenewedPhotos({});
     }
   }, [open]);
 
-  if (!pedido) return null;
+  if (!pedidoAtual) return null;
 
   const extractHttpPhotoUrl = (value: unknown): string | null => {
     if (!value) return null;
@@ -163,21 +186,68 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
     return null;
   };
 
-  const fotosValidas = (pedido.fotos || [])
+  const fotosValidas = (pedidoAtual.fotos || [])
     .map((foto) => extractHttpPhotoUrl(foto))
     .filter((foto): foto is string => Boolean(foto));
+
+  const handleRefreshLinks = async () => {
+    if (!pedidoAtual.id) return;
+    const refreshed = await refreshPedido();
+    if (refreshed && onPedidoUpdated) {
+      onPedidoUpdated(refreshed as PedidoDetalhes);
+    }
+  };
+
+  const handleOpenPhoto = async (foto: string, index: number) => {
+    try {
+      const probe = await fetch(foto, { method: "GET", cache: "no-store" });
+      if (!probe.ok) throw new Error("URL expirada");
+      window.open(foto, "_blank", "noopener,noreferrer");
+    } catch {
+      const refreshed = await refreshPedido();
+      const refFotos = Array.isArray(refreshed?.fotos) ? refreshed.fotos : [];
+      const novaUrl = extractHttpPhotoUrl(refFotos[index]);
+      if (novaUrl) {
+        setRenewedPhotos((prev) => ({ ...prev, [index]: true }));
+        window.open(novaUrl, "_blank", "noopener,noreferrer");
+        if (onPedidoUpdated) onPedidoUpdated(refreshed as PedidoDetalhes);
+      }
+    }
+  };
+
+  const handleFotoError = async (event: React.SyntheticEvent<HTMLImageElement>, index: number) => {
+    const img = event.currentTarget;
+    if (img.dataset.refreshed === "1") return;
+
+    img.dataset.refreshed = "1";
+
+    try {
+      const refreshed = await refreshPedido();
+      const refFotos = Array.isArray(refreshed?.fotos) ? refreshed.fotos : [];
+      const novaUrl = extractHttpPhotoUrl(refFotos[index]);
+      if (novaUrl) {
+        setRenewedPhotos((prev) => ({ ...prev, [index]: true }));
+        img.src = novaUrl;
+      }
+      if (refreshed && onPedidoUpdated) {
+        onPedidoUpdated(refreshed as PedidoDetalhes);
+      }
+    } catch {
+      // estado de erro já é tratado pelo hook
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
-            Detalhes do Pedido #{pedido.codigo || pedido.id}
+            Detalhes do Pedido #{pedidoAtual.codigo || pedidoAtual.id}
             <Button
               variant="ghost"
               size="sm"
               className="h-6 px-2"
-              onClick={() => navigator.clipboard.writeText(pedido.codigo || pedido.id)}
+              onClick={() => navigator.clipboard.writeText(pedidoAtual.codigo || pedidoAtual.id)}
             >
               Copiar
             </Button>
@@ -194,91 +264,91 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
               </>
             ) : (
               <>
-                Cliente: <span className="font-semibold">{pedido.clientName}</span> ({pedido.clientCpf}
-                {pedido.clientPhone ? ` • ${pedido.clientPhone}` : ""})
+                Cliente: <span className="font-semibold">{pedidoAtual.clientName}</span> ({pedidoAtual.clientCpf}
+                {pedidoAtual.clientPhone ? ` • ${pedidoAtual.clientPhone}` : ""})
               </>
             )}
           </DialogDescription>
           {/* Progresso dos Setores */}
-          {pedido.setoresFluxo && pedido.setorAtual && pedido.setoresHistorico && (
+          {pedidoAtual.setoresFluxo && pedidoAtual.setorAtual && pedidoAtual.setoresHistorico && (
             <div className="mt-3">
               <SetorProgress
                 pedido={{
-                  setoresFluxo: pedido.setoresFluxo,
-                  setorAtual: pedido.setorAtual,
-                  setoresHistorico: pedido.setoresHistorico,
+                  setoresFluxo: pedidoAtual.setoresFluxo,
+                  setorAtual: pedidoAtual.setorAtual,
+                  setoresHistorico: pedidoAtual.setoresHistorico,
                 }}
               />
             </div>
           )}
         </DialogHeader>
         <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-2">{/*Conteúdo com scroll*/}
-          <div><strong>Tênis:</strong> {pedido.modeloTenis || pedido.sneaker}</div>
-          <div><strong>Serviço:</strong> {pedido.servicos || pedido.tipoServico}</div>
-          {pedido.descricaoServicos && (
-            <div><strong>Descrição:</strong> {pedido.descricaoServicos}</div>
+          <div><strong>Tênis:</strong> {pedidoAtual.modeloTenis || pedidoAtual.sneaker}</div>
+          <div><strong>Serviço:</strong> {pedidoAtual.servicos || pedidoAtual.tipoServico}</div>
+          {pedidoAtual.descricaoServicos && (
+            <div><strong>Descrição:</strong> {pedidoAtual.descricaoServicos}</div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div><strong>Valor Total:</strong> R$ {(pedido.precoTotal || pedido.price || 0).toFixed(2)}</div>
-            {(pedido.valorSinal && pedido.valorSinal > 0) && (
-              <div className="text-green-600"><strong>Sinal Pago:</strong> R$ {pedido.valorSinal.toFixed(2)}</div>
+            <div><strong>Valor Total:</strong> R$ {(pedidoAtual.precoTotal || pedidoAtual.price || 0).toFixed(2)}</div>
+            {(pedidoAtual.valorSinal && pedidoAtual.valorSinal > 0) && (
+              <div className="text-green-600"><strong>Sinal Pago:</strong> R$ {pedidoAtual.valorSinal.toFixed(2)}</div>
             )}
           </div>
-          {(pedido.valorRestante && pedido.valorRestante > 0) && (
-            <div className="text-orange-600"><strong>Valor Restante:</strong> R$ {pedido.valorRestante.toFixed(2)}</div>
+          {(pedidoAtual.valorRestante && pedidoAtual.valorRestante > 0) && (
+            <div className="text-orange-600"><strong>Valor Restante:</strong> R$ {pedidoAtual.valorRestante.toFixed(2)}</div>
           )}
-          {pedido.funcionarioAtual && (
-            <div><strong>Funcionário Atual:</strong> {pedido.funcionarioAtual}</div>
+          {pedidoAtual.funcionarioAtual && (
+            <div><strong>Funcionário Atual:</strong> {pedidoAtual.funcionarioAtual}</div>
           )}
-          <div><strong>Status:</strong> {pedido.status}</div>
-          <div><strong>Data de Criação:</strong> {pedido.dataCriacao || pedido.createdDate}</div>
-          <div><strong>Previsão de Entrega:</strong> {pedido.dataPrevistaEntrega || pedido.expectedDate}</div>
+          <div><strong>Status:</strong> {pedidoAtual.status}</div>
+          <div><strong>Data de Criação:</strong> {pedidoAtual.dataCriacao || pedidoAtual.createdDate}</div>
+          <div><strong>Previsão de Entrega:</strong> {pedidoAtual.dataPrevistaEntrega || pedidoAtual.expectedDate}</div>
 
           {/* Informações de criação */}
-          {pedido.createdBy && (
+          {pedidoAtual.createdBy && (
             <div className="border-t pt-3 mt-4 bg-gray-50 p-3 rounded">
               <div className="text-sm font-medium text-gray-700 mb-2">Informações de Criação</div>
               <div className="space-y-1 text-sm">
                 <div>
                   <span className="text-gray-500">Criado por:</span>{" "}
-                  <span className="font-medium">{pedido.createdBy.userName}</span>
+                  <span className="font-medium">{pedidoAtual.createdBy.userName}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">Email:</span>{" "}
-                  <span>{pedido.createdBy.userEmail}</span>
+                  <span>{pedidoAtual.createdBy.userEmail}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">Cargo:</span>{" "}
-                  <span className="capitalize">{pedido.createdBy.userRole}</span>
+                  <span className="capitalize">{pedidoAtual.createdBy.userRole}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">Data:</span>{" "}
-                  <span>{new Date(pedido.dataCriacao || pedido.createdDate).toLocaleString('pt-BR')}</span>
+                  <span>{new Date(pedidoAtual.dataCriacao || pedidoAtual.createdDate).toLocaleString('pt-BR')}</span>
                 </div>
               </div>
             </div>
           )}
           
           {/* Garantia */}
-          {pedido.garantia?.ativa && (
+          {pedidoAtual.garantia?.ativa && (
             <div className="border-t pt-3 mt-4 bg-blue-50 p-3 rounded">
               <div className="font-semibold mb-2 text-blue-800">Garantia Contratada:</div>
               <div className="text-sm space-y-1">
-                <div><strong>Duração:</strong> {pedido.garantia.duracao}</div>
-                <div><strong>Valor:</strong> R$ {pedido.garantia.preco.toFixed(2)}</div>
-                {pedido.garantia.data && (
-                  <div><strong>Válida até:</strong> {pedido.garantia.data}</div>
+                <div><strong>Duração:</strong> {pedidoAtual.garantia.duracao}</div>
+                <div><strong>Valor:</strong> R$ {pedidoAtual.garantia.preco.toFixed(2)}</div>
+                {pedidoAtual.garantia.data && (
+                  <div><strong>Válida até:</strong> {pedidoAtual.garantia.data}</div>
                 )}
               </div>
             </div>
           )}
           
           {/* Acessórios */}
-          {pedido.acessorios && pedido.acessorios.length > 0 && (
+          {pedidoAtual.acessorios && pedidoAtual.acessorios.length > 0 && (
             <div className="border-t pt-3 mt-4">
               <div className="font-semibold mb-2">Acessórios Inclusos:</div>
               <div className="flex flex-wrap gap-1">
-                {pedido.acessorios.map((acessorio, index) => (
+                {pedidoAtual.acessorios.map((acessorio, index) => (
                   <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
                     {acessorio}
                   </span>
@@ -293,24 +363,31 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
               <div className="font-semibold mb-2">Fotos do Tênis:</div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {fotosValidas.map((foto, index) => (
-                  <img 
-                    key={index}
-                    src={foto} 
-                    alt={`Foto ${index + 1}`}
-                    className="w-full h-24 object-cover rounded border cursor-pointer hover:opacity-75"
-                    onClick={() => window.open(foto, '_blank')}
-                  />
+                  <div key={index} className="relative">
+                    <img
+                      src={foto}
+                      alt={`Foto ${index + 1}`}
+                      className="w-full h-24 object-cover rounded border cursor-pointer hover:opacity-75"
+                      onError={(event) => handleFotoError(event, index)}
+                      onClick={() => handleOpenPhoto(foto, index)}
+                    />
+                    {renewedPhotos[index] && (
+                      <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 border border-green-200">
+                        link renovado
+                      </span>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
           )}
           
           {/* Observações do pedido */}
-          {pedido.observacoes && (
+          {pedidoAtual.observacoes && (
             <div className="border-t pt-3 mt-4">
               <div><strong>Observações do Pedido:</strong></div>
               <div className="whitespace-pre-wrap text-sm mt-1 p-2 bg-gray-50 rounded border">
-                {pedido.observacoes}
+                {pedidoAtual.observacoes}
               </div>
             </div>
           )}
@@ -336,11 +413,47 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
               )}
             </div>
           )}
+
+          <div className="border-t pt-3 mt-4">
+            <div className="font-semibold mb-2">Assets</div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshLinks}
+                disabled={refreshState === "loading"}
+              >
+                {refreshState === "loading" ? "Atualizando..." : "Atualizar links"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => generateAndDownloadPdf(`pedido-${pedidoAtual.id}.pdf`)}
+                disabled={pdfState === "loading"}
+              >
+                {pdfState === "loading" ? "Gerando PDF..." : "Gerar/Baixar PDF"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => downloadFotosZip(`pedido-${pedidoAtual.id}-fotos.zip`)}
+                disabled={zipState === "loading"}
+              >
+                {zipState === "loading" ? "Baixando ZIP..." : "Baixar fotos (.zip)"}
+              </Button>
+            </div>
+
+            {(assetsError || refreshState === "success" || pdfState === "success" || zipState === "success") && (
+              <div className={`text-sm mt-2 ${assetsError ? "text-red-600" : "text-green-600"}`}>
+                {assetsError || "Ação concluída com sucesso."}
+              </div>
+            )}
+          </div>
           
           <div>
             <strong>Histórico:</strong>
             <ul className="list-disc ml-5">
-              {pedido.statusHistory.map((h, i) => (
+              {pedidoAtual.statusHistory.map((h, i) => (
                 <li key={i}>{h.status} - {h.date} às {h.time}</li>
               ))}
             </ul>
@@ -350,15 +463,15 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
           <Button
             variant="secondary"
             className="flex-1"
-            onClick={() => router.push(`/clientes/${pedido.clientId}`)}
+            onClick={() => router.push(`/clientes/${pedidoAtual.clientId}`)}
             disabled={loadingCliente}
           >
             {loadingCliente ? "Carregando..." : "Ver Cliente"}
           </Button>
           {/* Botão para mover entre setores */}
-          {pedido.id && (
+          {pedidoAtual.id && (
             <MoverSetorButton
-              pedidoId={pedido.id}
+              pedidoId={pedidoAtual.id}
               onSuccess={() => {
                 // sem ações adicionais aqui; componente pai pode recarregar dados
               }}

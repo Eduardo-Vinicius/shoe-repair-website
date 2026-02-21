@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getClientesService, getOrdersStatusService, generateOrderPDFService, updateOrderService } from "@/lib/apiService"
+import { getClientesService, getOrdersStatusService, generateOrderPDFService, updateOrderService, downloadBlobAsFile } from "@/lib/apiService"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -217,16 +217,7 @@ export default function ConsultasPage() {
       
       // Chama o service do backend para gerar o PDF
       const pdfBlob = await generateOrderPDFService(order.id);
-      
-      // Cria URL para o blob e faz o download
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `pedido-${order.id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      downloadBlobAsFile(pdfBlob, `pedido-${order.id}.pdf`);
 
       setSuccessMessage(`PDF do pedido #${order.codigo || order.id} gerado com sucesso!`);
       setTimeout(() => setSuccessMessage(""), 3000);
@@ -246,6 +237,13 @@ export default function ConsultasPage() {
       setSuccessMessage(errorMessage);
       setTimeout(() => setSuccessMessage(""), 5000);
     }
+  };
+
+  const handlePedidoUpdated = (updatedOrder: PedidoDetalhes) => {
+    setSelectedOrder(updatedOrder);
+    setOrders((prev) => prev.map((order) => (
+      order.id === updatedOrder.id ? { ...order, ...updatedOrder } : order
+    )));
   };
   // Busca clientes e pedidos ao buscar
   const fetchData = async () => {
@@ -713,6 +711,7 @@ export default function ConsultasPage() {
           open={modalOpen}
           pedido={selectedOrder}
           onClose={handleCloseModal}
+          onPedidoUpdated={handlePedidoUpdated}
         />
 
         {/* Modal de edição do pedido */}

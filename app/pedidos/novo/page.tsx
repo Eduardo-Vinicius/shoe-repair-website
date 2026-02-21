@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Loader2, CheckCircle, Search, Upload, X, Plus, Minus } from "lucide-react"
 import Link from "next/link"
-import { createPedidoService, getClientesService, getStatusColumnsService } from "@/lib/apiService"
+import { createPedidoService, getClientesService, getStatusColumnsService, getPedidoIdFromCreateResponse, uploadPedidoFotosService } from "@/lib/apiService"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
@@ -193,6 +193,8 @@ export default function NewOrderPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [uploadMessage, setUploadMessage] = useState("")
 
   const filteredClients = clients.filter(
     (client: any) =>
@@ -433,12 +435,11 @@ export default function NewOrderPage() {
     setIsLoading(true);
     setErrors({});
     setSuccess(false);
+    setUploadStatus("idle");
+    setUploadMessage("");
+    let uploadInProgress = false;
 
     try {
-      const fotosUrls = photos
-        .map((p) => p.uploadedUrl)
-        .filter((url): url is string => Boolean(url && /^https?:\/\//i.test(url)));
-
       // Agregar informações dos serviços
       const servicosInfo = selectedServices.map(service => ({
         id: service.id,
@@ -461,12 +462,12 @@ export default function NewOrderPage() {
       // Observações apenas com o texto inserido pelo usuário
       const observacoesFinais = formData.observations || '';
 
-      await createPedidoService({
+      const createdPedidoResponse = await createPedidoService({
         clienteId: formData.clientId,
         clientName: selectedClient?.nomeCompleto || "",
         modeloTenis: formData.sneaker,
         servicos: servicosInfo,
-        fotos: fotosUrls,
+        fotos: [],
         precoTotal: getTotalPrice(),
         valorSinal: signalValue,
         valorRestante: valorRestante,
@@ -478,6 +479,22 @@ export default function NewOrderPage() {
         acessorios: selectedAccessories,
         status: getFirstStatusForSector(formData.department) || undefined,
       });
+
+      if (photos.length > 0) {
+        const pedidoId = getPedidoIdFromCreateResponse(createdPedidoResponse);
+        if (!pedidoId) {
+          throw new Error("Pedido criado, mas não foi possível identificar o ID para upload das fotos");
+        }
+
+        uploadInProgress = true;
+        setUploadStatus("loading");
+        setUploadMessage("Enviando fotos...");
+        await uploadPedidoFotosService(pedidoId, photos.map((photo) => photo.file));
+        uploadInProgress = false;
+        setUploadStatus("success");
+        setUploadMessage("Fotos enviadas com sucesso.");
+      }
+
       setSuccess(true);
       setIsLoading(false);
       // revoke previews to free memory
@@ -487,6 +504,10 @@ export default function NewOrderPage() {
       }, 1000);
     } catch (err: any) {
       setIsLoading(false);
+      if (uploadInProgress) {
+        setUploadStatus("error");
+        setUploadMessage(err.message || "Erro ao enviar fotos");
+      }
       setErrors({ api: err.message || "Erro ao criar pedido" });
     }
   }
@@ -983,6 +1004,12 @@ export default function NewOrderPage() {
                       </div>
                     ))}
                   </div>
+                )}
+
+                {(uploadStatus !== "idle" || uploadMessage) && (
+                  <p className={`text-sm ${uploadStatus === "error" ? "text-red-600" : uploadStatus === "success" ? "text-green-600" : "text-slate-600"}`}>
+                    {uploadStatus === "loading" ? "Fazendo upload das fotos..." : uploadMessage}
+                  </p>
                 )}
               </div>
 
