@@ -44,6 +44,64 @@ const getStatusBadge = (status: string) => {
 }
 
 export default function ConsultasPage() {
+  const formatServicos = (value: unknown): string => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object") {
+            const obj = item as Record<string, unknown>;
+            return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join(", ");
+    }
+
+    if (typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
+    }
+
+    return String(value);
+  };
+
+  const extractFotoUrl = (value: unknown): string | null => {
+    if (!value) return null;
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (/blob(%3A|:)/i.test(trimmed)) return null;
+      if (/^https?:\/\//i.test(trimmed)) return trimmed;
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const parsed = extractFotoUrl(item);
+        if (parsed) return parsed;
+      }
+      return null;
+    }
+
+    if (typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      return (
+        extractFotoUrl(obj.url) ||
+        extractFotoUrl(obj.fotoUrl) ||
+        extractFotoUrl(obj.uploadedUrl) ||
+        extractFotoUrl(obj.src) ||
+        null
+      );
+    }
+
+    return null;
+  };
+
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState("nome");
@@ -77,6 +135,11 @@ export default function ConsultasPage() {
 
   // Função para abrir modal com detalhes do pedido
   const handleViewOrder = (order: any) => {
+    const servicosTexto = formatServicos(order.servicos || order.tipoServico || "");
+    const fotosValidas = Array.isArray(order.fotos)
+      ? order.fotos.map((foto: unknown) => extractFotoUrl(foto)).filter((foto): foto is string => Boolean(foto))
+      : [];
+
     const pedidoDetalhes: PedidoDetalhes = {
       id: order.id?.toString() || '',
       funcionarioAtual: order.funcionarioAtual || '',
@@ -85,7 +148,7 @@ export default function ConsultasPage() {
       clientCpf: order.clientCpf || '',
       clientPhone: order.clientPhone || '',
       sneaker: order.sneaker || order.modeloTenis || '',
-      servicos: order.servicos || order.tipoServico || '',
+      servicos: servicosTexto,
       price: order.precoTotal || order.price || 0,
       status: order.status || '',
       createdDate: order.createdAt || order.dataCriacao || new Date().toLocaleDateString(),
@@ -101,7 +164,7 @@ export default function ConsultasPage() {
       ],
       // Novos campos da API
       modeloTenis: order.modeloTenis || order.sneaker || '',
-      tipoServico: order.tipoServico || order.servicos || '',
+      tipoServico: servicosTexto,
       descricaoServicos: order.descricaoServicos || order.description || '',
       preco: order.preco || order.price || 0,
       precoTotal: order.precoTotal || order.price || 0,
@@ -109,7 +172,7 @@ export default function ConsultasPage() {
       valorRestante: order.valorRestante || order.precoTotal || order.price || 0,
       dataPrevistaEntrega: order.dataPrevistaEntrega || order.expectedDate || '',
       dataCriacao: order.dataCriacao || order.createdAt || '',
-      fotos: order.fotos || [],
+      fotos: fotosValidas,
       observacoes: order.observacoes || '',
       garantia: order.garantia || { ativa: false, preco: 0, duracao: '' },
       acessorios: order.acessorios || [],
@@ -136,7 +199,7 @@ export default function ConsultasPage() {
     setEditingOrder(order);
     setEditForm({
       modeloTenis: order.modeloTenis || '',
-      servicos: order.servicos || '',
+      servicos: formatServicos(order.servicos || order.tipoServico || ''),
       descricaoServicos: order.descricaoServicos || '',
       price: order.price || 0,
       dataPrevistaEntrega: order.dataPrevistaEntrega || '',
@@ -562,7 +625,7 @@ export default function ConsultasPage() {
                                 </div>
                                 <div>
                                   <p className="font-medium text-muted-foreground">Serviço</p>
-                                  <p>{order.servicos || order.tipoServico}</p>
+                                  <p>{formatServicos(order.servicos || order.tipoServico) || '-'}</p>
                                 </div>
                                 <div>
                                   <p className="font-medium text-muted-foreground">Valor Total</p>
@@ -618,16 +681,19 @@ export default function ConsultasPage() {
                               <p className="text-sm text-muted-foreground mt-2">
                                 <strong>Descrição:</strong> {order.descricaoServicos || order.description}
                               </p>
-                              {order.fotos && order.fotos.length > 0 && (
+                              {Array.isArray(order.fotos) && order.fotos.length > 0 && (
                                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
-                                  {order.fotos.map((foto: string, idx: number) => (
-                                    <img
-                                      key={idx}
-                                      src={foto}
-                                      alt={`Foto do pedido ${order.id} - ${idx + 1}`}
-                                      className="w-full h-24 object-cover rounded"
-                                    />
-                                  ))}
+                                  {order.fotos
+                                    .map((foto: unknown) => extractFotoUrl(foto))
+                                    .filter((foto: string | null): foto is string => Boolean(foto))
+                                    .map((foto: string, idx: number) => (
+                                      <img
+                                        key={idx}
+                                        src={foto}
+                                        alt={`Foto do pedido ${order.id} - ${idx + 1}`}
+                                        className="w-full h-24 object-cover rounded"
+                                      />
+                                    ))}
                                 </div>
                               )}
                             </div>

@@ -167,6 +167,32 @@ const getStatusInfo = (status: string) => {
 }
 
 export default function StatusControlPage() {
+  const formatServicos = (value: unknown): string => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object") {
+            const obj = item as Record<string, unknown>;
+            return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join(", ");
+    }
+
+    if (typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
+    }
+
+    return String(value);
+  };
+
   const [statusColumns, setStatusColumns] = useState<StatusColumn>({});
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -874,7 +900,10 @@ export default function StatusControlPage() {
                               </div>
                               {order.servicos && (
                                 <div className="text-xs text-slate-600">
-                                  Serviços: <span className="text-slate-700">{String(order.servicos).slice(0, 80)}{String(order.servicos).length > 80 ? '…' : ''}</span>
+                                  Serviços: <span className="text-slate-700">{(() => {
+                                    const texto = formatServicos(order.servicos || order.serviceType || "");
+                                    return `${texto.slice(0, 80)}${texto.length > 80 ? '…' : ''}`;
+                                  })()}</span>
                                 </div>
                               )}
                               {order.setorAtual && (

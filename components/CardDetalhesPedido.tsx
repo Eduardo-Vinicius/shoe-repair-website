@@ -150,11 +150,39 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
 
   if (!pedidoAtual) return null;
 
+  const formatServicos = (value: unknown): string => {
+    if (!value) return "";
+
+    if (typeof value === "string") return value;
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object") {
+            const obj = item as Record<string, unknown>;
+            return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join(", ");
+    }
+
+    if (typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
+    }
+
+    return String(value);
+  };
+
   const extractHttpPhotoUrl = (value: unknown): string | null => {
     if (!value) return null;
 
     if (typeof value === "string") {
       const trimmed = value.trim();
+      if (/blob(%3A|:)/i.test(trimmed)) return null;
       if (/^https?:\/\//i.test(trimmed)) return trimmed;
       if (trimmed.startsWith("blob:")) return null;
 
@@ -189,6 +217,8 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
   const fotosValidas = (pedidoAtual.fotos || [])
     .map((foto) => extractHttpPhotoUrl(foto))
     .filter((foto): foto is string => Boolean(foto));
+
+  const servicoLabel = formatServicos(pedidoAtual.servicos || pedidoAtual.tipoServico);
 
   const handleRefreshLinks = async () => {
     if (!pedidoAtual.id) return;
@@ -284,7 +314,7 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
         </DialogHeader>
         <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-2">{/*Conteúdo com scroll*/}
           <div><strong>Tênis:</strong> {pedidoAtual.modeloTenis || pedidoAtual.sneaker}</div>
-          <div><strong>Serviço:</strong> {pedidoAtual.servicos || pedidoAtual.tipoServico}</div>
+          <div><strong>Serviço:</strong> {servicoLabel || "-"}</div>
           {pedidoAtual.descricaoServicos && (
             <div><strong>Descrição:</strong> {pedidoAtual.descricaoServicos}</div>
           )}
