@@ -382,8 +382,7 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    const backendMessage = errorData.error || errorData.message || "Erro ao atualizar status do pedido";
-    throw new Error(`[${response.status}] ${backendMessage}`);
+    throw new Error(errorData.error || "Erro ao atualizar status do pedido");
   }
   
   const result = await response.json();
