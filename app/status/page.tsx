@@ -30,7 +30,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
-import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile } from "@/lib/apiService"
+import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile, updateOrderService } from "@/lib/apiService"
 import { toast } from "sonner"
 import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 
@@ -295,7 +295,22 @@ export default function StatusControlPage() {
       });
 
       // Atualiza no backend
-      const updatedOrderRaw = await updateOrderStatusService(orderId, newStatus, nome, note);
+      let updatedOrderRaw: any;
+      try {
+        updatedOrderRaw = await updateOrderStatusService(orderId, newStatus, nome, note);
+      } catch (primaryError: any) {
+        const message = String(primaryError?.message || "");
+        const isServerError = message.includes("[500]") || message.toLowerCase().includes("internal server error");
+
+        if (!isServerError) {
+          throw primaryError;
+        }
+
+        // Fallback para manter operação do Kanban funcionando
+        updatedOrderRaw = await updateOrderService(orderId, { status: newStatus });
+        toast.warning("Status atualizado via fallback. Histórico detalhado pode não refletir esta movimentação.");
+      }
+
       const updatedOrder = (updatedOrderRaw && typeof updatedOrderRaw === "object")
         ? updatedOrderRaw as Partial<Order>
         : {};
@@ -387,6 +402,27 @@ export default function StatusControlPage() {
 
   const handleDrop = (status: string) => {
     if (draggedOrderId) {
+      const draggedOrder = orders.find((order) => order.id === draggedOrderId);
+
+      if (!draggedOrder) {
+        setDraggedOrderId(null);
+        return;
+      }
+
+      if (draggedOrder.status === status) {
+        setSuccessMessage("Pedido já está nesta coluna.");
+        setTimeout(() => setSuccessMessage(""), 2500);
+        setDraggedOrderId(null);
+        return;
+      }
+
+      if (!Object.prototype.hasOwnProperty.call(filteredStatusColumns, status)) {
+        setSuccessMessage("Status de destino inválido.");
+        setTimeout(() => setSuccessMessage(""), 3000);
+        setDraggedOrderId(null);
+        return;
+      }
+
       setMoveDialogOpen(true);
       setMoveOrderId(draggedOrderId);
       setMoveNewStatus(status);
@@ -1116,6 +1152,21 @@ export default function StatusControlPage() {
               <Button
                 onClick={async () => {
                   if (moveOrderId && moveNewStatus) {
+                    if (!Object.prototype.hasOwnProperty.call(filteredStatusColumns, moveNewStatus)) {
+                      toast.error("Status de destino inválido.");
+                      return;
+                    }
+
+                    const currentOrder = orders.find((order) => order.id === moveOrderId);
+                    if (currentOrder && currentOrder.status === moveNewStatus) {
+                      toast.info("Pedido já está nesta coluna.");
+                      setMoveDialogOpen(false);
+                      setMoveOrderId(null);
+                      setMoveNewStatus(null);
+                      setDraggedOrderId(null);
+                      return;
+                    }
+
                     const nome = movedByName.trim();
                     if (!nome) {
                       toast.error("Informe o nome do funcionário.");

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -95,6 +95,7 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
   const [loadingCliente, setLoadingCliente] = useState(false);
   const [errorCliente, setErrorCliente] = useState("");
   const [renewedPhotos, setRenewedPhotos] = useState<Record<number, boolean>>({});
+  const hasRefreshedOnOpenRef = useRef(false);
   const {
     pedido: pedidoAtualizado,
     setPedido,
@@ -140,6 +141,9 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
 
   useEffect(() => {
     if (!open || !pedidoAtual?.id) return;
+    if (hasRefreshedOnOpenRef.current) return;
+
+    hasRefreshedOnOpenRef.current = true;
 
     refreshPedido()
       .then((refreshed) => {
@@ -157,6 +161,7 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
       setErrorCliente("");
       setLoadingCliente(false);
       setRenewedPhotos({});
+      hasRefreshedOnOpenRef.current = false;
     }
   }, [open]);
 
