@@ -185,6 +185,9 @@ export async function downloadPedidoFotosZipService(pedidoId: string) {
   });
 
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error("Pedido sem fotos para download");
+    }
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || "Erro ao baixar fotos em ZIP");
   }

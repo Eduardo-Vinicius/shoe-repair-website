@@ -289,6 +289,13 @@ export default function StatusControlPage() {
 
       // Mensagens de erro mais específicas
       let errorMessage = "Erro ao atualizar status do pedido";
+      if (error.message?.toLowerCase().includes("status") && error.message?.toLowerCase().includes("invál")) {
+        errorMessage = error.message;
+      } else if (error.message?.toLowerCase().includes("status") && error.message?.includes("400")) {
+        errorMessage = "Status inválido para este fluxo. O pedido foi mantido na coluna atual.";
+      } else if (error.message?.toLowerCase().includes("status")) {
+        errorMessage = `Status inválido: ${error.message}`;
+      }
       if (error.message.includes("não tem permissão")) {
         errorMessage = "Você não tem permissão para alterar para este status";
       } else if (error.message.includes("não encontrado")) {

@@ -138,6 +138,18 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
     }
   }, [pedido, setPedido]);
 
+  useEffect(() => {
+    if (!open || !pedidoAtual?.id) return;
+
+    refreshPedido()
+      .then((refreshed) => {
+        if (refreshed && onPedidoUpdated) {
+          onPedidoUpdated(refreshed as PedidoDetalhes);
+        }
+      })
+      .catch(() => null);
+  }, [open, pedidoAtual?.id, refreshPedido, onPedidoUpdated]);
+
   // Reset do estado quando o modal fecha
   useEffect(() => {
     if (!open) {
@@ -225,6 +237,22 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
     const refreshed = await refreshPedido();
     if (refreshed && onPedidoUpdated) {
       onPedidoUpdated(refreshed as PedidoDetalhes);
+    }
+  };
+
+  const handleGeneratePdf = async () => {
+    try {
+      await generateAndDownloadPdf(`pedido-${pedidoAtual.id}.pdf`);
+    } catch {
+      // estado de erro tratado pelo hook
+    }
+  };
+
+  const handleDownloadZip = async () => {
+    try {
+      await downloadFotosZip(`pedido-${pedidoAtual.id}-fotos.zip`);
+    } catch {
+      // estado de erro tratado pelo hook
     }
   };
 
@@ -458,7 +486,7 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => generateAndDownloadPdf(`pedido-${pedidoAtual.id}.pdf`)}
+                onClick={handleGeneratePdf}
                 disabled={pdfState === "loading"}
               >
                 {pdfState === "loading" ? "Gerando PDF..." : "Gerar/Baixar PDF"}
@@ -466,7 +494,7 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => downloadFotosZip(`pedido-${pedidoAtual.id}-fotos.zip`)}
+                onClick={handleDownloadZip}
                 disabled={zipState === "loading"}
               >
                 {zipState === "loading" ? "Baixando ZIP..." : "Baixar fotos (.zip)"}
