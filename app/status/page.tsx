@@ -281,6 +281,18 @@ export default function StatusControlPage() {
         }),
       );
 
+      setSelectedOrder((prevSelected) => {
+        if (!prevSelected || prevSelected.id !== orderId) return prevSelected;
+
+        return {
+          ...prevSelected,
+          ...updatedOrder,
+          status: updatedOrder.status || newStatus,
+          statusHistory: updatedOrder.statusHistory || prevSelected.statusHistory || [],
+          setoresHistorico: updatedOrder.setoresHistorico || prevSelected.setoresHistorico || [],
+        };
+      });
+
       setSuccessMessage(`Pedido #${updatedOrder?.codigo || orderId} atualizado para ${getStatusInfo(newStatus).label}`);
       toast.success(`Movido por ${nome}`);
       setTimeout(() => setSuccessMessage(""), 3000);
