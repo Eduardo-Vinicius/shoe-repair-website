@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -203,6 +203,7 @@ export default function StatusControlPage() {
   const [inputValue, setInputValue] = useState("");
   const [selectedSector, setSelectedSector] = useState("next");
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [pendingOrderIds, setPendingOrderIds] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Dialog de movimento
@@ -256,14 +257,48 @@ export default function StatusControlPage() {
   }, []);
 
   const updateOrderStatus = async (orderId: string, newStatus: string, movedByName?: string, note?: string) => {
+    if (pendingOrderIds.includes(orderId)) {
+      toast.error("Este pedido já está sendo atualizado. Aguarde...");
+      return;
+    }
+
+    const previousOrder = orders.find((order) => order.id === orderId) || null;
+    const previousSelectedOrder = selectedOrder && selectedOrder.id === orderId ? selectedOrder : null;
+
     try {
       const nome = (movedByName || userInfo?.nome || "").trim();
       if (!nome) {
         toast.error("Informe o nome do funcionário.");
         return;
       }
+
+      setPendingOrderIds((prev) => [...prev, orderId]);
+
+      setOrders((prevOrders) =>
+        prevOrders.map((order) => {
+          if (order.id !== orderId) return order;
+          return {
+            ...order,
+            status: newStatus,
+            funcionarioAtual: nome || order.funcionarioAtual,
+          };
+        }),
+      );
+
+      setSelectedOrder((prevSelected) => {
+        if (!prevSelected || prevSelected.id !== orderId) return prevSelected;
+        return {
+          ...prevSelected,
+          status: newStatus,
+          funcionarioAtual: nome || prevSelected.funcionarioAtual,
+        };
+      });
+
       // Atualiza no backend
-      const updatedOrder = await updateOrderStatusService(orderId, newStatus, nome, note);
+      const updatedOrderRaw = await updateOrderStatusService(orderId, newStatus, nome, note);
+      const updatedOrder = (updatedOrderRaw && typeof updatedOrderRaw === "object")
+        ? updatedOrderRaw as Partial<Order>
+        : {};
 
       // Atualiza localmente com os dados retornados do backend
       setOrders((prevOrders) =>
@@ -293,10 +328,29 @@ export default function StatusControlPage() {
         };
       });
 
+      // Reconciliação final para garantir consistência entre colunas/campos derivados
+      const refreshedOrders = await getOrdersStatusService();
+      setOrders(refreshedOrders);
+      setSelectedOrder((prevSelected) => {
+        if (!prevSelected || prevSelected.id !== orderId) return prevSelected;
+        const refreshed = refreshedOrders.find((order: Order) => order.id === orderId);
+        return refreshed || prevSelected;
+      });
+
       setSuccessMessage(`Pedido #${updatedOrder?.codigo || orderId} atualizado para ${getStatusInfo(newStatus).label}`);
       toast.success(`Movido por ${nome}`);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
+      if (previousOrder) {
+        setOrders((prevOrders) =>
+          prevOrders.map((order) => (order.id === orderId ? previousOrder : order)),
+        );
+      }
+
+      if (previousSelectedOrder) {
+        setSelectedOrder(previousSelectedOrder);
+      }
+
       console.error("Erro ao atualizar status:", error);
 
       // Mensagens de erro mais específicas
@@ -318,6 +372,8 @@ export default function StatusControlPage() {
 
       setSuccessMessage(errorMessage);
       setTimeout(() => setSuccessMessage(""), 5000);
+    } finally {
+      setPendingOrderIds((prev) => prev.filter((id) => id !== orderId));
     }
   };
 
@@ -547,18 +603,26 @@ export default function StatusControlPage() {
     return sectors;
   };
 
-  // Filtra as colunas baseado no tipo de usuário
-  const getFilteredStatusColumns = () => {
-    // Exibir todas as colunas para todos os usuários
-    return statusColumns;
-  };
+  // Exibir todas as colunas para todos os usuários
+  const filteredStatusColumns = useMemo(() => statusColumns, [statusColumns]);
 
   // Organiza os pedidos por status baseado nas colunas filtradas
-  const filteredStatusColumns = getFilteredStatusColumns();
-  const ordersByStatus = Object.keys(filteredStatusColumns).reduce((acc, columnName) => {
-    acc[columnName] = orders.filter((order) => order.status === columnName);
-    return acc;
-  }, {} as { [key: string]: Order[] });
+  const ordersByStatus = useMemo(() => {
+    const grouped: { [key: string]: Order[] } = {};
+
+    Object.keys(filteredStatusColumns).forEach((columnName) => {
+      grouped[columnName] = [];
+    });
+
+    for (const order of orders) {
+      if (!grouped[order.status]) {
+        grouped[order.status] = [];
+      }
+      grouped[order.status].push(order);
+    }
+
+    return grouped;
+  }, [filteredStatusColumns, orders]);
 
   const getNextStatus = (currentStatus: string) => {
     const columnNames = Object.keys(filteredStatusColumns);
@@ -871,9 +935,9 @@ export default function StatusControlPage() {
                       {ordersInColumn.map((order) => (
                         <div
                           key={order.id}
-                          draggable
+                          draggable={!pendingOrderIds.includes(order.id)}
                           onDragStart={() => handleDragStart(order.id)}
-                          className="bg-slate-50 border border-slate-200 rounded-lg p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group"
+                          className={`bg-slate-50 border border-slate-200 rounded-lg p-4 transition-all duration-200 group ${pendingOrderIds.includes(order.id) ? "opacity-60 cursor-wait" : "cursor-move hover:shadow-md hover:border-slate-300"}`}
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1 space-y-1">
@@ -883,6 +947,7 @@ export default function StatusControlPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-6 px-2 text-slate-600 hover:text-slate-800"
+                                  disabled={pendingOrderIds.includes(order.id)}
                                   draggable={false}
                                   onMouseDown={(e) => { e.stopPropagation(); }}
                                   onClick={(e) => {
@@ -942,6 +1007,7 @@ export default function StatusControlPage() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 p-0 hover:bg-slate-200"
+                                disabled={pendingOrderIds.includes(order.id)}
                                 draggable={false}
                                 onMouseDown={(e) => { e.stopPropagation(); }}
                                 onClick={() => {
@@ -955,6 +1021,7 @@ export default function StatusControlPage() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 p-0 hover:bg-slate-200"
+                                disabled={pendingOrderIds.includes(order.id)}
                                 draggable={false}
                                 onMouseDown={(e) => { e.stopPropagation(); }}
                                 onClick={() => generateOrderPDF(order)}
@@ -963,6 +1030,9 @@ export default function StatusControlPage() {
                               </Button>
                             </div>
                           </div>
+                          {pendingOrderIds.includes(order.id) && (
+                            <div className="text-xs text-blue-600 mt-2">Atualizando status...</div>
+                          )}
                           
                         </div>
                       ))}

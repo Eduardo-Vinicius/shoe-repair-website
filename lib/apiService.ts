@@ -386,7 +386,7 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
   }
   
   const result = await response.json();
-  return result.data; // Retorna o pedido atualizado
+  return result.data || result; // Compatível com respostas antigas e novas
 }
 
 // Atualiza os dados completos de um pedido
