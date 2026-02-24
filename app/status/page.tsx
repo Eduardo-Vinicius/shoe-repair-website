@@ -266,59 +266,83 @@ export default function StatusControlPage() {
     [resolveColumnForOrder, statusColumns]
   );
 
-  const loadData = useCallback(
-    async (filterFuncionario = "", includeUser = true) => {
-      try {
-        setLoading(true);
+  const loadData = useCallback(async (filterFuncionario = "", includeUser = true) => {
+    try {
+      setLoading(true);
 
-        const promises: Array<Promise<any>> = [
-          getStatusColumnsService(),
-          getOrdersStatusService(filterFuncionario),
-        ];
+      const promises: Array<Promise<any>> = [
+        getStatusColumnsService(),
+        getOrdersStatusService(filterFuncionario),
+      ];
 
-        if (includeUser) {
-          promises.push(
-            getUserInfoService().catch(() => ({
-              id: '',
-              email: '',
-              role: 'user',
-              departamento: null,
-              nome: 'Usuário',
-            }))
-          );
-        }
-
-        const [columnsData, ordersData, userData] = await Promise.all(promises).then((results) => {
-          const [col, ord, user] = results;
-          return [col, ord, includeUser ? user : userInfo];
-        });
-
-        const normalizedColumns = normalizeColumns(columnsData);
-        const normalizedOrders = (ordersData || []).map((order: Order) => normalizeOrderToColumns(order, normalizedColumns));
-
-        setStatusColumns(normalizedColumns);
-        setOrders(normalizedOrders);
-        if (includeUser && userData) setUserInfo(userData as UserInfo);
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-        setSuccessMessage("Erro ao carregar dados. Verifique sua conexão e tente novamente.");
-        setStatusColumns({});
-        setOrders([]);
-        if (includeUser) {
-          setUserInfo({
+      if (includeUser) {
+        promises.push(
+          getUserInfoService().catch(() => ({
             id: '',
             email: '',
             role: 'user',
             departamento: null,
             nome: 'Usuário',
-          });
-        }
-      } finally {
-        setLoading(false);
+          }))
+        );
       }
-    },
-    [normalizeOrderToColumns, normalizeColumns, userInfo]
-  );
+
+      const results = await Promise.all(promises);
+      const columnsData = results[0];
+      const ordersData = results[1];
+      const userData = includeUser ? results[2] : userInfo;
+
+      const normalizedColumns = normalizeColumns(columnsData);
+
+      const resolveWithColumns = (order: Order, columns: StatusColumn) => {
+        const columnNames = Object.keys(columns || {});
+        if (!columnNames.length) return order.status || order.setorAtual || null;
+
+        const normalizeVal = (value?: string | null) => (value || "").toString().trim().toLowerCase();
+        const findMatch = (value?: string | null) => {
+          if (!value) return null;
+          const normalized = normalizeVal(value);
+          const exact = columnNames.find((col) => normalizeVal(col) === normalized);
+          if (exact) return exact;
+          return columnNames.find((col) => normalizeVal(col).includes(normalized) || normalized.includes(normalizeVal(col))) || null;
+        };
+
+        const setorLabel = order.setorAtual ? (SETORES_NOMES[order.setorAtual] || order.setorAtual) : null;
+
+        return (
+          findMatch(order.status) ||
+          findMatch(setorLabel) ||
+          findMatch(order.setorAtual) ||
+          (columnNames.length ? columnNames[0] : null)
+        );
+      };
+
+      const normalizedOrders = (ordersData || []).map((order: Order) => {
+        const col = resolveWithColumns(order, normalizedColumns);
+        return col ? { ...order, status: col } : order;
+      });
+
+      setStatusColumns(normalizedColumns);
+      setOrders(normalizedOrders);
+      if (includeUser && userData) setUserInfo(userData as UserInfo);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+      setSuccessMessage("Erro ao carregar dados. Verifique sua conexão e tente novamente.");
+      setStatusColumns({});
+      setOrders([]);
+      if (includeUser) {
+        setUserInfo({
+          id: '',
+          email: '',
+          role: 'user',
+          departamento: null,
+          nome: 'Usuário',
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Carrega as colunas de status, pedidos e informações do usuário
   useEffect(() => {
