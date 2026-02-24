@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { getClienteByIdService } from "@/lib/apiService";
 import SetorProgress from "@/components/SetorProgress";
@@ -342,6 +343,13 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
                   setoresHistorico: pedidoAtual.setoresHistorico,
                 }}
               />
+            </div>
+          )}
+          {pedidoAtual.funcionarioAtual && (
+            <div className="mt-3">
+              <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+                Responsável atual: {pedidoAtual.funcionarioAtual}
+              </Badge>
             </div>
           )}
         </DialogHeader>

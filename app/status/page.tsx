@@ -204,6 +204,8 @@ export default function StatusControlPage() {
   const [selectedSector, setSelectedSector] = useState("next");
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [funcionarioFilter, setFuncionarioFilter] = useState("");
+  const [activeFuncionarioFilter, setActiveFuncionarioFilter] = useState("");
 
   // Dialog de movimento
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
@@ -261,69 +263,73 @@ export default function StatusControlPage() {
     [resolveColumnForOrder, statusColumns]
   );
 
-  // Carrega as colunas de status, pedidos e informações do usuário
-  useEffect(() => {
-    const loadData = async () => {
+  const loadData = useCallback(
+    async (filterFuncionario = "", includeUser = true) => {
       try {
         setLoading(true);
 
-        // Carrega dados em paralelo
-        const [columnsData, ordersData, userData] = await Promise.all([
+        const promises: Array<Promise<any>> = [
           getStatusColumnsService(),
-          getOrdersStatusService(),
-          getUserInfoService().catch(() => ({ 
-            id: '', 
-            email: '', 
-            role: 'user', 
-            departamento: null, 
-            nome: 'Usuário' 
-          })) // Fallback se não conseguir obter info do usuário
-        ]);
+          getOrdersStatusService(filterFuncionario),
+        ];
+
+        if (includeUser) {
+          promises.push(
+            getUserInfoService().catch(() => ({
+              id: '',
+              email: '',
+              role: 'user',
+              departamento: null,
+              nome: 'Usuário',
+            }))
+          );
+        }
+
+        const [columnsData, ordersData, userData] = await Promise.all(promises).then((results) => {
+          const [col, ord, user] = results;
+          return [col, ord, includeUser ? user : userInfo];
+        });
 
         const normalizedColumns = normalizeColumns(columnsData);
         const normalizedOrders = (ordersData || []).map((order: Order) => normalizeOrderToColumns(order, normalizedColumns));
 
         setStatusColumns(normalizedColumns);
         setOrders(normalizedOrders);
-        setUserInfo(userData);
+        if (includeUser && userData) setUserInfo(userData as UserInfo);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
-        // Em caso de erro, mostra mensagem e mantém tela vazia
         setSuccessMessage("Erro ao carregar dados. Verifique sua conexão e tente novamente.");
         setStatusColumns({});
         setOrders([]);
-        setUserInfo({ 
-          id: '', 
-          email: '', 
-          role: 'user', 
-          departamento: null, 
-          nome: 'Usuário' 
-        }); // Fallback completo
+        if (includeUser) {
+          setUserInfo({
+            id: '',
+            email: '',
+            role: 'user',
+            departamento: null,
+            nome: 'Usuário',
+          });
+        }
       } finally {
         setLoading(false);
       }
-    };
+    },
+    [normalizeOrderToColumns, normalizeColumns, userInfo]
+  );
 
+  // Carrega as colunas de status, pedidos e informações do usuário
+  useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const refetchOrders = useCallback(async () => {
     try {
-      const [columnsData, ordersData] = await Promise.all([
-        getStatusColumnsService(),
-        getOrdersStatusService(),
-      ]);
-
-      const normalizedColumns = normalizeColumns(columnsData);
-      const normalizedOrders = (ordersData || []).map((order: Order) => normalizeOrderToColumns(order, normalizedColumns));
-
-      setStatusColumns(normalizedColumns);
-      setOrders(normalizedOrders);
+      await loadData(activeFuncionarioFilter, false);
     } catch (error) {
       console.error("Erro ao sincronizar pedidos:", error);
       toast.error("Não foi possível sincronizar os pedidos. Tente novamente.");
     }
-  }, [normalizeOrderToColumns]);
+  }, [activeFuncionarioFilter, loadData]);
 
   const applyOrderUpdate = useCallback(
     (updatedOrder: Order) => {
@@ -518,6 +524,18 @@ export default function StatusControlPage() {
 
   const handlePedidoUpdated = (updated: PedidoDetalhes) => {
     applyOrderUpdate(updated as unknown as Order);
+  };
+
+  const handleApplyFuncionarioFilter = async () => {
+    const filter = funcionarioFilter.trim();
+    setActiveFuncionarioFilter(filter);
+    await loadData(filter, false);
+  };
+
+  const handleClearFuncionarioFilter = async () => {
+    setFuncionarioFilter("");
+    setActiveFuncionarioFilter("");
+    await loadData("", false);
   };
 
   // Função para avançar pedido por número do pedido ou CPF do cliente
@@ -905,8 +923,51 @@ export default function StatusControlPage() {
                 Mover
               </Button>
             </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Filtrar por funcionário
+                </label>
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Input
+                    type="text"
+                    placeholder="Nome do funcionário"
+                    value={funcionarioFilter}
+                    onChange={(e) => setFuncionarioFilter(e.target.value)}
+                    className="pl-9 h-9 border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 md:justify-end">
+                <Button
+                  variant="outline"
+                  onClick={handleClearFuncionarioFilter}
+                  className="h-9"
+                  disabled={!activeFuncionarioFilter && !funcionarioFilter}
+                >
+                  Limpar
+                </Button>
+                <Button
+                  onClick={handleApplyFuncionarioFilter}
+                  className="bg-slate-800 hover:bg-slate-900 text-white h-9"
+                  disabled={!funcionarioFilter.trim() && !activeFuncionarioFilter}
+                >
+                  Aplicar filtro
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
+
+        {activeFuncionarioFilter && (
+          <Alert className="mb-4 border-blue-200 bg-blue-50 text-blue-800">
+            <AlertDescription>
+              Filtrando por funcionário: <span className="font-semibold">{activeFuncionarioFilter}</span>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Mensagens de Status */}
         {successMessage && (
@@ -985,6 +1046,14 @@ export default function StatusControlPage() {
                           onDragStart={() => handleDragStart(order.id)}
                           className="bg-slate-50 border border-slate-200 rounded-lg p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group"
                         >
+                          {(() => {
+                            const resp = getResponsavelAtual(order);
+                            return resp ? (
+                              <div className="flex justify-end mb-2">
+                                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">Resp.: {resp}</Badge>
+                              </div>
+                            ) : null;
+                          })()}
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1 space-y-1">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -1022,10 +1091,6 @@ export default function StatusControlPage() {
                               <p className="text-sm text-slate-500">{order.modeloTenis}</p>
                               <div className="text-xs text-slate-500">
                                 {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
-                              </div>
-                              <div className="text-xs">
-                                <span className="text-slate-500">Funcionário atual: </span>
-                                <span className="font-medium text-slate-700 break-all">{getResponsavelAtual(order) || '—'}</span>
                               </div>
                               {order.servicos && (
                                 <div className="text-xs text-slate-600">

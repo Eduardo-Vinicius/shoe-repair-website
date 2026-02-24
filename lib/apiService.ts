@@ -330,9 +330,12 @@ export async function getStatusColumnsService() {
 }
 
 // Busca lista de pedidos
-export async function getOrdersStatusService() {
+export async function getOrdersStatusService(funcionario?: string) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/pedidos/kanban/status`, {
+  const query = funcionario && funcionario.trim().length > 0
+    ? `?funcionario=${encodeURIComponent(funcionario.trim())}`
+    : "";
+  const response = await fetch(`${API_BASE_URL}/pedidos/kanban/status${query}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -539,6 +542,45 @@ export async function moverPedidoSetorService(
   }
   const result = await response.json();
   return result.data || result;
+}
+
+// Consulta leve de pedidos com filtros e paginação
+export async function getPedidosConsultaService(params: {
+  codigo?: string;
+  cliente?: string;
+  status?: string;
+  setor?: string;
+  funcionario?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  limit?: number;
+  lastKey?: string;
+} = {}) {
+  const token = localStorage.getItem("token");
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === "string" && value.trim() === "") return;
+    if (key === "limit" && typeof value === "number" && value <= 0) return;
+    query.append(key, String(value));
+  });
+
+  const qs = query.toString();
+  const response = await fetch(`${API_BASE_URL}/pedidos/consulta${qs ? `?${qs}` : ""}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao consultar pedidos");
+  }
+
+  const result = await response.json();
+  return result.data ? result : { data: result.data || result, nextToken: undefined, count: Array.isArray(result) ? result.length : 0 };
 }
 
 // Busca informações do usuário logado

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getClientesService, getOrdersStatusService, generateOrderPDFService, updateOrderService, downloadBlobAsFile } from "@/lib/apiService"
+import { getClientesService, getOrdersStatusService, generateOrderPDFService, updateOrderService, downloadBlobAsFile, getPedidosConsultaService } from "@/lib/apiService"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -112,6 +112,17 @@ export default function ConsultasPage() {
   const [tab, setTab] = useState("clientes");
   const [clients, setClients] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [nextToken, setNextToken] = useState<string | null>(null);
+  const [consultaFilters, setConsultaFilters] = useState({
+    codigo: "",
+    cliente: "",
+    status: "",
+    setor: "",
+    funcionario: "",
+    dataInicio: "",
+    dataFim: "",
+    limit: 20,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
@@ -309,17 +320,35 @@ export default function ConsultasPage() {
     )));
   };
   // Busca clientes e pedidos ao buscar
-  const fetchData = async () => {
+  const fetchData = async (opts?: { loadClients?: boolean; lastKey?: string | null }) => {
+    const { loadClients = true, lastKey = null } = opts || {};
     setLoading(true);
     setError(null);
     try {
-      const [clientesData, pedidosData] = await Promise.all([
-        getClientesService(),
-        getOrdersStatusService(),
-      ]);
-      setClients(clientesData);
-      setOrders(pedidosData);
+      const promises: Array<Promise<any>> = [];
+      if (loadClients) promises.push(getClientesService());
+
+      const query = {
+        ...consultaFilters,
+        lastKey: lastKey || undefined,
+        status: consultaFilters.status === "todos" ? "" : consultaFilters.status,
+      } as any;
+
+      promises.push(getPedidosConsultaService(query));
+
+      const results = await Promise.all(promises);
+
+      if (loadClients) {
+        const clientesData = results.shift();
+        setClients(clientesData || []);
+      }
+
+      const pedidosResult = results.pop();
+      const pedidosData = pedidosResult?.data || pedidosResult || [];
+      setOrders((prev) => lastKey ? [...prev, ...pedidosData] : pedidosData);
+      setNextToken(pedidosResult?.nextToken || null);
     } catch (err: any) {
+      console.error(err);
       setError("Erro ao buscar dados");
     } finally {
       setLoading(false);
@@ -343,7 +372,7 @@ export default function ConsultasPage() {
   }, [searchParams]);
 
   const handleSearch = async () => {
-    await fetchData();
+    await fetchData({ loadClients: true, lastKey: null });
     setHasSearched(true);
   };
 
@@ -352,6 +381,16 @@ export default function ConsultasPage() {
     setDateFrom("");
     setDateTo("");
     setStatusFilter("todos");
+    setConsultaFilters({
+      codigo: "",
+      cliente: "",
+      status: "",
+      setor: "",
+      funcionario: "",
+      dataInicio: "",
+      dataFim: "",
+      limit: 20,
+    });
     setHasSearched(false);
   };
 
@@ -376,42 +415,7 @@ export default function ConsultasPage() {
     : [];
 
   // Filter orders based on search criteria
-  const filteredOrders = hasSearched
-    ? orders.filter((order) => {
-        let matchesSearch = false;
-        if (searchTerm.trim()) {
-          switch (searchType) {
-            case "nome":
-              matchesSearch = (order.cliente?.nomeCompleto || "").toLowerCase().includes(searchTerm.toLowerCase());
-              break;
-            case "cpf":
-              matchesSearch = (order.cliente?.cpf || "").includes(searchTerm.replace(/\D/g, ""));
-              break;
-            case "tenis":
-              matchesSearch = (order.modeloTenis || "").toLowerCase().includes(searchTerm.toLowerCase());
-              break;
-            default:
-              matchesSearch = true;
-          }
-        } else {
-          matchesSearch = true;
-        }
-        // Filter by date range
-        let matchesDate = true;
-        if (dateFrom || dateTo) {
-          const orderDate = new Date(order.createdAt || order.dataPrevistaEntrega);
-          if (dateFrom) {
-            matchesDate = matchesDate && orderDate >= new Date(dateFrom);
-          }
-          if (dateTo) {
-            matchesDate = matchesDate && orderDate <= new Date(dateTo);
-          }
-        }
-        // Filter by status
-        const matchesStatus = statusFilter === "todos" || order.status === statusFilter;
-        return matchesSearch && matchesDate && matchesStatus;
-      })
-    : [];
+  const filteredOrders = hasSearched ? orders : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -472,7 +476,13 @@ export default function ConsultasPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="status">Status do Pedido</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(val) => {
+                    setStatusFilter(val);
+                    setConsultaFilters({ ...consultaFilters, status: val === "todos" ? "" : val });
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -489,12 +499,96 @@ export default function ConsultasPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="dateFrom">Data Inicial</Label>
-                <Input id="dateFrom" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                <Input
+                  id="dateFrom"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => {
+                    setDateFrom(e.target.value);
+                    setConsultaFilters({ ...consultaFilters, dataInicio: e.target.value });
+                  }}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dateTo">Data Final</Label>
-                <Input id="dateTo" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                <Input
+                  id="dateTo"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => {
+                    setDateTo(e.target.value);
+                    setConsultaFilters({ ...consultaFilters, dataFim: e.target.value });
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="codigo">Código do Pedido</Label>
+                <Input
+                  id="codigo"
+                  value={consultaFilters.codigo}
+                  onChange={(e) => setConsultaFilters({ ...consultaFilters, codigo: e.target.value })}
+                  placeholder="Ex.: 240226-001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cliente">Cliente</Label>
+                <Input
+                  id="cliente"
+                  value={consultaFilters.cliente}
+                  onChange={(e) => setConsultaFilters({ ...consultaFilters, cliente: e.target.value })}
+                  placeholder="Nome ou ID"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="funcionario">Funcionário</Label>
+                <Input
+                  id="funcionario"
+                  value={consultaFilters.funcionario}
+                  onChange={(e) => setConsultaFilters({ ...consultaFilters, funcionario: e.target.value })}
+                  placeholder="Nome do responsável"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="setor">Setor</Label>
+                <Input
+                  id="setor"
+                  value={consultaFilters.setor}
+                  onChange={(e) => setConsultaFilters({ ...consultaFilters, setor: e.target.value })}
+                  placeholder="Ex.: sapataria"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="statusConsulta">Status (texto)</Label>
+                <Input
+                  id="statusConsulta"
+                  value={consultaFilters.status}
+                  onChange={(e) => setConsultaFilters({ ...consultaFilters, status: e.target.value })}
+                  placeholder="Ex.: Atendimento - Orçado"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="limit">Limite</Label>
+                <Select
+                  value={String(consultaFilters.limit)}
+                  onValueChange={(v) => setConsultaFilters({ ...consultaFilters, limit: Number(v) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -508,6 +602,18 @@ export default function ConsultasPage() {
                 Limpar
               </Button>
             </div>
+            {nextToken && (
+              <div className="flex justify-end gap-2 text-sm text-muted-foreground">
+                <span>Mais resultados disponíveis</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchData({ loadClients: false, lastKey: nextToken })}
+                >
+                  Carregar mais
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -616,7 +722,7 @@ export default function ConsultasPage() {
                                 )}
                               </div>
                               <p className="text-sm text-muted-foreground mb-2">
-                                Cliente ID: {order.clientId}
+                                Cliente ID: {order.clientId} {order.clientName ? `• ${order.clientName}` : ""}
                               </p>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
