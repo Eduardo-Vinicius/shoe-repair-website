@@ -30,7 +30,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
-import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile } from "@/lib/apiService"
+import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile, moverPedidoSetorService } from "@/lib/apiService"
 import { toast } from "sonner"
 import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 
@@ -370,8 +370,16 @@ export default function StatusControlPage() {
         return;
       }
 
+      const currentOrder = orders.find((o) => o.id === orderId);
+      const setorAtual = currentOrder?.setorAtual;
+      const setorLabel = setorAtual ? (SETORES_NOMES[setorAtual] || setorAtual) : "";
+      const newStatusLower = newStatus.toLowerCase();
+      const stayingSameSector = setorLabel && newStatusLower.includes(setorLabel.toLowerCase());
+
       // Atualiza no backend
-      const updatedOrder = await updateOrderStatusService(orderId, newStatus, nome, note);
+      const updatedOrder = stayingSameSector && setorAtual
+        ? await moverPedidoSetorService(orderId, setorAtual, nome, note, newStatus)
+        : await updateOrderStatusService(orderId, newStatus, nome, note);
 
       const merged = {
         ...updatedOrder,

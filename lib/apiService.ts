@@ -515,11 +515,13 @@ export async function moverPedidoSetorService(
   setorId: string,
   funcionarioNome?: string,
   observacao?: string,
+  status?: string,
 ) {
   const token = localStorage.getItem("token");
   const payload: Record<string, string> = { setorId };
   if (funcionarioNome?.trim()) payload.funcionarioNome = funcionarioNome.trim();
   if (observacao?.trim()) payload.observacao = observacao.trim();
+  if (status?.trim()) payload.status = status.trim();
 
   const response = await fetch(`${API_BASE_URL}/pedidos/${pedidoId}/mover-setor`, {
     method: "POST",
