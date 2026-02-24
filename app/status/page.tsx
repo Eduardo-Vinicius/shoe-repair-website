@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -212,6 +212,55 @@ export default function StatusControlPage() {
   const [movedByName, setMovedByName] = useState<string>("");
   const [movedByNote, setMovedByNote] = useState<string>("");
 
+  // Normaliza formatos diferentes de colunas que podem vir da API
+  const normalizeColumns = (data: any): StatusColumn => {
+    if (!data) return {};
+    if (Array.isArray(data)) {
+      return data.reduce((acc, col: any) => {
+        const key = typeof col === "string" ? col : col?.name || col?.label || col?.status || col?.id;
+        if (key) acc[key] = [];
+        return acc;
+      }, {} as StatusColumn);
+    }
+    if (typeof data === "object") return data as StatusColumn;
+    return {};
+  };
+
+  const resolveColumnForOrder = useCallback(
+    (order: Partial<Order>, columns: StatusColumn = statusColumns) => {
+      const columnNames = Object.keys(columns || {});
+      if (!columnNames.length) return order.status || order.setorAtual || null;
+
+      const normalize = (value?: string | null) => (value || "").toString().trim().toLowerCase();
+      const findMatch = (value?: string | null) => {
+        if (!value) return null;
+        const normalized = normalize(value);
+        const exact = columnNames.find(col => normalize(col) === normalized);
+        if (exact) return exact;
+        return columnNames.find(col => normalize(col).includes(normalized) || normalized.includes(normalize(col))) || null;
+      };
+
+      const setorLabel = order.setorAtual ? (SETORES_NOMES[order.setorAtual] || order.setorAtual) : null;
+
+      return (
+        findMatch(order.status) ||
+        findMatch(setorLabel) ||
+        findMatch(order.setorAtual) ||
+        (columnNames.length ? columnNames[0] : null)
+      );
+    },
+    [statusColumns]
+  );
+
+  const normalizeOrderToColumns = useCallback(
+    (order: Order, columns: StatusColumn = statusColumns): Order => {
+      const targetColumn = resolveColumnForOrder(order, columns);
+      if (!targetColumn) return order;
+      return { ...order, status: targetColumn };
+    },
+    [resolveColumnForOrder, statusColumns]
+  );
+
   // Carrega as colunas de status, pedidos e informações do usuário
   useEffect(() => {
     const loadData = async () => {
@@ -231,8 +280,11 @@ export default function StatusControlPage() {
           })) // Fallback se não conseguir obter info do usuário
         ]);
 
-        setStatusColumns(columnsData);
-        setOrders(ordersData);
+        const normalizedColumns = normalizeColumns(columnsData);
+        const normalizedOrders = (ordersData || []).map((order: Order) => normalizeOrderToColumns(order, normalizedColumns));
+
+        setStatusColumns(normalizedColumns);
+        setOrders(normalizedOrders);
         setUserInfo(userData);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
@@ -255,6 +307,61 @@ export default function StatusControlPage() {
     loadData();
   }, []);
 
+  const refetchOrders = useCallback(async () => {
+    try {
+      const [columnsData, ordersData] = await Promise.all([
+        getStatusColumnsService(),
+        getOrdersStatusService(),
+      ]);
+
+      const normalizedColumns = normalizeColumns(columnsData);
+      const normalizedOrders = (ordersData || []).map((order: Order) => normalizeOrderToColumns(order, normalizedColumns));
+
+      setStatusColumns(normalizedColumns);
+      setOrders(normalizedOrders);
+    } catch (error) {
+      console.error("Erro ao sincronizar pedidos:", error);
+      toast.error("Não foi possível sincronizar os pedidos. Tente novamente.");
+    }
+  }, [normalizeOrderToColumns]);
+
+  const applyOrderUpdate = useCallback(
+    (updatedOrder: Order) => {
+      const normalized = normalizeOrderToColumns(updatedOrder);
+      const targetColumn = resolveColumnForOrder(updatedOrder);
+      const columnExists = !!(targetColumn && statusColumns && Object.prototype.hasOwnProperty.call(statusColumns, targetColumn));
+      const originalColumnMissing = updatedOrder.status
+        ? !(statusColumns && Object.prototype.hasOwnProperty.call(statusColumns, updatedOrder.status))
+        : false;
+
+      setOrders((prevOrders) => {
+        let found = false;
+        const next = prevOrders.map((order) => {
+          if (order.id === normalized.id) {
+            found = true;
+            return { ...order, ...normalized };
+          }
+          return order;
+        });
+
+        if (!found) {
+          next.push(normalized);
+        }
+        return next;
+      });
+
+      setSelectedOrder((prevSelected) =>
+        prevSelected?.id === normalized.id ? { ...prevSelected, ...normalized } : prevSelected
+      );
+
+      // Se não achar coluna compatível, refaz o fetch completo para manter o quadro consistente
+      if (!columnExists || originalColumnMissing) {
+        refetchOrders();
+      }
+    },
+    [normalizeOrderToColumns, refetchOrders, resolveColumnForOrder, statusColumns]
+  );
+
   const updateOrderStatus = async (orderId: string, newStatus: string, movedByName?: string, note?: string) => {
     try {
       const nome = (movedByName || userInfo?.nome || "").trim();
@@ -266,58 +373,45 @@ export default function StatusControlPage() {
       // Atualiza no backend
       const updatedOrder = await updateOrderStatusService(orderId, newStatus, nome, note);
 
-      // Atualiza localmente com os dados retornados do backend
-      setOrders((prevOrders) =>
-        prevOrders.map((order) => {
-          if (order.id === orderId) {
-            return {
-              ...order,
-              ...updatedOrder,
-              status: updatedOrder.status || newStatus,
-              statusHistory: updatedOrder.statusHistory || order.statusHistory || [],
-              setoresHistorico: updatedOrder.setoresHistorico || order.setoresHistorico || [],
-            };
-          }
-          return order;
-        }),
-      );
+      const merged = {
+        ...updatedOrder,
+        status: updatedOrder.status || newStatus,
+        statusHistory: updatedOrder.statusHistory || [],
+        setoresHistorico: updatedOrder.setoresHistorico || [],
+      } as Order;
 
-      setSelectedOrder((prevSelected) => {
-        if (!prevSelected || prevSelected.id !== orderId) return prevSelected;
+      applyOrderUpdate(merged);
 
-        return {
-          ...prevSelected,
-          ...updatedOrder,
-          status: updatedOrder.status || newStatus,
-          statusHistory: updatedOrder.statusHistory || prevSelected.statusHistory || [],
-          setoresHistorico: updatedOrder.setoresHistorico || prevSelected.setoresHistorico || [],
-        };
-      });
-
-      setSuccessMessage(`Pedido #${updatedOrder?.codigo || orderId} atualizado para ${getStatusInfo(newStatus).label}`);
+      setSuccessMessage(`Pedido #${updatedOrder?.codigo || orderId} atualizado para ${getStatusInfo(merged.status).label}`);
       toast.success(`Movido por ${nome}`);
       setTimeout(() => setSuccessMessage(""), 3000);
+      setDraggedOrderId(null);
     } catch (error: any) {
       console.error("Erro ao atualizar status:", error);
+
+      const statusCode = error?.status as number | undefined;
 
       // Mensagens de erro mais específicas
       let errorMessage = "Erro ao atualizar status do pedido";
       if (error.message?.toLowerCase().includes("status") && error.message?.toLowerCase().includes("invál")) {
         errorMessage = error.message;
-      } else if (error.message?.toLowerCase().includes("status") && error.message?.includes("400")) {
+      } else if (statusCode === 400 || error.message?.includes("400")) {
         errorMessage = "Status inválido para este fluxo. O pedido foi mantido na coluna atual.";
+      } else if (statusCode === 401 || statusCode === 403 || error.message?.includes("Token")) {
+        errorMessage = "Sessão expirada ou sem permissão. Faça login novamente.";
+      } else if (statusCode && statusCode >= 500) {
+        errorMessage = "Erro no servidor ao mover o pedido. Tente novamente.";
       } else if (error.message?.toLowerCase().includes("status")) {
         errorMessage = `Status inválido: ${error.message}`;
       }
-      if (error.message.includes("não tem permissão")) {
+      if (error.message?.includes("não tem permissão")) {
         errorMessage = "Você não tem permissão para alterar para este status";
-      } else if (error.message.includes("não encontrado")) {
+      } else if (error.message?.includes("não encontrado")) {
         errorMessage = "Pedido não encontrado";
-      } else if (error.message.includes("Token")) {
-        errorMessage = "Sessão expirada. Faça login novamente";
       }
 
       setSuccessMessage(errorMessage);
+      toast.error(errorMessage);
       setTimeout(() => setSuccessMessage(""), 5000);
     }
   };
@@ -415,8 +509,7 @@ export default function StatusControlPage() {
   };
 
   const handlePedidoUpdated = (updated: PedidoDetalhes) => {
-    setSelectedOrder(updated as unknown as Order);
-    setOrders((prev) => prev.map((order) => (order.id === updated.id ? { ...order, ...updated } : order)));
+    applyOrderUpdate(updated as unknown as Order);
   };
 
   // Função para avançar pedido por número do pedido ou CPF do cliente

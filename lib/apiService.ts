@@ -382,7 +382,9 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao atualizar status do pedido");
+    const err: any = new Error(errorData.error || "Erro ao atualizar status do pedido");
+    err.status = response.status;
+    throw err;
   }
   
   const result = await response.json();
@@ -529,7 +531,9 @@ export async function moverPedidoSetorService(
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao mover pedido de setor");
+    const err: any = new Error(errorData.error || "Erro ao mover pedido de setor");
+    err.status = response.status;
+    throw err;
   }
   const result = await response.json();
   return result.data || result;

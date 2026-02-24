@@ -535,8 +535,9 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
           {pedidoAtual.id && (
             <MoverSetorButton
               pedidoId={pedidoAtual.id}
-              onSuccess={() => {
-                // sem ações adicionais aqui; componente pai pode recarregar dados
+              onSuccess={(pedidoAtualizado) => {
+                setPedido(pedidoAtualizado as PedidoDetalhes);
+                onPedidoUpdated?.(pedidoAtualizado as PedidoDetalhes);
               }}
             />
           )}
