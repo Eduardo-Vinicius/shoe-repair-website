@@ -32,7 +32,8 @@ import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
 import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile, moverPedidoSetorService } from "@/lib/apiService"
 import { toast } from "sonner"
-import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
+import { SETORES_CORES, SETORES_NOMES, SETORES } from "@/lib/setores"
+import { listFuncionariosService, Funcionario } from "@/lib/apiService"
 
 // Interface para as colunas de status
 interface StatusColumn {
@@ -211,11 +212,14 @@ export default function StatusControlPage() {
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [moveOrderId, setMoveOrderId] = useState<string | null>(null);
   const [moveNewStatus, setMoveNewStatus] = useState<string | null>(null);
+  const [moveTargetSetorId, setMoveTargetSetorId] = useState<string | null>(null);
   const [movedByName, setMovedByName] = useState<string>("");
   const [movedByNote, setMovedByNote] = useState<string>("");
   const [showDeptOnly, setShowDeptOnly] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<"all" | "high">("all");
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
+  const [funcionariosSetor, setFuncionariosSetor] = useState<Funcionario[]>([]);
+  const [funcionariosLoading, setFuncionariosLoading] = useState(false);
 
   // Normaliza formatos diferentes de colunas que podem vir da API
   const normalizeColumns = (data: any): StatusColumn => {
@@ -467,9 +471,12 @@ export default function StatusControlPage() {
 
   const handleDrop = (status: string) => {
     if (draggedOrderId) {
+      const order = orders.find((o) => o.id === draggedOrderId);
+      const inferredSetor = mapStatusToSetorId(status) || order?.setorAtual || null;
       setMoveDialogOpen(true);
       setMoveOrderId(draggedOrderId);
       setMoveNewStatus(status);
+      setMoveTargetSetorId(inferredSetor);
       setMovedByName(userInfo?.nome || "");
       setMovedByNote("");
     }
@@ -619,6 +626,7 @@ export default function StatusControlPage() {
         setMoveDialogOpen(true);
         setMoveOrderId(foundOrder.id);
         setMoveNewStatus(nextStatus);
+        setMoveTargetSetorId(mapStatusToSetorId(nextStatus) || foundOrder.setorAtual || null);
         setMovedByName(userInfo?.nome || "");
         setMovedByNote("");
       } else {
@@ -694,6 +702,18 @@ export default function StatusControlPage() {
     return sectors;
   };
 
+  const mapStatusToSetorId = (status: string): string | null => {
+    const s = status.toLowerCase();
+    if (s.includes("atendimento-final")) return SETORES.ATENDIMENTO_FINAL;
+    if (s.includes("atendimento")) return SETORES.ATENDIMENTO_INICIAL;
+    if (s.includes("sapat")) return SETORES.SAPATARIA;
+    if (s.includes("costur")) return SETORES.COSTURA;
+    if (s.includes("lavag")) return SETORES.LAVAGEM;
+    if (s.includes("pint")) return SETORES.PINTURA;
+    if (s.includes("acab")) return SETORES.ACABAMENTO;
+    return null;
+  };
+
   // Filtra colunas por departamento do usuário, se acionado
   const filteredStatusColumns = useMemo(() => {
     if (!showDeptOnly || !userInfo?.departamento) return statusColumns;
@@ -729,6 +749,19 @@ export default function StatusControlPage() {
     }
     return orders;
   }, [orders, priorityFilter]);
+
+  useEffect(() => {
+    if (moveDialogOpen && moveTargetSetorId) {
+      setFuncionariosLoading(true);
+      listFuncionariosService({ setorId: moveTargetSetorId, ativo: true })
+        .then((list) => setFuncionariosSetor(list || []))
+        .catch(() => setFuncionariosSetor([]))
+        .finally(() => setFuncionariosLoading(false));
+    } else if (!moveDialogOpen) {
+      setFuncionariosSetor([]);
+      setFuncionariosLoading(false);
+    }
+  }, [moveDialogOpen, moveTargetSetorId]);
 
   // Organiza os pedidos por status baseado nas colunas filtradas
   const ordersByStatus = useMemo(() => {
@@ -1299,11 +1332,37 @@ export default function StatusControlPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Funcionário</label>
-                <Input
-                  value={movedByName}
-                  onChange={(e) => setMovedByName(e.target.value)}
-                  placeholder="Nome do funcionário"
-                />
+                {funcionariosLoading ? (
+                  <div className="text-sm text-slate-500 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Carregando funcionários...
+                  </div>
+                ) : funcionariosSetor.length > 0 ? (
+                  <Select
+                    value={funcionariosSetor.find((f) => f.nome === movedByName)?.id || ""}
+                    onValueChange={(val) => {
+                      const sel = funcionariosSetor.find((f) => f.id === val);
+                      setMovedByName(sel?.nome || "");
+                    }}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Selecione o funcionário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {funcionariosSetor.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={movedByName}
+                    onChange={(e) => setMovedByName(e.target.value)}
+                    placeholder="Nome do funcionário"
+                  />
+                )}
+                {funcionariosSetor.length > 0 && (
+                  <div className="text-xs text-slate-500">Lista carregada do setor {moveTargetSetorId || ""}</div>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Observação (opcional)</label>

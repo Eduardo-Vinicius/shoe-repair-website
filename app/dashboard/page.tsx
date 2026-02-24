@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User, Monitor } from "lucide-react"
+import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User, Monitor, IdCard } from "lucide-react"
 import { apiFetch, getDashboardService } from "@/lib/apiService"
 import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Worqera"
@@ -358,6 +358,26 @@ export default function DashboardPage() {
                   <Button variant="outline" className="w-full border-orange-300 text-orange-700 hover:bg-orange-50">
                     <BarChart3 className="w-4 h-4 mr-2" />
                     Ver Status
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-teal-50 to-teal-100 hover:from-teal-100 hover:to-teal-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-teal-800">
+                  <IdCard className="w-6 h-6 mr-3 text-teal-600" />
+                  Funcionários
+                </CardTitle>
+                <CardDescription className="text-teal-600">
+                  Cadastre e gerencie responsáveis por setor
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/funcionarios" className="block">
+                  <Button variant="outline" className="w-full border-teal-300 text-teal-800 hover:bg-teal-50">
+                    <IdCard className="w-4 h-4 mr-2" />
+                    Abrir cadastro
                   </Button>
                 </Link>
               </CardContent>

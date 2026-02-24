@@ -121,6 +121,19 @@ export interface PedidoPdfAsset {
   url: string;
 }
 
+export interface Funcionario {
+  id: string;
+  nome: string;
+  setorId: string;
+  email?: string;
+  telefone?: string;
+  cargo?: string;
+  observacoes?: string;
+  ativo: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export async function getPedidoService(id: string) {
   const response = await fetch(`${API_BASE_URL}/pedidos/${id}`, {
     method: "GET",
@@ -208,6 +221,88 @@ export function downloadBlobAsFile(blob: Blob, filename: string) {
 
 export function getPedidoIdFromCreateResponse(payload: any) {
   return extractPedidoIdFromPayload(payload);
+}
+
+// --- Funcionarios ---
+export async function createFuncionarioService(data: {
+  nome: string;
+  setorId: string;
+  email?: string;
+  telefone?: string;
+  cargo?: string;
+  observacoes?: string;
+  ativo?: boolean;
+}) {
+  const response = await fetch(`${API_BASE_URL}/funcionarios`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao criar funcionário");
+  }
+  return resolveApiPayload(await response.json());
+}
+
+export async function listFuncionariosService(params: {
+  setorId?: string;
+  ativo?: boolean;
+  limit?: number;
+} = {}): Promise<Funcionario[]> {
+  const query = new URLSearchParams();
+  if (params.setorId) query.append("setorId", params.setorId);
+  if (typeof params.ativo === "boolean") query.append("ativo", String(params.ativo));
+  if (typeof params.limit === "number") query.append("limit", String(params.limit));
+
+  const response = await fetch(`${API_BASE_URL}/funcionarios${query.toString() ? `?${query.toString()}` : ""}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao listar funcionários");
+  }
+  const result = await response.json();
+  const payload = resolveApiPayload(result);
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function getFuncionarioService(id: string): Promise<Funcionario> {
+  const response = await fetch(`${API_BASE_URL}/funcionarios/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar funcionário");
+  }
+  return resolveApiPayload(await response.json());
+}
+
+export async function updateFuncionarioService(id: string, data: Partial<Funcionario>) {
+  const response = await fetch(`${API_BASE_URL}/funcionarios/${id}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao atualizar funcionário");
+  }
+  return resolveApiPayload(await response.json());
+}
+
+export async function deleteFuncionarioService(id: string) {
+  const response = await fetch(`${API_BASE_URL}/funcionarios/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao desativar funcionário");
+  }
+  return resolveApiPayload(await response.json());
 }
 
 // Cria um novo pedido
