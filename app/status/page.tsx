@@ -213,6 +213,9 @@ export default function StatusControlPage() {
   const [moveNewStatus, setMoveNewStatus] = useState<string | null>(null);
   const [movedByName, setMovedByName] = useState<string>("");
   const [movedByNote, setMovedByNote] = useState<string>("");
+  const [showDeptOnly, setShowDeptOnly] = useState(false);
+  const [priorityFilter, setPriorityFilter] = useState<"all" | "high">("all");
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
 
   // Normaliza formatos diferentes de colunas que podem vir da API
   const normalizeColumns = (data: any): StatusColumn => {
@@ -667,8 +670,41 @@ export default function StatusControlPage() {
     return sectors;
   };
 
-  // Exibir todas as colunas para todos os usuários
-  const filteredStatusColumns = useMemo(() => statusColumns, [statusColumns]);
+  // Filtra colunas por departamento do usuário, se acionado
+  const filteredStatusColumns = useMemo(() => {
+    if (!showDeptOnly || !userInfo?.departamento) return statusColumns;
+
+    const dept = (userInfo.departamento || "").toLowerCase();
+    const patternsByDept: Record<string, string[]> = {
+      atendimento: ["atendimento"],
+      sapataria: ["sapataria"],
+      costura: ["costura"],
+      lavagem: ["lavagem"],
+      pintura: ["pintura"],
+      montagem: ["montagem"],
+      acabamento: ["acabamento"],
+    };
+
+    const patterns = patternsByDept[dept] || [dept];
+    const columnNames = Object.keys(statusColumns || {});
+    const allowed = columnNames.filter((col) => {
+      const c = col.toLowerCase();
+      return patterns.some((p) => c.includes(p));
+    });
+
+    const filtered: StatusColumn = {};
+    allowed.forEach((name) => {
+      filtered[name] = statusColumns[name];
+    });
+    return Object.keys(filtered).length ? filtered : statusColumns;
+  }, [showDeptOnly, statusColumns, userInfo?.departamento]);
+
+  const filteredOrders = useMemo(() => {
+    if (priorityFilter === "high") {
+      return orders.filter((o) => o.prioridade === 1);
+    }
+    return orders;
+  }, [orders, priorityFilter]);
 
   // Organiza os pedidos por status baseado nas colunas filtradas
   const ordersByStatus = useMemo(() => {
@@ -678,7 +714,7 @@ export default function StatusControlPage() {
       grouped[columnName] = [];
     });
 
-    for (const order of orders) {
+    for (const order of filteredOrders) {
       if (!grouped[order.status]) {
         grouped[order.status] = [];
       }
@@ -686,7 +722,7 @@ export default function StatusControlPage() {
     }
 
     return grouped;
-  }, [filteredStatusColumns, orders]);
+  }, [filteredStatusColumns, filteredOrders]);
 
   const getNextStatus = (currentStatus: string) => {
     const columnNames = Object.keys(filteredStatusColumns);
@@ -958,6 +994,33 @@ export default function StatusControlPage() {
                 </Button>
               </div>
             </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+              <div className="flex items-center gap-2">
+                <input
+                  id="toggle-dept"
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={showDeptOnly}
+                  onChange={(e) => setShowDeptOnly(e.target.checked)}
+                />
+                <label htmlFor="toggle-dept" className="text-sm text-slate-700">
+                  Mostrar somente colunas do meu setor
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-slate-700">Prioridade</label>
+                <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as "all" | "high")}> 
+                  <SelectTrigger className="h-9 w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="high">Só alta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -1015,6 +1078,7 @@ export default function StatusControlPage() {
               const statusInfo = getStatusInfo(columnName);
               const StatusIcon = statusInfo.icon;
               const ordersInColumn = ordersByStatus[columnName] || [];
+              const isCollapsed = collapsedColumns.has(columnName);
 
               return (
                 <Card
@@ -1031,13 +1095,31 @@ export default function StatusControlPage() {
                           {statusInfo.label}
                         </CardTitle>
                       </div>
-                      <Badge className="bg-white/20 text-white border-white/30">
-                        {ordersInColumn.length}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-white/20 text-white border-white/30">
+                          {ordersInColumn.length}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2 text-white hover:bg-white/10"
+                          onClick={() => {
+                            setCollapsedColumns((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(columnName)) next.delete(columnName);
+                              else next.add(columnName);
+                              return next;
+                            });
+                          }}
+                        >
+                          {isCollapsed ? "Expandir" : "Colapsar"}
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
 
                   <CardContent className="p-4 min-h-96">
+                    {!isCollapsed && (
                     <div className="space-y-3">
                       {ordersInColumn.map((order) => (
                         <div
@@ -1149,6 +1231,7 @@ export default function StatusControlPage() {
                         </div>
                       )}
                     </div>
+                    )}
                   </CardContent>
                 </Card>
               );
