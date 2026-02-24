@@ -49,7 +49,7 @@ export default function FuncionariosPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<FuncionarioFormState>(EMPTY_FORM)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [filtroSetor, setFiltroSetor] = useState<string>("")
+  const [filtroSetor, setFiltroSetor] = useState<string>("all")
   const [filtroAtivo, setFiltroAtivo] = useState<string>("todos")
 
   const loadFuncionarios = async () => {
@@ -70,7 +70,7 @@ export default function FuncionariosPage() {
 
   const filteredFuncionarios = useMemo(() => {
     return funcionarios.filter((f) => {
-      const matchSetor = filtroSetor ? f.setorId === filtroSetor : true
+      const matchSetor = filtroSetor === "all" ? true : f.setorId === filtroSetor
       const matchAtivo = filtroAtivo === "ativos" ? f.ativo : filtroAtivo === "inativos" ? !f.ativo : true
       return matchSetor && matchAtivo
     })
@@ -293,7 +293,7 @@ export default function FuncionariosPage() {
                   <SelectValue placeholder="Todos os setores" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os setores</SelectItem>
+                  <SelectItem value="all">Todos os setores</SelectItem>
                   {SETOR_OPTIONS.map((setor) => (
                     <SelectItem key={setor.id} value={setor.id}>{setor.label}</SelectItem>
                   ))}
