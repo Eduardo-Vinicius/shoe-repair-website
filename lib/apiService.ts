@@ -87,16 +87,24 @@ function getAuthToken() {
   return localStorage.getItem("token");
 }
 
-function getAuthHeaders(contentType = "application/json") {
+function getAuthHeaders(contentType = "application/json", options: { requireAuth?: boolean } = {}) {
   const token = getAuthToken();
+
+  if (options.requireAuth !== false && !token) {
+    throw new Error("Token não encontrado. Faça login novamente.");
+  }
+
   const headers: Record<string, string> = {
-    "Authorization": `Bearer ${token || ""}`,
     "Cache-Control": "no-store",
     "Pragma": "no-cache",
   };
 
   if (contentType) {
     headers["Content-Type"] = contentType;
+  }
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   return headers;
@@ -132,6 +140,66 @@ export interface Funcionario {
   ativo: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// --- Métricas ---
+export async function getMetricsResumoService() {
+  const response = await fetch(`${API_BASE_URL}/metrics/resumo`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao carregar métricas (resumo)");
+  }
+
+  return resolveApiPayload(await response.json());
+}
+
+export async function getMetricsDepartamentosService() {
+  const response = await fetch(`${API_BASE_URL}/metrics/departamentos`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao carregar métricas de departamentos");
+  }
+
+  return resolveApiPayload(await response.json());
+}
+
+export async function getMetricsFuncionariosService(limit = 10) {
+  const query = new URLSearchParams();
+  if (typeof limit === "number") query.append("limit", String(limit));
+
+  const response = await fetch(`${API_BASE_URL}/metrics/funcionarios${query.toString() ? `?${query.toString()}` : ""}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao carregar métricas de funcionários");
+  }
+
+  return resolveApiPayload(await response.json());
+}
+
+export async function getMetricsAtrasosService() {
+  const response = await fetch(`${API_BASE_URL}/metrics/atrasos`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao carregar métricas de atrasos");
+  }
+
+  return resolveApiPayload(await response.json());
 }
 
 export async function getPedidoService(id: string) {

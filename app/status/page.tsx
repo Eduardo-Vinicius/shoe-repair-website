@@ -34,6 +34,7 @@ import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusServi
 import { toast } from "sonner"
 import { SETORES_CORES, SETORES_NOMES, SETORES } from "@/lib/setores"
 import { listFuncionariosService, Funcionario } from "@/lib/apiService"
+import { normalize } from "path"
 
 // Interface para as colunas de status
 interface StatusColumn {
@@ -291,13 +292,14 @@ export default function StatusControlPage() {
         );
       }
 
+      
+
       const results = await Promise.all(promises);
       const columnsData = results[0];
       const ordersData = results[1];
       const userData = includeUser ? results[2] : userInfo;
 
-      const normalizedColumns = normalizeColumns(columnsData);
-
+      const normalizedColumns = normalizeColumns(columnsData)
       const resolveWithColumns = (order: Order, columns: StatusColumn) => {
         const columnNames = Object.keys(columns || {});
         if (!columnNames.length) return order.status || order.setorAtual || null;
@@ -714,6 +716,23 @@ export default function StatusControlPage() {
     return null;
   };
 
+  const slugify = (value: string) => {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "col";
+  };
+
+  const getColumnDomId = (columnName: string) => `kan-col-${slugify(columnName)}`;
+
+  const handleScrollToColumn = (columnName: string) => {
+    const id = getColumnDomId(columnName);
+    const el = typeof window !== "undefined" ? document.getElementById(id) : null;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  };
+
   // Filtra colunas por departamento do usuário, se acionado
   const filteredStatusColumns = useMemo(() => {
     if (!showDeptOnly || !userInfo?.departamento) return statusColumns;
@@ -793,6 +812,19 @@ export default function StatusControlPage() {
     const columnNames = Object.keys(filteredStatusColumns);
     const currentIndex = columnNames.indexOf(currentStatus);
     return currentIndex > 0 ? columnNames[currentIndex - 1] : null;
+  };
+
+  const openMoveDialogForOrder = (order: Order, targetStatus: string | null) => {
+    if (!targetStatus) {
+      toast.error("Não há próximo status disponível");
+      return;
+    }
+    setMoveDialogOpen(true);
+    setMoveOrderId(order.id);
+    setMoveNewStatus(targetStatus);
+    setMoveTargetSetorId(mapStatusToSetorId(targetStatus) || order.setorAtual || null);
+    setMovedByName(userInfo?.nome || "");
+    setMovedByNote("");
   };
 
   if (loading) {
@@ -1130,7 +1162,24 @@ export default function StatusControlPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-x-auto pb-4">
+          <div className="mb-4 -mx-2 sm:mx-0">
+            <div className="flex gap-2 overflow-x-auto px-2 py-2 snap-x snap-mandatory">
+              {Object.keys(filteredStatusColumns).map((colName) => (
+                <Button
+                  key={colName}
+                  size="sm"
+                  variant="outline"
+                  className="whitespace-nowrap snap-start"
+                  onClick={() => handleScrollToColumn(colName)}
+                >
+                  {getStatusInfo(colName).label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto pb-4 -mx-2 sm:mx-0 snap-x snap-mandatory">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pr-4 sm:pr-0 min-w-[320px]">
             {Object.entries(filteredStatusColumns).map(([columnName, columnOrders]) => {
               const statusInfo = getStatusInfo(columnName);
               const StatusIcon = statusInfo.icon;
@@ -1139,8 +1188,9 @@ export default function StatusControlPage() {
 
               return (
                 <Card
+                  id={getColumnDomId(columnName)}
                   key={columnName}
-                  className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white"
+                  className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start"
                   onDragOver={handleDragOver}
                   onDrop={() => handleDrop(columnName)}
                 >
@@ -1277,6 +1327,34 @@ export default function StatusControlPage() {
                               </Button>
                             </div>
                           </div>
+
+                          <div className="mt-3 flex flex-col gap-2 lg:hidden">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="justify-between"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openMoveDialogForOrder(order, getPreviousStatus(order.status));
+                              }}
+                              disabled={!getPreviousStatus(order.status)}
+                            >
+                              <ArrowLeft className="w-4 h-4" />
+                              Status anterior
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="justify-between"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openMoveDialogForOrder(order, getNextStatus(order.status));
+                              }}
+                              disabled={!getNextStatus(order.status)}
+                            >
+                              Próximo status
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </div>
                           
                         </div>
                       ))}
@@ -1293,6 +1371,7 @@ export default function StatusControlPage() {
                 </Card>
               );
             })}
+            </div>
           </div>
         </div>
 

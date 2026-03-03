@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User, Monitor, IdCard } from "lucide-react"
+import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User, Monitor, IdCard, BarChart4 } from "lucide-react"
 import { apiFetch, getDashboardService } from "@/lib/apiService"
 import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Worqera"
@@ -382,6 +382,28 @@ export default function DashboardPage() {
                 </Link>
               </CardContent>
             </Card>
+
+            {dashboardData.user.role === "admin" && (
+              <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-slate-800">
+                    <BarChart4 className="w-6 h-6 mr-3 text-slate-700" />
+                    Métricas (Admin)
+                  </CardTitle>
+                  <CardDescription className="text-slate-600">
+                    Painel de indicadores e atrasos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link href="/admin/metrics" className="block">
+                    <Button variant="outline" className="w-full border-slate-300 text-slate-800 hover:bg-slate-50">
+                      <BarChart4 className="w-4 h-4 mr-2" />
+                      Abrir painel
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 

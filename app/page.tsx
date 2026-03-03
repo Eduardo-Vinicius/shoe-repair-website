@@ -99,49 +99,6 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Demo credentials */}
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground text-center mb-2">
-                <strong>Credenciais de demonstração:</strong>
-              </p>
-              <div className="text-sm space-y-2">
-                <div>
-                  <p><strong>Admin:</strong></p>
-                  <p>Email: admin@email.com</p>
-                  <p>Senha: 123456</p>
-                </div>
-                <div>
-                  <p><strong>Atendimento:</strong></p>
-                  <p>Email: atendimento@email.com</p>
-                  <p>Senha: 123456</p>
-                </div>
-                <div>
-                  <p><strong>Sapataria:</strong></p>
-                  <p>Email: sapataria@email.com</p>
-                  <p>Senha: 123456</p>
-                </div>
-                <div>
-                  <p><strong>Costura:</strong></p>
-                  <p>Email: costura@email.com</p>
-                  <p>Senha: 123456</p>
-                </div>
-                <div>
-                  <p><strong>Pintura:</strong></p>
-                  <p>Email: pintura@email.com</p>
-                  <p>Senha: 123456</p>
-                </div>
-                <div>
-                  <p><strong>Lavagem:</strong></p>
-                  <p>Email: lavagem@email.com</p>
-                  <p>Senha: 123456</p>
-                </div>
-                <div>
-                  <p><strong>Acabamento:</strong></p>
-                  <p>Email: acabamento@email.com</p>
-                  <p>Senha: 123456</p>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
