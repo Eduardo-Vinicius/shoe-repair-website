@@ -704,7 +704,7 @@ export default function StatusControlPage() {
     return sectors;
   };
 
-  const mapStatusToSetorId = (status: string): string | null => {
+  const mapStatusToSetorId = (status: string, fallbackSetor?: string | null): string | null => {
     const s = status.toLowerCase();
     if (s.includes("atendimento-final")) return SETORES.ATENDIMENTO_FINAL;
     if (s.includes("atendimento")) return SETORES.ATENDIMENTO_INICIAL;
@@ -713,6 +713,7 @@ export default function StatusControlPage() {
     if (s.includes("lavag")) return SETORES.LAVAGEM;
     if (s.includes("pint")) return SETORES.PINTURA;
     if (s.includes("acab")) return SETORES.ACABAMENTO;
+    if (fallbackSetor) return fallbackSetor;
     return null;
   };
 
@@ -822,7 +823,7 @@ export default function StatusControlPage() {
     setMoveDialogOpen(true);
     setMoveOrderId(order.id);
     setMoveNewStatus(targetStatus);
-    setMoveTargetSetorId(mapStatusToSetorId(targetStatus) || order.setorAtual || null);
+    setMoveTargetSetorId(mapStatusToSetorId(targetStatus, order.setorAtual || null));
     setMovedByName(userInfo?.nome || "");
     setMovedByNote("");
   };
@@ -1354,6 +1355,20 @@ export default function StatusControlPage() {
                               Próximo status
                               <ArrowRight className="w-4 h-4" />
                             </Button>
+                            <Select
+                              onValueChange={(val) => {
+                                openMoveDialogForOrder(order, val);
+                              }}
+                            >
+                              <SelectTrigger className="h-9">Mover para setor</SelectTrigger>
+                              <SelectContent>
+                                {Object.keys(filteredStatusColumns).map((col) => (
+                                  <SelectItem key={col} value={col} disabled={col === order.status}>
+                                    {getStatusInfo(col).label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           
                         </div>
