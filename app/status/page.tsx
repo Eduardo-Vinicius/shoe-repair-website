@@ -1220,7 +1220,7 @@ export default function StatusControlPage() {
                 <Card
                   id={getColumnDomId(columnName)}
                   key={columnName}
-                  className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start"
+                  className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1"
                   onDragOver={handleDragOver}
                   onDrop={() => handleDrop(columnName)}
                 >
@@ -1255,8 +1255,42 @@ export default function StatusControlPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-4 min-h-96">
-                    {!isCollapsed && (
+                  <CardContent className="p-4 min-h-96 bg-gradient-to-b from-white to-slate-50">
+                    {isCollapsed ? (
+                      <div className="space-y-2 text-sm text-slate-700">
+                        {ordersInColumn.length ? (
+                          ordersInColumn.map((order) => (
+                            <button
+                              key={order.id}
+                              className="w-full flex items-center justify-between rounded border border-slate-200 bg-slate-50 px-3 py-2 text-left hover:border-slate-300 hover:bg-white transition"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setShowOrderDetails(true);
+                              }}
+                            >
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold truncate">#{order.codigo || order.id}</span>
+                                <span className="text-xs text-slate-600 truncate">{order.clientName}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                                  <Badge className="bg-red-500 text-white">Alta</Badge>
+                                )}
+                                {order.setorAtual && (
+                                  <span
+                                    className="inline-flex h-3 w-3 rounded-full"
+                                    style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
+                                    title={SETORES_NOMES[order.setorAtual] || order.setorAtual}
+                                  />
+                                )}
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="text-center text-slate-400">Nenhum pedido</div>
+                        )}
+                      </div>
+                    ) : (
                     <div className="space-y-3">
                       {ordersInColumn.map((order) => {
                         const isCardExpanded = expandedCards.has(order.id);

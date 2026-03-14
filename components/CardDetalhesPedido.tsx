@@ -97,6 +97,8 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
   const [errorCliente, setErrorCliente] = useState("");
   const [renewedPhotos, setRenewedPhotos] = useState<Record<number, boolean>>({});
   const hasRefreshedOnOpenRef = useRef(false);
+  const lastRefreshIdRef = useRef<string | null>(null);
+  const lastClientFetchRef = useRef<string | null>(null);
   const {
     pedido: pedidoAtualizado,
     setPedido,
@@ -116,12 +118,16 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
     const fetchCliente = async () => {
       if (!open || !pedidoAtual?.clientId) return;
 
+      // Evita refetch desnecessário para o mesmo cliente enquanto o modal segue aberto
+      if (lastClientFetchRef.current === pedidoAtual.clientId && cliente) return;
+
       try {
         setLoadingCliente(true);
         setErrorCliente("");
         console.log("Buscando dados do cliente para ID:", pedidoAtual.clientId);
         const clienteData = await getClienteByIdService(pedidoAtual.clientId);
         setCliente(clienteData);
+        lastClientFetchRef.current = pedidoAtual.clientId;
       } catch (err: any) {
         console.error("Erro ao carregar cliente:", err);
         setErrorCliente(err.message || "Erro ao carregar dados do cliente");
@@ -142,9 +148,10 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
 
   useEffect(() => {
     if (!open || !pedidoAtual?.id) return;
-    if (hasRefreshedOnOpenRef.current) return;
+    if (hasRefreshedOnOpenRef.current && lastRefreshIdRef.current === pedidoAtual.id) return;
 
     hasRefreshedOnOpenRef.current = true;
+    lastRefreshIdRef.current = pedidoAtual.id;
 
     refreshPedido()
       .then((refreshed) => {
@@ -163,6 +170,8 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
       setLoadingCliente(false);
       setRenewedPhotos({});
       hasRefreshedOnOpenRef.current = false;
+      lastRefreshIdRef.current = null;
+      lastClientFetchRef.current = null;
     }
   }, [open]);
 
@@ -333,6 +342,12 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
               </>
             )}
           </DialogDescription>
+          {loadingCliente && (
+            <div className="mt-2 space-y-2">
+              <div className="h-3 w-40 rounded bg-slate-200 animate-pulse" />
+              <div className="h-3 w-24 rounded bg-slate-200 animate-pulse" />
+            </div>
+          )}
           {/* Progresso dos Setores */}
           {pedidoAtual.setoresFluxo && pedidoAtual.setorAtual && pedidoAtual.setoresHistorico && (
             <div className="mt-3">
