@@ -223,6 +223,8 @@ export default function StatusControlPage() {
   const [funcionariosLoading, setFuncionariosLoading] = useState(false);
   const [compactView, setCompactView] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const loadPromiseRef = useRef<Promise<void> | null>(null);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   // Normaliza formatos diferentes de colunas que podem vir da API
   const normalizeColumns = (data: any): StatusColumn => {
@@ -274,9 +276,15 @@ export default function StatusControlPage() {
   );
 
   const loadData = useCallback(async (filterFuncionario = "", includeUser = true) => {
-    try {
-      setLoading(true);
+    if (loadPromiseRef.current) {
+      return loadPromiseRef.current;
+    }
 
+    if (!initialLoadDone) {
+      setLoading(true);
+    }
+
+    try {
       const promises: Array<Promise<any>> = [
         getStatusColumnsService(),
         getOrdersStatusService(filterFuncionario),
@@ -296,7 +304,10 @@ export default function StatusControlPage() {
 
       
 
-      const results = await Promise.all(promises);
+  const loadPromise = Promise.all(promises);
+  loadPromiseRef.current = loadPromise as Promise<void>;
+
+  const results = await loadPromise;
       const columnsData = results[0];
       const ordersData = results[1];
       const userData = includeUser ? results[2] : userInfo;
@@ -333,6 +344,7 @@ export default function StatusControlPage() {
       setStatusColumns(normalizedColumns);
       setOrders(normalizedOrders);
       if (includeUser && userData) setUserInfo(userData as UserInfo);
+      setInitialLoadDone(true);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
       setSuccessMessage("Erro ao carregar dados. Verifique sua conexão e tente novamente.");
@@ -349,8 +361,9 @@ export default function StatusControlPage() {
       }
     } finally {
       setLoading(false);
+      loadPromiseRef.current = null;
     }
-  }, []);
+  }, [initialLoadDone, userInfo]);
 
   // Carrega as colunas de status, pedidos e informações do usuário
   useEffect(() => {
@@ -397,6 +410,7 @@ export default function StatusControlPage() {
 
       // Se não achar coluna compatível, refaz o fetch completo para manter o quadro consistente
       if (!columnExists || originalColumnMissing) {
+        // Dedup será feito por loadData
         refetchOrders();
       }
     },
@@ -845,7 +859,7 @@ export default function StatusControlPage() {
     setMovedByNote("");
   };
 
-  if (loading) {
+  if (loading && !initialLoadDone) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
