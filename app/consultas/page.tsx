@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getClientesService, getOrdersStatusService, generateOrderPDFService, updateOrderService, downloadBlobAsFile, getPedidosConsultaService } from "@/lib/apiService"
+import { getClientesService, getOrdersStatusService, generateOrderPDFService, updateOrderService, downloadBlobAsFile, getPedidosConsultaService, listFuncionariosService, Funcionario } from "@/lib/apiService"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -113,6 +113,8 @@ export default function ConsultasPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [nextToken, setNextToken] = useState<string | null>(null);
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [funcionariosLoading, setFuncionariosLoading] = useState(false);
   const [consultaFilters, setConsultaFilters] = useState({
     codigo: "",
     cliente: "",
@@ -372,6 +374,9 @@ export default function ConsultasPage() {
   }, [searchParams]);
 
   const handleSearch = async () => {
+    if (!funcionarios.length) {
+      await loadFuncionarios();
+    }
     await fetchData({ loadClients: true, lastKey: null });
     setHasSearched(true);
   };
@@ -393,6 +398,22 @@ export default function ConsultasPage() {
     });
     setHasSearched(false);
   };
+
+  const loadFuncionarios = async () => {
+    setFuncionariosLoading(true);
+    try {
+      const data = await listFuncionariosService({ ativo: true, limit: 200 });
+      setFuncionarios(data || []);
+    } catch (err) {
+      console.error("Erro ao carregar funcionários", err);
+    } finally {
+      setFuncionariosLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFuncionarios();
+  }, []);
 
   // Filter clients based on search criteria
   const filteredClients = hasSearched
@@ -545,12 +566,23 @@ export default function ConsultasPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="funcionario">Funcionário</Label>
-                <Input
-                  id="funcionario"
+                <Select
                   value={consultaFilters.funcionario}
-                  onChange={(e) => setConsultaFilters({ ...consultaFilters, funcionario: e.target.value })}
-                  placeholder="Nome do responsável"
-                />
+                  onValueChange={(value) => setConsultaFilters({ ...consultaFilters, funcionario: value })}
+                  disabled={funcionariosLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={funcionariosLoading ? "Carregando..." : "Selecione"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos</SelectItem>
+                    {funcionarios.map((f) => (
+                      <SelectItem key={f.id} value={f.nome}>
+                        {f.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

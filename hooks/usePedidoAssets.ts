@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   downloadBlobAsFile,
   downloadPedidoFotosZipService,
@@ -19,25 +19,38 @@ export function usePedidoAssets(pedidoId?: string, initialPedido?: any) {
   const [uploadState, setUploadState] = useState<AsyncState>("idle");
   const [refreshState, setRefreshState] = useState<AsyncState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const refreshPromiseRef = useRef<Promise<any> | null>(null);
 
   const resetError = useCallback(() => setError(null), []);
 
   const refreshPedido = useCallback(async () => {
     if (!pedidoId) return null;
 
+    // Evita loop de requisições se o componente pedir refresh múltiplas vezes
+    if (refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
+    }
+
     setRefreshState("loading");
     setError(null);
 
-    try {
-      const freshPedido = await getPedidoService(pedidoId);
-      setPedido(freshPedido);
-      setRefreshState("success");
-      return freshPedido;
-    } catch (err: any) {
-      setRefreshState("error");
-      setError(err?.message || "Erro ao atualizar links do pedido");
-      throw err;
-    }
+    const promise = (async () => {
+      try {
+        const freshPedido = await getPedidoService(pedidoId);
+        setPedido(freshPedido);
+        setRefreshState("success");
+        return freshPedido;
+      } catch (err: any) {
+        setRefreshState("error");
+        setError(err?.message || "Erro ao atualizar links do pedido");
+        throw err;
+      } finally {
+        refreshPromiseRef.current = null;
+      }
+    })();
+
+    refreshPromiseRef.current = promise;
+    return promise;
   }, [pedidoId]);
 
   const generateAndDownloadPdf = useCallback(async (fileName?: string) => {

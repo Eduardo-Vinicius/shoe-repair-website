@@ -221,6 +221,8 @@ export default function StatusControlPage() {
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
   const [funcionariosSetor, setFuncionariosSetor] = useState<Funcionario[]>([]);
   const [funcionariosLoading, setFuncionariosLoading] = useState(false);
+  const [compactView, setCompactView] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   // Normaliza formatos diferentes de colunas que podem vir da API
   const normalizeColumns = (data: any): StatusColumn => {
@@ -783,6 +785,21 @@ export default function StatusControlPage() {
     }
   }, [moveDialogOpen, moveTargetSetorId]);
 
+  useEffect(() => {
+    if (!compactView) {
+      setExpandedCards(new Set());
+    }
+  }, [compactView]);
+
+  const toggleCardExpansion = useCallback((orderId: string) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  }, []);
+
   // Organiza os pedidos por status baseado nas colunas filtradas
   const ordersByStatus = useMemo(() => {
     const grouped: { [key: string]: Order[] } = {};
@@ -1110,6 +1127,18 @@ export default function StatusControlPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="toggle-compact"
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={compactView}
+                  onChange={(e) => setCompactView(e.target.checked)}
+                />
+                <label htmlFor="toggle-compact" className="text-sm text-slate-700">
+                  Modo compacto (cards colapsados)
+                </label>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1229,150 +1258,187 @@ export default function StatusControlPage() {
                   <CardContent className="p-4 min-h-96">
                     {!isCollapsed && (
                     <div className="space-y-3">
-                      {ordersInColumn.map((order) => (
-                        <div
-                          key={order.id}
-                          draggable
-                          onDragStart={() => handleDragStart(order.id)}
-                          className="bg-slate-50 border border-slate-200 rounded-lg p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group"
-                        >
-                          {(() => {
-                            const resp = getResponsavelAtual(order);
-                            return resp ? (
-                              <div className="flex justify-end mb-2">
-                                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">Resp.: {resp}</Badge>
+                      {ordersInColumn.map((order) => {
+                        const isCardExpanded = expandedCards.has(order.id);
+                        const showFullDetails = !compactView || isCardExpanded;
+
+                        return (
+                          <div
+                            key={order.id}
+                            draggable
+                            onDragStart={() => handleDragStart(order.id)}
+                            className="bg-slate-50 border border-slate-200 rounded-lg p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group"
+                          >
+                            {(() => {
+                              const resp = getResponsavelAtual(order);
+                              return resp ? (
+                                <div className="flex justify-end mb-2">
+                                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">Resp.: {resp}</Badge>
+                                </div>
+                              ) : null;
+                            })()}
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="font-semibold text-slate-800">#{order.codigo || order.id}</h4>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 px-2 text-slate-600 hover:text-slate-800"
+                                    draggable={false}
+                                    onMouseDown={(e) => { e.stopPropagation(); }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(order.codigo || order.id);
+                                      toast.success("Número do pedido copiado");
+                                    }}
+                                    title="Copiar número do pedido"
+                                  >
+                                    Copiar
+                                  </Button>
+                                  {typeof order.prioridade === 'number' && (
+                                    <span>
+                                      {order.prioridade === 1 && (
+                                        <Badge className="bg-red-500 text-white">I - Alta</Badge>
+                                      )}
+                                      {order.prioridade === 2 && (
+                                        <Badge className="bg-yellow-500 text-white">II - Média</Badge>
+                                      )}
+                                      {order.prioridade === 3 && (
+                                        <Badge className="bg-green-500 text-white">III - Baixa</Badge>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-slate-600 truncate">{order.clientName}</p>
+                                <p className="text-sm text-slate-500 truncate">{order.modeloTenis}</p>
+                                {!showFullDetails && order.setorAtual && (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <div
+                                      className="w-3 h-3 rounded-full"
+                                      style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
+                                    />
+                                    <span className="text-xs text-slate-600">
+                                      {SETORES_NOMES[order.setorAtual] || order.setorAtual}
+                                    </span>
+                                  </div>
+                                )}
+                                {showFullDetails && (
+                                  <>
+                                    <div className="text-xs text-slate-500">
+                                      {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
+                                    </div>
+                                    {order.servicos && (
+                                      <div className="text-xs text-slate-600">
+                                        Serviços: <span className="text-slate-700">{(() => {
+                                          const texto = formatServicos(order.servicos || order.serviceType || "");
+                                          return `${texto.slice(0, 80)}${texto.length > 80 ? '…' : ''}`;
+                                        })()}</span>
+                                      </div>
+                                    )}
+                                    {order.setorAtual && (
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <div
+                                          className="w-3 h-3 rounded-full"
+                                          style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
+                                        />
+                                        <span className="text-xs text-slate-600">
+                                          {SETORES_NOMES[order.setorAtual] || order.setorAtual}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
                               </div>
-                            ) : null;
-                          })()}
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="font-semibold text-slate-800">#{order.codigo || order.id}</h4>
+                              <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-6 px-2 text-slate-600 hover:text-slate-800"
+                                  className="h-8 w-8 p-0 hover:bg-slate-200"
                                   draggable={false}
                                   onMouseDown={(e) => { e.stopPropagation(); }}
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowOrderDetails(true);
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 hover:bg-slate-200"
+                                  draggable={false}
+                                  onMouseDown={(e) => { e.stopPropagation(); }}
+                                  onClick={() => generateOrderPDF(order)}
+                                >
+                                  <FileText className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {showFullDetails && (
+                              <div className="mt-3 flex flex-col gap-2 lg:hidden">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="justify-between"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigator.clipboard.writeText(order.codigo || order.id);
-                                    toast.success("Número do pedido copiado");
+                                    openMoveDialogForOrder(order, getPreviousStatus(order.status));
                                   }}
-                                  title="Copiar número do pedido"
+                                  disabled={!getPreviousStatus(order.status)}
                                 >
-                                  Copiar
+                                  <ArrowLeft className="w-4 h-4" />
+                                  Status anterior
                                 </Button>
-                                {typeof order.prioridade === 'number' && (
-                                  <span>
-                                    {order.prioridade === 1 && (
-                                      <Badge className="bg-red-500 text-white">I - Alta</Badge>
-                                    )}
-                                    {order.prioridade === 2 && (
-                                      <Badge className="bg-yellow-500 text-white">II - Média</Badge>
-                                    )}
-                                    {order.prioridade === 3 && (
-                                      <Badge className="bg-green-500 text-white">III - Baixa</Badge>
-                                    )}
-                                  </span>
-                                )}
+                                <Button
+                                  size="sm"
+                                  className="justify-between"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openMoveDialogForOrder(order, getNextStatus(order.status));
+                                  }}
+                                  disabled={!getNextStatus(order.status)}
+                                >
+                                  Próximo status
+                                  <ArrowRight className="w-4 h-4" />
+                                </Button>
+                                <Select
+                                  onValueChange={(val) => {
+                                    openMoveDialogForOrder(order, val);
+                                  }}
+                                >
+                                  <SelectTrigger className="h-9">Mover para setor</SelectTrigger>
+                                  <SelectContent>
+                                    {Object.keys(filteredStatusColumns).map((col) => (
+                                      <SelectItem key={col} value={col} disabled={col === order.status}>
+                                        {getStatusInfo(col).label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </div>
-                              <p className="text-sm text-slate-600">{order.clientName}</p>
-                              <p className="text-sm text-slate-500">{order.modeloTenis}</p>
-                              <div className="text-xs text-slate-500">
-                                {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
-                              </div>
-                              {order.servicos && (
-                                <div className="text-xs text-slate-600">
-                                  Serviços: <span className="text-slate-700">{(() => {
-                                    const texto = formatServicos(order.servicos || order.serviceType || "");
-                                    return `${texto.slice(0, 80)}${texto.length > 80 ? '…' : ''}`;
-                                  })()}</span>
-                                </div>
-                              )}
-                              {order.setorAtual && (
-                                <div className="flex items-center gap-2 mt-1">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
-                                  />
-                                  <span className="text-xs text-slate-600">
-                                    {SETORES_NOMES[order.setorAtual] || order.setorAtual}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 hover:bg-slate-200"
-                                draggable={false}
-                                onMouseDown={(e) => { e.stopPropagation(); }}
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setShowOrderDetails(true);
-                                }}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 hover:bg-slate-200"
-                                draggable={false}
-                                onMouseDown={(e) => { e.stopPropagation(); }}
-                                onClick={() => generateOrderPDF(order)}
-                              >
-                                <FileText className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
+                            )}
 
-                          <div className="mt-3 flex flex-col gap-2 lg:hidden">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="justify-between"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openMoveDialogForOrder(order, getPreviousStatus(order.status));
-                              }}
-                              disabled={!getPreviousStatus(order.status)}
-                            >
-                              <ArrowLeft className="w-4 h-4" />
-                              Status anterior
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="justify-between"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openMoveDialogForOrder(order, getNextStatus(order.status));
-                              }}
-                              disabled={!getNextStatus(order.status)}
-                            >
-                              Próximo status
-                              <ArrowRight className="w-4 h-4" />
-                            </Button>
-                            <Select
-                              onValueChange={(val) => {
-                                openMoveDialogForOrder(order, val);
-                              }}
-                            >
-                              <SelectTrigger className="h-9">Mover para setor</SelectTrigger>
-                              <SelectContent>
-                                {Object.keys(filteredStatusColumns).map((col) => (
-                                  <SelectItem key={col} value={col} disabled={col === order.status}>
-                                    {getStatusInfo(col).label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {compactView && (
+                              <div className="mt-2 flex justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleCardExpansion(order.id);
+                                  }}
+                                >
+                                  {isCardExpanded ? "Recolher card" : "Expandir card"}
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                          
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       {ordersInColumn.length === 0 && (
                         <div className="text-center py-8 text-slate-400">
