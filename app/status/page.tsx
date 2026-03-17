@@ -195,6 +195,7 @@ export default function StatusControlPage() {
     return String(value);
   };
 
+  const [baseStatusColumns, setBaseStatusColumns] = useState<StatusColumn>({});
   const [statusColumns, setStatusColumns] = useState<StatusColumn>({});
   const [allStatusColumns, setAllStatusColumns] = useState<StatusColumn>({});
   const [orders, setOrders] = useState<Order[]>([]);
@@ -373,6 +374,7 @@ export default function StatusControlPage() {
         return col ? { ...order, status: col } : order;
       });
 
+      setBaseStatusColumns(normalizedColumns);
       setStatusColumns(visibleColumns);
       setAllStatusColumns(Object.keys(normalizedAllColumns).length ? normalizedAllColumns : normalizedColumns);
       setOrders(normalizedOrders);
@@ -820,6 +822,13 @@ export default function StatusControlPage() {
     // statusColumns já vem filtrado por dept para não-admin; se admin, já retornou acima.
     return statusColumns;
   }, [showDeptOnly, statusColumns, userInfo]);
+
+  // Reaplica filtro quando as colunas base ou o usuário mudam (cobre caso userInfo chegue depois do primeiro fetch)
+  useEffect(() => {
+    if (!Object.keys(baseStatusColumns).length) return;
+    const nextVisible = filterColumnsForDept(baseStatusColumns, userInfo as UserInfo);
+    setStatusColumns(nextVisible);
+  }, [baseStatusColumns, userInfo]);
 
   const filteredOrders = useMemo(() => {
     if (priorityFilter === "high") {
