@@ -227,6 +227,33 @@ export default function StatusControlPage() {
   const loadPromiseRef = useRef<Promise<void> | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
+  const patternsByDept: Record<string, string[]> = {
+    atendimento: ["atendimento"],
+    sapataria: ["sapataria"],
+    costura: ["costura"],
+    lavagem: ["lavagem"],
+    pintura: ["pintura"],
+    montagem: ["montagem"],
+    acabamento: ["acabamento"],
+  };
+
+  const filterColumnsForDept = (columns: StatusColumn, user: UserInfo | null): StatusColumn => {
+    if (!user || user.role === 'admin') return columns;
+    const dept = (user.departamento || "").toLowerCase();
+    if (!dept) return columns;
+    const patterns = patternsByDept[dept] || [dept];
+    const allowed = Object.keys(columns).filter((col) => {
+      const c = col.toLowerCase();
+      return patterns.some((p) => c.includes(p));
+    });
+    if (!allowed.length) return columns;
+    const filtered: StatusColumn = {};
+    allowed.forEach((name) => {
+      filtered[name] = columns[name];
+    });
+    return filtered;
+  };
+
   // Normaliza formatos diferentes de colunas que podem vir da API
   const normalizeColumns = (data: any): StatusColumn => {
     if (!data) return {};
@@ -317,6 +344,7 @@ export default function StatusControlPage() {
 
       const normalizedColumns = normalizeColumns(columnsData)
       const normalizedAllColumns = normalizeColumns(allColumnsData)
+      const visibleColumns = filterColumnsForDept(normalizedColumns, userData as UserInfo);
       const resolveWithColumns = (order: Order, columns: StatusColumn) => {
         const columnNames = Object.keys(columns || {});
         if (!columnNames.length) return order.status || order.setorAtual || null;
@@ -341,11 +369,11 @@ export default function StatusControlPage() {
       };
 
       const normalizedOrders = (ordersData || []).map((order: Order) => {
-        const col = resolveWithColumns(order, normalizedColumns);
+        const col = resolveWithColumns(order, visibleColumns);
         return col ? { ...order, status: col } : order;
       });
 
-      setStatusColumns(normalizedColumns);
+      setStatusColumns(visibleColumns);
       setAllStatusColumns(Object.keys(normalizedAllColumns).length ? normalizedAllColumns : normalizedColumns);
       setOrders(normalizedOrders);
       if (includeUser && userData) setUserInfo(userData as UserInfo);
@@ -785,32 +813,13 @@ export default function StatusControlPage() {
 
   // Filtra colunas por departamento do usuário, se acionado
   const filteredStatusColumns = useMemo(() => {
-    if (!showDeptOnly || !userInfo?.departamento) return statusColumns;
-
-    const dept = (userInfo.departamento || "").toLowerCase();
-    const patternsByDept: Record<string, string[]> = {
-      atendimento: ["atendimento"],
-      sapataria: ["sapataria"],
-      costura: ["costura"],
-      lavagem: ["lavagem"],
-      pintura: ["pintura"],
-      montagem: ["montagem"],
-      acabamento: ["acabamento"],
-    };
-
-    const patterns = patternsByDept[dept] || [dept];
-    const columnNames = Object.keys(statusColumns || {});
-    const allowed = columnNames.filter((col) => {
-      const c = col.toLowerCase();
-      return patterns.some((p) => c.includes(p));
-    });
-
-    const filtered: StatusColumn = {};
-    allowed.forEach((name) => {
-      filtered[name] = statusColumns[name];
-    });
-    return Object.keys(filtered).length ? filtered : statusColumns;
-  }, [showDeptOnly, statusColumns, userInfo?.departamento]);
+    if (userInfo?.role === 'admin') return statusColumns;
+    if (showDeptOnly && userInfo?.departamento) {
+      return filterColumnsForDept(statusColumns, userInfo);
+    }
+    // statusColumns já vem filtrado por dept para não-admin; se admin, já retornou acima.
+    return statusColumns;
+  }, [showDeptOnly, statusColumns, userInfo]);
 
   const filteredOrders = useMemo(() => {
     if (priorityFilter === "high") {
