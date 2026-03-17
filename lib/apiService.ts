@@ -472,10 +472,10 @@ export async function loginService(email: string, password: string) {
   return data
 }
 
-// Busca todas as colunas de status (sem filtrar por cargo/departamento)
+// Busca colunas de status filtradas conforme permissão do usuário (para exibição)
 export async function getStatusColumnsService() {
   const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/status/columns`, {
+  const response = await fetch(`${API_BASE_URL}/status/columns/filtered`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -489,7 +489,27 @@ export async function getStatusColumnsService() {
   }
   
   const result = await response.json();
-  return result.data; // Retorna apenas os dados das colunas
+  return result.data; // Retorna apenas os dados das colunas visíveis ao usuário
+}
+
+// Busca todas as colunas de status (sem filtro) para permitir movimentação para qualquer setor
+export async function getAllStatusColumnsService() {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE_URL}/status/columns`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar todas as colunas de status");
+  }
+  
+  const result = await response.json();
+  return result.data; // Retorna todas as colunas (sem filtros)
 }
 
 // Busca lista de pedidos

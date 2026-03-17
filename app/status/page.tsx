@@ -30,7 +30,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
-import { getStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile, moverPedidoSetorService } from "@/lib/apiService"
+import { getStatusColumnsService, getAllStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile, moverPedidoSetorService } from "@/lib/apiService"
 import { toast } from "sonner"
 import { SETORES_CORES, SETORES_NOMES, SETORES } from "@/lib/setores"
 import { listFuncionariosService, Funcionario } from "@/lib/apiService"
@@ -196,6 +196,7 @@ export default function StatusControlPage() {
   };
 
   const [statusColumns, setStatusColumns] = useState<StatusColumn>({});
+  const [allStatusColumns, setAllStatusColumns] = useState<StatusColumn>({});
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
@@ -286,7 +287,8 @@ export default function StatusControlPage() {
 
     try {
       const promises: Array<Promise<any>> = [
-        getStatusColumnsService(),
+        getStatusColumnsService(), // filtradas para exibição
+        getAllStatusColumnsService(), // completas para movimentação
         getOrdersStatusService(filterFuncionario),
       ];
 
@@ -307,12 +309,14 @@ export default function StatusControlPage() {
   const loadPromise = Promise.all(promises);
   loadPromiseRef.current = loadPromise as Promise<void>;
 
-  const results = await loadPromise;
+    const results = await loadPromise;
       const columnsData = results[0];
-      const ordersData = results[1];
-      const userData = includeUser ? results[2] : userInfo;
+      const allColumnsData = results[1];
+      const ordersData = results[2];
+      const userData = includeUser ? results[3] : userInfo;
 
       const normalizedColumns = normalizeColumns(columnsData)
+      const normalizedAllColumns = normalizeColumns(allColumnsData)
       const resolveWithColumns = (order: Order, columns: StatusColumn) => {
         const columnNames = Object.keys(columns || {});
         if (!columnNames.length) return order.status || order.setorAtual || null;
@@ -342,6 +346,7 @@ export default function StatusControlPage() {
       });
 
       setStatusColumns(normalizedColumns);
+      setAllStatusColumns(Object.keys(normalizedAllColumns).length ? normalizedAllColumns : normalizedColumns);
       setOrders(normalizedOrders);
       if (includeUser && userData) setUserInfo(userData as UserInfo);
       setInitialLoadDone(true);
@@ -349,6 +354,7 @@ export default function StatusControlPage() {
       console.error("Erro ao carregar dados:", error);
       setSuccessMessage("Erro ao carregar dados. Verifique sua conexão e tente novamente.");
       setStatusColumns({});
+      setAllStatusColumns({});
       setOrders([]);
       if (includeUser) {
         setUserInfo({
@@ -663,9 +669,9 @@ export default function StatusControlPage() {
     inputRef.current?.focus();
   };
 
-  // Função para obter o primeiro status de um setor específico
+  // Função para obter o primeiro status de um setor específico (considera todas as colunas disponíveis para movimento)
   const getFirstStatusForSector = (sector: string): string | null => {
-    const columnNames = Object.keys(statusColumns);
+    const columnNames = Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns);
 
     // Mapeamento mais robusto de setores para padrões de coluna
     const sectorPatterns = {
@@ -692,9 +698,9 @@ export default function StatusControlPage() {
     return null;
   };
 
-  // Função para obter setores disponíveis baseado nas colunas (todos os setores, independente das permissões)
+  // Função para obter setores disponíveis baseado em todas as colunas (mesmo que não estejam visíveis)
   const getAvailableSectors = () => {
-    const columnNames = Object.keys(statusColumns);
+    const columnNames = Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns);
     const sectors: { value: string; label: string }[] = [];
 
     // Mapeamento de setores e seus padrões
@@ -1028,8 +1034,8 @@ export default function StatusControlPage() {
 
                     {/* Agrupar colunas por departamento */}
                     {(() => {
-                      // Mostra todas as colunas disponíveis para mover
-                      const columnsToShow = statusColumns;
+                      // Mostra todas as colunas disponíveis para mover (sem filtro por departamento)
+                      const columnsToShow = allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns;
 
                       const groupedColumns = Object.keys(columnsToShow).reduce((acc, columnName) => {
                         const lowerName = columnName.toLowerCase();
@@ -1459,7 +1465,7 @@ export default function StatusControlPage() {
                                 >
                                   <SelectTrigger className="h-9">Mover para setor</SelectTrigger>
                                   <SelectContent>
-                                    {Object.keys(filteredStatusColumns).map((col) => (
+                                    {Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns).map((col) => (
                                       <SelectItem key={col} value={col} disabled={col === order.status}>
                                         {getStatusInfo(col).label}
                                       </SelectItem>
