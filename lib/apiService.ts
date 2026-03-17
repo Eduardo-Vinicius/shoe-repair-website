@@ -472,10 +472,10 @@ export async function loginService(email: string, password: string) {
   return data
 }
 
-// Busca as colunas de status baseadas no cargo do usuário
+// Busca todas as colunas de status (sem filtrar por cargo/departamento)
 export async function getStatusColumnsService() {
   const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/status/columns/filtered`, {
+  const response = await fetch(`${API_BASE_URL}/status/columns`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
