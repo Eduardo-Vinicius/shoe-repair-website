@@ -662,17 +662,22 @@ export default function StatusControlPage() {
           nextStatus = columnNames[prevIndex];
           actionMessage = `voltado para ${getStatusInfo(nextStatus).label}`;
         }
-      } else if (Object.keys(statusColumns).includes(selectedSector)) {
-        // Mover diretamente para uma coluna específica (qualquer coluna do sistema)
-        nextStatus = selectedSector;
-        actionMessage = `movido para ${getStatusInfo(nextStatus).label}`;
       } else {
-        // Mover para setor específico (fallback para compatibilidade)
-        const targetStatus = getFirstStatusForSector(selectedSector);
-        if (targetStatus) {
-          nextStatus = targetStatus;
-          actionMessage = `movido para ${getAvailableSectors().find(s => s.value === selectedSector)?.label || selectedSector}`;
+        const movementColumns = allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns;
+        if (Object.keys(movementColumns).includes(selectedSector)) {
+          // Mover diretamente para uma coluna específica (qualquer coluna do sistema)
+          nextStatus = selectedSector;
+          actionMessage = `movido para ${getStatusInfo(nextStatus).label}`;
+        } else {
+          // Mover para setor específico (fallback para compatibilidade)
+          const targetStatus = getFirstStatusForSector(selectedSector);
+          if (targetStatus) {
+            nextStatus = targetStatus;
+            actionMessage = `movido para ${getAvailableSectors().find(s => s.value === selectedSector)?.label || selectedSector}`;
+          }
         }
+      } else {
+        // fallback permanece acima
       }
 
       if (nextStatus) {
