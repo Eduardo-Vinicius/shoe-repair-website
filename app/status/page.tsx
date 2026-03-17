@@ -739,6 +739,33 @@ export default function StatusControlPage() {
     return null;
   };
 
+  const resolveDeptFromSetor = (setorId?: string | null): string | null => {
+    if (!setorId) return null;
+    const s = setorId.toLowerCase();
+    if (s.includes("atendimento")) return "atendimento";
+    if (s.includes("sapat")) return "sapataria";
+    if (s.includes("costur")) return "costura";
+    if (s.includes("lavag")) return "lavagem";
+    if (s.includes("pint")) return "pintura";
+    if (s.includes("mont")) return "montagem";
+    if (s.includes("acab")) return "acabamento";
+    return null;
+  };
+
+  const resolveDeptFromStatus = (status: string, setorId?: string | null): string | null => {
+    const bySetor = resolveDeptFromSetor(setorId);
+    if (bySetor) return bySetor;
+    const s = status?.toLowerCase?.() || "";
+    if (s.includes("atendimento")) return "atendimento";
+    if (s.includes("sapat")) return "sapataria";
+    if (s.includes("costur")) return "costura";
+    if (s.includes("lavag")) return "lavagem";
+    if (s.includes("pint")) return "pintura";
+    if (s.includes("mont")) return "montagem";
+    if (s.includes("acab")) return "acabamento";
+    return null;
+  };
+
   const slugify = (value: string) => {
     return value
       .toLowerCase()
@@ -1604,6 +1631,13 @@ export default function StatusControlPage() {
                     const nome = movedByName.trim();
                     if (!nome) {
                       toast.error("Informe o nome do funcionário.");
+                      return;
+                    }
+                    const userDept = (userInfo?.departamento || "").toLowerCase().trim();
+                    const targetDept = resolveDeptFromStatus(moveNewStatus, moveTargetSetorId);
+                    const crossDept = userInfo?.role !== 'admin' && userDept && targetDept && targetDept !== userDept;
+                    if (crossDept && !movedByNote.trim()) {
+                      toast.error("Adicione uma observação ao mover para outro setor.");
                       return;
                     }
                     await updateOrderStatus(moveOrderId, moveNewStatus, nome, movedByNote);
