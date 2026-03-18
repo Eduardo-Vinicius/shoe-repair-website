@@ -537,7 +537,7 @@ export default function NewOrderPage() {
         ? [{ observacao: flowObservation.trim() }]
         : [];
 
-      const createdPedidoResponse = await createPedidoService({
+      const payload: any = {
         clienteId: formData.clientId,
         clientName: selectedClient?.nomeCompleto || "",
         modeloTenis: formData.sneaker,
@@ -553,9 +553,16 @@ export default function NewOrderPage() {
         garantia: garantiaData,
         acessorios: selectedAccessories,
         status: getFirstStatusForSector(formData.department) || undefined,
-        departamentosSelecionados: flowSelections,
-        observacoesFluxo: observacoesFluxoPayload,
-      });
+      };
+
+      if (flowSelections.length > 0) {
+        payload.departamentosSelecionados = flowSelections;
+      }
+      if (observacoesFluxoPayload.length > 0) {
+        payload.observacoesFluxo = observacoesFluxoPayload;
+      }
+
+      const createdPedidoResponse = await createPedidoService(payload);
 
       if (photos.length > 0) {
         const pedidoId = getPedidoIdFromCreateResponse(createdPedidoResponse);

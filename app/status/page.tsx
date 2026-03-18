@@ -426,8 +426,10 @@ export default function StatusControlPage() {
 
   const applyOrderUpdate = useCallback(
     (updatedOrder: Order) => {
-      const normalized = normalizeOrderToColumns(updatedOrder);
-      const targetColumn = resolveColumnForOrder(updatedOrder);
+      const movementColumns = (allStatusColumns && Object.keys(allStatusColumns).length) ? allStatusColumns : statusColumns;
+      const targetColumn = resolveColumnForOrder(updatedOrder, movementColumns) || updatedOrder.status;
+      const normalized: Order = targetColumn ? { ...updatedOrder, status: targetColumn } : updatedOrder;
+
       const columnExists = !!(targetColumn && statusColumns && Object.prototype.hasOwnProperty.call(statusColumns, targetColumn));
       const originalColumnMissing = updatedOrder.status
         ? !(statusColumns && Object.prototype.hasOwnProperty.call(statusColumns, updatedOrder.status))
