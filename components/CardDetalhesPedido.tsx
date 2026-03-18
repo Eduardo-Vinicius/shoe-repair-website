@@ -390,6 +390,39 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
           <div><strong>Data de Criação:</strong> {pedidoAtual.dataCriacao || pedidoAtual.createdDate}</div>
           <div><strong>Previsão de Entrega:</strong> {pedidoAtual.dataPrevistaEntrega || pedidoAtual.expectedDate}</div>
 
+          {Array.isArray(pedidoAtual.departamentosSelecionados) && pedidoAtual.departamentosSelecionados.length > 0 && (
+            <div className="mt-3">
+              <div className="text-sm font-medium text-gray-700 mb-1">Departamentos marcados</div>
+              <div className="flex flex-wrap gap-2">
+                {pedidoAtual.departamentosSelecionados.map((dep, idx) => (
+                  <Badge key={`${dep.id}-${idx}`} variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
+                    {dep.nome || dep.id}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(pedidoAtual.observacoesFluxo) && pedidoAtual.observacoesFluxo.length > 0 && (
+            <div className="mt-3">
+              <div className="text-sm font-medium text-gray-700 mb-1">Observações do fluxo</div>
+              <div className="space-y-2 text-sm text-gray-700">
+                {pedidoAtual.observacoesFluxo.map((obs, idx) => (
+                  <div key={idx} className="border rounded p-2 bg-slate-50 border-slate-200">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span>{obs.setorNome || obs.setorId || ""}</span>
+                      <span>{obs.timestamp ? new Date(obs.timestamp).toLocaleString("pt-BR") : ""}</span>
+                    </div>
+                    <div className="text-sm text-slate-800 mt-1">{obs.observacao || "-"}</div>
+                    {obs.usuarioNome || obs.usuario ? (
+                      <div className="text-xs text-slate-600 mt-1">{obs.usuarioNome || obs.usuario}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Informações de criação */}
           {pedidoAtual.createdBy && (
             <div className="border-t pt-3 mt-4 bg-gray-50 p-3 rounded">

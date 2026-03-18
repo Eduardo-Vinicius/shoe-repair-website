@@ -95,6 +95,15 @@ interface Order {
     funcionarioEntrada?: string;
     funcionarioSaida?: string | null;
   }>;
+  departamentosSelecionados?: Array<{ id: string; nome: string }>;
+  observacoesFluxo?: Array<{
+    setorId?: string;
+    setorNome?: string;
+    observacao?: string;
+    usuario?: string;
+    usuarioNome?: string;
+    timestamp?: string;
+  }>;
   // Quem criou o pedido
   createdBy?: {
     userId: string;
@@ -1448,6 +1457,25 @@ export default function StatusControlPage() {
                                         </span>
                                       </div>
                                     )}
+                                    {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {order.departamentosSelecionados.map((dep) => (
+                                          <Badge key={dep.id} variant="outline" className="text-[11px] bg-slate-50 border-slate-200 text-slate-700">
+                                            {dep.nome || dep.id}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {Array.isArray(order.observacoesFluxo) && order.observacoesFluxo.length > 0 && (() => {
+                                      const lastObs = order.observacoesFluxo[order.observacoesFluxo.length - 1];
+                                      return (
+                                        <div className="mt-1 text-xs text-slate-600">
+                                          Obs.: {(lastObs?.observacao || '').slice(0, 80)}{(lastObs?.observacao || '').length > 80 ? '…' : ''}
+                                          {lastObs?.usuarioNome ? ` • ${lastObs.usuarioNome}` : ''}
+                                          {lastObs?.timestamp ? ` • ${new Date(lastObs.timestamp).toLocaleDateString('pt-BR')}` : ''}
+                                        </div>
+                                      );
+                                    })()}
                                   </>
                                 )}
                               </div>

@@ -44,7 +44,7 @@ interface StatusColumn {
   [columnName: string]: any[];
 }
 
-// Departamentos disponíveis
+// Departamentos disponíveis (para status inicial)
 const departments = [
   { value: "atendimento", label: "Atendimento" },
   { value: "sapataria", label: "Sapataria" },
@@ -52,6 +52,58 @@ const departments = [
   { value: "lavagem", label: "Lavagem" },
   { value: "acabamento", label: "Acabamento" },
   { value: "pintura", label: "Pintura" },
+];
+
+// Grupos de fluxo por departamento (para demarcar no cadastro)
+const departmentFlowGroups = [
+  {
+    id: "pintura",
+    label: "Pintura",
+    options: [
+      { id: "pintura-completa", label: "Pintura - Completa" },
+      { id: "pintura-parcial", label: "Pintura - Parcial" },
+    ],
+  },
+  {
+    id: "lavagem",
+    label: "Lavagem",
+    options: [
+      { id: "lavagem-completa", label: "Lavagem - Completa" },
+      { id: "lavagem-reforco", label: "Lavagem - Reforço" },
+    ],
+  },
+  {
+    id: "costura",
+    label: "Costura",
+    options: [
+      { id: "costura-completa", label: "Costura - Completa" },
+      { id: "costura-pontos", label: "Costura - Pontos específicos" },
+    ],
+  },
+  {
+    id: "sapataria",
+    label: "Sapataria",
+    options: [
+      { id: "sapataria-completa", label: "Sapataria - Completa" },
+      { id: "sapataria-parcial", label: "Sapataria - Parcial" },
+    ],
+  },
+  {
+    id: "acabamento",
+    label: "Acabamento",
+    options: [
+      { id: "acabamento-full", label: "Acabamento - Full" },
+      { id: "acabamento-detalhe", label: "Acabamento - Detalhe" },
+    ],
+  },
+  {
+    id: "atendimento",
+    label: "Atendimento",
+    options: [
+      { id: "atendimento-recebido", label: "Atendimento - Recebido" },
+      { id: "atendimento-orcado", label: "Atendimento - Orçado" },
+    ],
+  },
 ];
 
 // Interface para serviços selecionados
@@ -73,6 +125,8 @@ export default function NewOrderPage() {
     department: "atendimento", // Departamento de destino
     observations: "",
   })
+  const [flowObservation, setFlowObservation] = useState("");
+  const [selectedFlowOptions, setSelectedFlowOptions] = useState<string[]>([]);
   const [prioridade, setPrioridade] = useState<string>("2")
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([])
   const [totalPrice, setTotalPrice] = useState(0)
@@ -219,6 +273,13 @@ export default function NewOrderPage() {
       setErrors((prev) => ({ ...prev, [name]: "" }))
     }
   }
+
+  const toggleFlowOption = (id: string) => {
+    setSelectedFlowOptions((prev) => {
+      if (prev.includes(id)) return prev.filter((item) => item !== id);
+      return [...prev, id];
+    });
+  };
 
   // Funções para gerenciar serviços selecionados
   const toggleService = (serviceId: string, checked: boolean) => {
@@ -462,6 +523,20 @@ export default function NewOrderPage() {
       // Observações apenas com o texto inserido pelo usuário
       const observacoesFinais = formData.observations || '';
 
+      const flowSelections = selectedFlowOptions
+        .map((opt) => {
+          for (const group of departmentFlowGroups) {
+            const found = group.options.find((o) => o.id === opt);
+            if (found) return { id: found.id, nome: found.label };
+          }
+          return null;
+        })
+        .filter(Boolean) as Array<{ id: string; nome: string }>;
+
+      const observacoesFluxoPayload = flowObservation.trim()
+        ? [{ observacao: flowObservation.trim() }]
+        : [];
+
       const createdPedidoResponse = await createPedidoService({
         clienteId: formData.clientId,
         clientName: selectedClient?.nomeCompleto || "",
@@ -478,6 +553,8 @@ export default function NewOrderPage() {
         garantia: garantiaData,
         acessorios: selectedAccessories,
         status: getFirstStatusForSector(formData.department) || undefined,
+        departamentosSelecionados: flowSelections,
+        observacoesFluxo: observacoesFluxoPayload,
       });
 
       if (photos.length > 0) {
@@ -528,6 +605,47 @@ export default function NewOrderPage() {
               <div>
                 <h1 className="text-2xl font-bold text-slate-800 font-serif">Novo Pedido</h1>
                 <p className="text-sm text-slate-600">Criar pedido de reforma</p>
+              </div>
+
+              <div className="space-y-3 p-4 border rounded-lg bg-slate-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Departamentos envolvidos</p>
+                    <p className="text-xs text-slate-500">Selecione os setores previstos no fluxo do pedido.</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {departmentFlowGroups.map((group) => (
+                    <div key={group.id} className="border rounded-lg p-3 bg-white">
+                      <p className="text-sm font-semibold text-slate-800 mb-2">{group.label}</p>
+                      <div className="space-y-2">
+                        {group.options.map((opt) => {
+                          const checked = selectedFlowOptions.includes(opt.id);
+                          return (
+                            <label key={opt.id} className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="mt-0.5"
+                                checked={checked}
+                                onChange={() => toggleFlowOption(opt.id)}
+                              />
+                              <span>{opt.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <Label htmlFor="flowObservation">Observação inicial do fluxo</Label>
+                  <Textarea
+                    id="flowObservation"
+                    placeholder="Ex.: Cliente pediu reforçar pintura nas laterais"
+                    value={flowObservation}
+                    onChange={(e) => setFlowObservation(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>
