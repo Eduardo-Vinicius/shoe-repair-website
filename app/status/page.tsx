@@ -676,8 +676,6 @@ export default function StatusControlPage() {
             actionMessage = `movido para ${getAvailableSectors().find(s => s.value === selectedSector)?.label || selectedSector}`;
           }
         }
-      } else {
-        // fallback permanece acima
       }
 
       if (nextStatus) {
