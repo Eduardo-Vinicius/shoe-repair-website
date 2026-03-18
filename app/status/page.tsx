@@ -432,18 +432,25 @@ export default function StatusControlPage() {
       const originalColumnMissing = updatedOrder.status
         ? !(statusColumns && Object.prototype.hasOwnProperty.call(statusColumns, updatedOrder.status))
         : false;
+      const shouldShowInView = !!(targetColumn && statusColumns && Object.prototype.hasOwnProperty.call(statusColumns, targetColumn));
 
       setOrders((prevOrders) => {
         let found = false;
-        const next = prevOrders.map((order) => {
-          if (order.id === normalized.id) {
-            found = true;
-            return { ...order, ...normalized };
-          }
-          return order;
-        });
+        const next = prevOrders
+          .map((order) => {
+            if (order.id === normalized.id) {
+              found = true;
+              return { ...order, ...normalized };
+            }
+            return order;
+          })
+          .filter((order) => {
+            // Se o pedido foi movido para uma coluna não visível (outro departamento), remove da visão atual
+            if (order.id === normalized.id && !shouldShowInView) return false;
+            return true;
+          });
 
-        if (!found) {
+        if (!found && shouldShowInView) {
           next.push(normalized);
         }
         return next;
