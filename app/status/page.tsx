@@ -225,7 +225,7 @@ export default function StatusControlPage() {
   const [funcionariosLoading, setFuncionariosLoading] = useState(false);
   const [compactView, setCompactView] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-  const loadPromiseRef = useRef<Promise<void> | null>(null);
+  const loadPromiseRef = useRef<Promise<any> | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   const patternsByDept: Record<string, string[]> = {
@@ -335,7 +335,7 @@ export default function StatusControlPage() {
       
 
   const loadPromise = Promise.all(promises);
-  loadPromiseRef.current = loadPromise as Promise<void>;
+  loadPromiseRef.current = loadPromise;
 
     const results = await loadPromise;
       const columnsData = results[0];
