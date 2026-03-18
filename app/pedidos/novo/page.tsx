@@ -613,47 +613,6 @@ export default function NewOrderPage() {
                 <h1 className="text-2xl font-bold text-slate-800 font-serif">Novo Pedido</h1>
                 <p className="text-sm text-slate-600">Criar pedido de reforma</p>
               </div>
-
-              <div className="space-y-3 p-4 border rounded-lg bg-slate-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700">Departamentos envolvidos</p>
-                    <p className="text-xs text-slate-500">Selecione os setores previstos no fluxo do pedido.</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {departmentFlowGroups.map((group) => (
-                    <div key={group.id} className="border rounded-lg p-3 bg-white">
-                      <p className="text-sm font-semibold text-slate-800 mb-2">{group.label}</p>
-                      <div className="space-y-2">
-                        {group.options.map((opt) => {
-                          const checked = selectedFlowOptions.includes(opt.id);
-                          return (
-                            <label key={opt.id} className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="mt-0.5"
-                                checked={checked}
-                                onChange={() => toggleFlowOption(opt.id)}
-                              />
-                              <span>{opt.label}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <Label htmlFor="flowObservation">Observação inicial do fluxo</Label>
-                  <Textarea
-                    id="flowObservation"
-                    placeholder="Ex.: Cliente pediu reforçar pintura nas laterais"
-                    value={flowObservation}
-                    onChange={(e) => setFlowObservation(e.target.value)}
-                  />
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -673,6 +632,46 @@ export default function NewOrderPage() {
             <CardDescription className="text-slate-600">Preencha os dados do pedido de reforma de calçados</CardDescription>
           </CardHeader>
           <CardContent className="p-8">
+            <div className="space-y-3 p-4 border rounded-lg bg-slate-50 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Departamentos envolvidos</p>
+                  <p className="text-xs text-slate-500">Selecione os setores previstos no fluxo do pedido.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {departmentFlowGroups.map((group) => (
+                  <div key={group.id} className="border rounded-lg p-3 bg-white">
+                    <p className="text-sm font-semibold text-slate-800 mb-2">{group.label}</p>
+                    <div className="space-y-2">
+                      {group.options.map((opt) => {
+                        const checked = selectedFlowOptions.includes(opt.id);
+                        return (
+                          <label key={opt.id} className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="mt-0.5"
+                              checked={checked}
+                              onChange={() => toggleFlowOption(opt.id)}
+                            />
+                            <span>{opt.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <Label htmlFor="flowObservation">Observação inicial do fluxo</Label>
+                <Textarea
+                  id="flowObservation"
+                  placeholder="Ex.: Cliente pediu reforçar pintura nas laterais"
+                  value={flowObservation}
+                  onChange={(e) => setFlowObservation(e.target.value)}
+                />
+              </div>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Client Selection */}
               <div className="space-y-2">
