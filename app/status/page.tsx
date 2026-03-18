@@ -399,7 +399,7 @@ export default function StatusControlPage() {
       setLoading(false);
       loadPromiseRef.current = null;
     }
-  }, [initialLoadDone, userInfo]);
+  }, [initialLoadDone]);
 
   // Carrega as colunas de status, pedidos e informações do usuário
   useEffect(() => {
@@ -824,9 +824,8 @@ export default function StatusControlPage() {
     if (showDeptOnly && userInfo?.departamento) {
       return filterColumnsForDept(statusColumns, userInfo);
     }
-    // statusColumns já vem filtrado por dept para não-admin; se admin, já retornou acima.
     return statusColumns;
-  }, [showDeptOnly, statusColumns, userInfo]);
+  }, [showDeptOnly, statusColumns, userInfo?.role, userInfo?.departamento]);
 
   // Reaplica filtro quando as colunas base ou o usuário mudam (cobre caso userInfo chegue depois do primeiro fetch)
   useEffect(() => {
