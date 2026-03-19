@@ -33,7 +33,8 @@ import {
   Paintbrush,
   Wrench,
   Sparkles,
-  Hammer
+  Hammer,
+  ClipboardCopy
 } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
@@ -882,6 +883,18 @@ export default function StatusControlPage() {
     }
   };
 
+  const getFirstPhotoUrl = (fotos?: any[]): string | null => {
+    if (!Array.isArray(fotos)) return null;
+    const pick = fotos.find((f) => {
+      if (!f) return false;
+      const val = typeof f === 'string' ? f : (f.url || f.fotoUrl || f.uploadedUrl || f.s3Url || f.location || f.src || "");
+      return typeof val === 'string' && /^https?:\/\//i.test(val.trim());
+    });
+    if (!pick) return null;
+    const val = typeof pick === 'string' ? pick : (pick.url || pick.fotoUrl || pick.uploadedUrl || pick.s3Url || pick.location || pick.src || "");
+    return typeof val === 'string' ? val : null;
+  };
+
   const slugify = (value: string) => {
     return value
       .toLowerCase()
@@ -1490,6 +1503,7 @@ export default function StatusControlPage() {
                         const extraServicesCount = Math.max(serviceBadgesRaw.length - 2, 0);
                         const dept = resolveDeptFromSetor(order.setorAtual) || resolveDeptFromStatus(order.status, order.setorAtual);
                         const DeptIcon = getDeptIcon(dept) || StatusIcon;
+                        const thumb = getFirstPhotoUrl(order.fotos);
 
                         return (
                             <div
@@ -1502,11 +1516,15 @@ export default function StatusControlPage() {
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0 mt-1">
                                 <div
-                                  className="w-9 h-9 rounded-full flex items-center justify-center text-white"
+                                  className="w-9 h-9 rounded-full flex items-center justify-center text-white overflow-hidden"
                                   style={{ backgroundColor: SETORES_CORES[order.setorAtual || ''] || '#64748b' }}
                                   title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
                                 >
-                                  <DeptIcon className="w-4 h-4" />
+                                  {thumb ? (
+                                    <img src={thumb} alt="thumb" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <DeptIcon className="w-4 h-4" />
+                                  )}
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0 space-y-1">
@@ -1515,21 +1533,13 @@ export default function StatusControlPage() {
                                   <span className="text-[11px] text-slate-500">
                                     {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
                                   </span>
-                                  {typeof order.prioridade === 'number' && (
-                                    <Badge className={
-                                      order.prioridade === 1
-                                        ? "bg-red-500 text-white"
-                                        : order.prioridade === 2
-                                        ? "bg-amber-500 text-white"
-                                        : "bg-emerald-500 text-white"
-                                    }>
-                                      {order.prioridade === 1 ? "Alta" : order.prioridade === 2 ? "Média" : "Baixa"}
-                                    </Badge>
+                                  {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                                    <Badge className="bg-red-500 text-white">Alta</Badge>
                                   )}
                                   <Button
-                                    size="sm"
+                                    size="icon"
                                     variant="ghost"
-                                    className="h-6 px-2 text-slate-500 hover:text-slate-800"
+                                    className="h-7 w-7 text-slate-500 hover:text-slate-800"
                                     draggable={false}
                                     onMouseDown={(e) => { e.stopPropagation(); }}
                                     onClick={(e) => {
@@ -1539,7 +1549,7 @@ export default function StatusControlPage() {
                                     }}
                                     title="Copiar número"
                                   >
-                                    Copiar
+                                    <ClipboardCopy className="w-4 h-4" />
                                   </Button>
                                 </div>
 
@@ -1559,7 +1569,7 @@ export default function StatusControlPage() {
                                   </div>
                                 )}
 
-                                {serviceBadges.length > 0 && (
+                                {serviceBadges.length > 0 && showFullDetails && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {serviceBadges.map((srv, idx) => (
                                       <Badge key={`${order.id}-srv-${idx}`} variant="outline" className="text-[10px] bg-white border-slate-200 text-slate-700 px-2 py-0.5">
@@ -1574,7 +1584,7 @@ export default function StatusControlPage() {
                                   </div>
                                 )}
 
-                                {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
+                                {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && showFullDetails && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {order.departamentosSelecionados.slice(0, 2).map((dep) => (
                                       <Badge key={dep.id} variant="outline" className="text-[10px] bg-slate-50 border-slate-200 text-slate-700 px-2 py-0.5">
@@ -1647,81 +1657,82 @@ export default function StatusControlPage() {
                               </div>
                             </div>
 
-                            {showFullDetails && (
-                              <div className="mt-3 grid grid-cols-2 gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openMoveDialogForOrder(order, getPreviousStatus(order.status));
-                                  }}
-                                  disabled={!getPreviousStatus(order.status)}
-                                >
-                                  <ArrowLeft className="w-4 h-4 mr-1" /> Anterior
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="h-8"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openMoveDialogForOrder(order, getNextStatus(order.status));
-                                  }}
-                                  disabled={!getNextStatus(order.status)}
-                                >
-                                  Próximo <ArrowRight className="w-4 h-4 ml-1" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const nextSame = getNextStatusSameDept(order.status);
-                                    if (nextSame) {
-                                      openMoveDialogForOrder(order, nextSame);
-                                    } else {
-                                      toast.info("Sem próxima coluna no setor");
-                                    }
-                                  }}
-                                  disabled={!getNextStatusSameDept(order.status)}
-                                >
-                                  Próx. no setor
-                                </Button>
-                                <Select
-                                  onValueChange={(val) => {
-                                    openMoveDialogForOrder(order, val);
-                                  }}
-                                >
-                                  <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
-                                  <SelectContent>
-                                    {Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns).map((col) => (
-                                      <SelectItem key={col} value={col} disabled={col === order.status}>
-                                        {getStatusInfo(col).label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  className="h-8"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const finalStatus = getAtendimentoFinalStatus();
-                                    if (finalStatus && finalStatus !== order.status) {
-                                      openMoveDialogForOrder(order, finalStatus);
-                                    } else {
-                                      toast.info("Já está no atendimento final");
-                                    }
-                                  }}
-                                  disabled={getAtendimentoFinalStatus() === null || getAtendimentoFinalStatus() === order.status}
-                                >
-                                  Finalizar <CheckCircle className="w-4 h-4 ml-1" />
-                                </Button>
-                              </div>
-                            )}
+                                {showFullDetails && (
+                                  <div className="mt-3 grid grid-cols-2 gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openMoveDialogForOrder(order, getPreviousStatus(order.status));
+                                      }}
+                                      disabled={!getPreviousStatus(order.status)}
+                                    >
+                                      <ArrowLeft className="w-4 h-4 mr-1" /> Anterior
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="h-8"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openMoveDialogForOrder(order, getNextStatus(order.status));
+                                      }}
+                                      disabled={!getNextStatus(order.status)}
+                                    >
+                                      Próximo <ArrowRight className="w-4 h-4 ml-1" />
+                                    </Button>
+                                    {(() => {
+                                      const nextSame = getNextStatusSameDept(order.status);
+                                      const nextGlobal = getNextStatus(order.status);
+                                      if (!nextSame || nextSame === nextGlobal) return null;
+                                      return (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-8 col-span-2"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openMoveDialogForOrder(order, nextSame);
+                                          }}
+                                        >
+                                          Próx. no setor
+                                        </Button>
+                                      );
+                                    })()}
+                                    <Select
+                                      onValueChange={(val) => {
+                                        openMoveDialogForOrder(order, val);
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
+                                      <SelectContent>
+                                        {Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns).map((col) => (
+                                          <SelectItem key={col} value={col} disabled={col === order.status}>
+                                            {getStatusInfo(col).label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      className="h-8"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const finalStatus = getAtendimentoFinalStatus();
+                                        if (finalStatus && finalStatus !== order.status) {
+                                          openMoveDialogForOrder(order, finalStatus);
+                                        } else {
+                                          toast.info("Já está no atendimento final");
+                                        }
+                                      }}
+                                      disabled={getAtendimentoFinalStatus() === null || getAtendimentoFinalStatus() === order.status}
+                                    >
+                                      Finalizar <CheckCircle className="w-4 h-4 ml-1" />
+                                    </Button>
+                                  </div>
+                                )}
 
                             {compactView && (
                               <div className="mt-2 flex justify-end">
