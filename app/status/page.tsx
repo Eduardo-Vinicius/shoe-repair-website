@@ -234,6 +234,8 @@ export default function StatusControlPage() {
   const [funcionariosLoading, setFuncionariosLoading] = useState(false);
   const [compactView, setCompactView] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [justMovedOrderId, setJustMovedOrderId] = useState<string | null>(null);
   const loadPromiseRef = useRef<Promise<any> | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
@@ -462,6 +464,8 @@ export default function StatusControlPage() {
         prevSelected?.id === normalized.id ? { ...prevSelected, ...normalized } : prevSelected
       );
 
+      setJustMovedOrderId(normalized.id);
+
       // Se não achar coluna compatível, refaz o fetch completo para manter o quadro consistente
       if (!columnExists || originalColumnMissing) {
         // Dedup será feito por loadData
@@ -541,17 +545,32 @@ export default function StatusControlPage() {
     e.preventDefault();
   };
 
+  const handleDragEnter = (status: string) => {
+    if (draggedOrderId) setDragOverColumn(status);
+  };
+
+  const handleDragLeave = (status: string) => {
+    if (dragOverColumn === status) setDragOverColumn(null);
+  };
+
   const handleDrop = (status: string) => {
-    if (draggedOrderId) {
-      const order = orders.find((o) => o.id === draggedOrderId);
-      const inferredSetor = mapStatusToSetorId(status) || order?.setorAtual || null;
-      setMoveDialogOpen(true);
-      setMoveOrderId(draggedOrderId);
-      setMoveNewStatus(status);
-      setMoveTargetSetorId(inferredSetor);
-      setMovedByName(userInfo?.nome || "");
-      setMovedByNote("");
+    if (!draggedOrderId) return;
+
+    const order = orders.find((o) => o.id === draggedOrderId);
+    if (order?.status === status) {
+      setDraggedOrderId(null);
+      setDragOverColumn(null);
+      return; // mesma coluna, nenhuma ação
     }
+
+    const inferredSetor = mapStatusToSetorId(status) || order?.setorAtual || null;
+    setMoveDialogOpen(true);
+    setMoveOrderId(draggedOrderId);
+    setMoveNewStatus(status);
+    setMoveTargetSetorId(inferredSetor);
+    setMovedByName(userInfo?.nome || "");
+    setMovedByNote("");
+    setDragOverColumn(null);
   };
   const getResponsavelAtual = (order: Order): string | null => {
     if (order.funcionarioAtual?.trim()) {
@@ -738,13 +757,21 @@ export default function StatusControlPage() {
     const patterns = sectorPatterns[sector as keyof typeof sectorPatterns];
     if (!patterns) return null;
 
-    // Procura por qualquer coluna que contenha qualquer um dos padrões
-    for (const pattern of patterns) {
-      const found = columnNames.find(col =>
-        col.toLowerCase().includes(pattern.toLowerCase())
-      );
-      if (found) return found;
-    }
+    const todosTokens = ['a fazer', 'afazer', 'to do', 'todo', 'backlog', 'iniciado', 'iniciar'];
+
+    // Agrupa colunas que batem com o setor
+    const matches = columnNames.filter(col =>
+      patterns.some((p) => col.toLowerCase().includes(p.toLowerCase()))
+    );
+
+    // Prefere coluna "A Fazer" do setor
+    const todoMatch = matches.find(col =>
+      todosTokens.some((t) => col.toLowerCase().includes(t))
+    );
+    if (todoMatch) return todoMatch;
+
+    // Senão, primeira do setor
+    if (matches.length) return matches[0];
 
     return null;
   };
@@ -789,6 +816,16 @@ export default function StatusControlPage() {
     if (fallbackSetor) return fallbackSetor;
     return null;
   };
+
+  const getAtendimentoFinalStatus = useCallback(() => {
+    const cols = Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns);
+    if (!cols.length) return null;
+    const exactFinal = cols.find((c) => c.toLowerCase().includes("atendimento-final"));
+    if (exactFinal) return exactFinal;
+    const atendimentoCols = cols.filter((c) => c.toLowerCase().includes("atendimento"));
+    if (atendimentoCols.length) return atendimentoCols[atendimentoCols.length - 1];
+    return cols[cols.length - 1];
+  }, [allStatusColumns, statusColumns]);
 
   const resolveDeptFromSetor = (setorId?: string | null): string | null => {
     if (!setorId) return null;
@@ -885,6 +922,12 @@ export default function StatusControlPage() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!justMovedOrderId) return;
+    const t = setTimeout(() => setJustMovedOrderId(null), 900);
+    return () => clearTimeout(t);
+  }, [justMovedOrderId]);
+
   // Organiza os pedidos por status baseado nas colunas filtradas
   const ordersByStatus = useMemo(() => {
     const grouped: { [key: string]: Order[] } = {};
@@ -909,6 +952,31 @@ export default function StatusControlPage() {
     return currentIndex >= 0 && currentIndex < columnNames.length - 1
       ? columnNames[currentIndex + 1]
       : null;
+  };
+
+  const getDeptFromColumn = (col: string): string | null => {
+    const s = col.toLowerCase();
+    if (s.includes("atendimento")) return "atendimento";
+    if (s.includes("sapat")) return "sapataria";
+    if (s.includes("costur")) return "costura";
+    if (s.includes("lavag")) return "lavagem";
+    if (s.includes("pint")) return "pintura";
+    if (s.includes("mont")) return "montagem";
+    if (s.includes("acab")) return "acabamento";
+    return null;
+  };
+
+  const getNextStatusSameDept = (currentStatus: string) => {
+    const columnNames = Object.keys(filteredStatusColumns);
+    const currentIndex = columnNames.indexOf(currentStatus);
+    if (currentIndex === -1) return null;
+    const currentDept = getDeptFromColumn(currentStatus);
+    for (let i = currentIndex + 1; i < columnNames.length; i++) {
+      if (getDeptFromColumn(columnNames[i]) === currentDept) {
+        return columnNames[i];
+      }
+    }
+    return null;
   };
 
   const getPreviousStatus = (currentStatus: string) => {
@@ -1300,13 +1368,16 @@ export default function StatusControlPage() {
               const StatusIcon = statusInfo.icon;
               const ordersInColumn = ordersByStatus[columnName] || [];
               const isCollapsed = collapsedColumns.has(columnName);
+              const isDropTarget = dragOverColumn === columnName;
 
               return (
                 <Card
                   id={getColumnDomId(columnName)}
                   key={columnName}
-                  className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1"
+                  className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-blue-400 shadow-2xl scale-[1.01]" : ""}`}
                   onDragOver={handleDragOver}
+                  onDragEnter={() => handleDragEnter(columnName)}
+                  onDragLeave={() => handleDragLeave(columnName)}
                   onDrop={() => handleDrop(columnName)}
                 >
                   <CardHeader className={`bg-gradient-to-r ${statusInfo.gradient} text-white rounded-t-lg`}>
@@ -1380,13 +1451,19 @@ export default function StatusControlPage() {
                       {ordersInColumn.map((order) => {
                         const isCardExpanded = expandedCards.has(order.id);
                         const showFullDetails = !compactView || isCardExpanded;
+                        const servicesText = formatServicos(order.servicos || order.serviceType || "");
+                        const serviceBadges = servicesText
+                          .split(",")
+                          .map((s) => s.trim())
+                          .filter(Boolean)
+                          .slice(0, 4);
 
                         return (
                           <div
                             key={order.id}
                             draggable
                             onDragStart={() => handleDragStart(order.id)}
-                            className="bg-slate-50 border border-slate-200 rounded-lg p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group"
+                            className={`bg-slate-50 border border-slate-200 rounded-lg p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group card-animate-in ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
                           >
                             {(() => {
                               const resp = getResponsavelAtual(order);
@@ -1449,10 +1526,16 @@ export default function StatusControlPage() {
                                     </div>
                                     {order.servicos && (
                                       <div className="text-xs text-slate-600">
-                                        Serviços: <span className="text-slate-700">{(() => {
-                                          const texto = formatServicos(order.servicos || order.serviceType || "");
-                                          return `${texto.slice(0, 80)}${texto.length > 80 ? '…' : ''}`;
-                                        })()}</span>
+                                        Serviços: <span className="text-slate-700">{`${servicesText.slice(0, 80)}${servicesText.length > 80 ? '…' : ''}`}</span>
+                                      </div>
+                                    )}
+                                    {serviceBadges.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {serviceBadges.map((srv, idx) => (
+                                          <Badge key={`${order.id}-srv-${idx}`} variant="outline" className="text-[11px] bg-white border-slate-200 text-slate-700">
+                                            {srv}
+                                          </Badge>
+                                        ))}
                                       </div>
                                     )}
                                     {order.setorAtual && (
@@ -1516,7 +1599,7 @@ export default function StatusControlPage() {
                             </div>
 
                             {showFullDetails && (
-                              <div className="mt-3 flex flex-col gap-2 lg:hidden">
+                              <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:flex-wrap">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1542,6 +1625,24 @@ export default function StatusControlPage() {
                                   Próximo status
                                   <ArrowRight className="w-4 h-4" />
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="justify-between"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const nextSame = getNextStatusSameDept(order.status);
+                                    if (nextSame) {
+                                      openMoveDialogForOrder(order, nextSame);
+                                    } else {
+                                      toast.info("Não há próxima coluna no mesmo setor");
+                                    }
+                                  }}
+                                  disabled={!getNextStatusSameDept(order.status)}
+                                >
+                                  Próxima no setor
+                                  <ArrowRight className="w-4 h-4" />
+                                </Button>
                                 <Select
                                   onValueChange={(val) => {
                                     openMoveDialogForOrder(order, val);
@@ -1556,6 +1657,24 @@ export default function StatusControlPage() {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="justify-between"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const finalStatus = getAtendimentoFinalStatus();
+                                    if (finalStatus && finalStatus !== order.status) {
+                                      openMoveDialogForOrder(order, finalStatus);
+                                    } else {
+                                      toast.info("Já está no atendimento final");
+                                    }
+                                  }}
+                                  disabled={getAtendimentoFinalStatus() === null || getAtendimentoFinalStatus() === order.status}
+                                >
+                                  Finalizar (Atendimento)
+                                  <CheckCircle className="w-4 h-4" />
+                                </Button>
                               </div>
                             )}
 
