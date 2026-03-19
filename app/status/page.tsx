@@ -232,7 +232,7 @@ export default function StatusControlPage() {
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
   const [funcionariosSetor, setFuncionariosSetor] = useState<Funcionario[]>([]);
   const [funcionariosLoading, setFuncionariosLoading] = useState(false);
-  const [compactView, setCompactView] = useState(false);
+  const [compactView, setCompactView] = useState(true);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [justMovedOrderId, setJustMovedOrderId] = useState<string | null>(null);
@@ -1374,28 +1374,30 @@ export default function StatusControlPage() {
                 <Card
                   id={getColumnDomId(columnName)}
                   key={columnName}
-                  className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-blue-400 shadow-2xl scale-[1.01]" : ""}`}
+                  className={`border border-slate-100/80 shadow-sm hover:shadow-lg transition-all duration-300 bg-gradient-to-b from-white to-slate-50 min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-blue-400 shadow-2xl scale-[1.01]" : ""}`}
                   onDragOver={handleDragOver}
                   onDragEnter={() => handleDragEnter(columnName)}
                   onDragLeave={() => handleDragLeave(columnName)}
                   onDrop={() => handleDrop(columnName)}
                 >
-                  <CardHeader className={`bg-gradient-to-r ${statusInfo.gradient} text-white rounded-t-lg`}>
+                  <CardHeader className="rounded-t-lg border-b border-slate-100 bg-white/80 backdrop-blur">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <StatusIcon className="w-5 h-5" />
-                        <CardTitle className="text-lg font-semibold">
-                          {statusInfo.label}
-                        </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <div className={`h-9 w-9 rounded-lg flex items-center justify-center bg-gradient-to-br ${statusInfo.gradient} text-white shadow-sm`}>
+                          <StatusIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base font-semibold text-slate-800 leading-none">
+                            {statusInfo.label}
+                          </CardTitle>
+                          <p className="text-[11px] text-slate-500">{ordersInColumn.length} pedido(s)</p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge className="bg-white/20 text-white border-white/30">
-                          {ordersInColumn.length}
-                        </Badge>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 px-2 text-white hover:bg-white/10"
+                          className="h-8 px-2 text-slate-600 hover:text-slate-900"
                           onClick={() => {
                             setCollapsedColumns((prev) => {
                               const next = new Set(prev);
@@ -1452,116 +1454,116 @@ export default function StatusControlPage() {
                         const isCardExpanded = expandedCards.has(order.id);
                         const showFullDetails = !compactView || isCardExpanded;
                         const servicesText = formatServicos(order.servicos || order.serviceType || "");
-                        const serviceBadges = servicesText
+                        const serviceBadgesRaw = servicesText
                           .split(",")
                           .map((s) => s.trim())
-                          .filter(Boolean)
-                          .slice(0, 4);
+                          .filter(Boolean);
+                        const serviceBadges = serviceBadgesRaw.slice(0, 2);
+                        const extraServicesCount = Math.max(serviceBadgesRaw.length - 2, 0);
 
                         return (
                           <div
                             key={order.id}
                             draggable
                             onDragStart={() => handleDragStart(order.id)}
-                            className={`bg-slate-50 border border-slate-200 rounded-lg p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group card-animate-in ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
+                            className={`bg-white/90 border border-slate-200 rounded-lg p-3 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group card-animate-in ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
                           >
-                            {(() => {
-                              const resp = getResponsavelAtual(order);
-                              return resp ? (
-                                <div className="flex justify-end mb-2">
-                                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">Resp.: {resp}</Badge>
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 mt-1">
+                                <div
+                                  className="w-9 h-9 rounded-full flex items-center justify-center text-white"
+                                  style={{ backgroundColor: SETORES_CORES[order.setorAtual || ''] || '#64748b' }}
+                                  title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
+                                >
+                                  <StatusIcon className="w-4 h-4" />
                                 </div>
-                              ) : null;
-                            })()}
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1 space-y-1">
+                              </div>
+                              <div className="flex-1 min-w-0 space-y-1">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h4 className="font-semibold text-slate-800">#{order.codigo || order.id}</h4>
+                                  <h4 className="font-semibold text-slate-800 leading-tight">#{order.codigo || order.id}</h4>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 px-2 text-slate-600 hover:text-slate-800"
+                                    className="h-6 px-2 text-slate-500 hover:text-slate-800"
                                     draggable={false}
                                     onMouseDown={(e) => { e.stopPropagation(); }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       navigator.clipboard.writeText(order.codigo || order.id);
-                                      toast.success("Número do pedido copiado");
+                                      toast.success("Número copiado");
                                     }}
-                                    title="Copiar número do pedido"
+                                    title="Copiar número"
                                   >
                                     Copiar
                                   </Button>
                                   {typeof order.prioridade === 'number' && (
-                                    <span>
-                                      {order.prioridade === 1 && (
-                                        <Badge className="bg-red-500 text-white">I - Alta</Badge>
-                                      )}
-                                      {order.prioridade === 2 && (
-                                        <Badge className="bg-yellow-500 text-white">II - Média</Badge>
-                                      )}
-                                      {order.prioridade === 3 && (
-                                        <Badge className="bg-green-500 text-white">III - Baixa</Badge>
-                                      )}
-                                    </span>
+                                    <Badge className={
+                                      order.prioridade === 1
+                                        ? "bg-red-500 text-white"
+                                        : order.prioridade === 2
+                                        ? "bg-amber-500 text-white"
+                                        : "bg-emerald-500 text-white"
+                                    }>
+                                      {order.prioridade === 1 ? "Alta" : order.prioridade === 2 ? "Média" : "Baixa"}
+                                    </Badge>
                                   )}
+                                  <span className="text-[11px] text-slate-500">
+                                    {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
+                                  </span>
                                 </div>
-                                <p className="text-sm text-slate-600 truncate">{order.clientName}</p>
-                                <p className="text-sm text-slate-500 truncate">{order.modeloTenis}</p>
+
+                                <p className="text-sm text-slate-700 truncate">{order.clientName}</p>
+                                <p className="text-xs text-slate-500 truncate">{order.modeloTenis}</p>
+
                                 {!showFullDetails && order.setorAtual && (
                                   <div className="flex items-center gap-2 mt-1">
-                                    <div
-                                      className="w-3 h-3 rounded-full"
-                                      style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
-                                    />
-                                    <span className="text-xs text-slate-600">
+                                    <span className="text-[11px] text-slate-500">
                                       {SETORES_NOMES[order.setorAtual] || order.setorAtual}
                                     </span>
                                   </div>
                                 )}
+
+                                {serviceBadges.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {serviceBadges.map((srv, idx) => (
+                                      <Badge key={`${order.id}-srv-${idx}`} variant="outline" className="text-[11px] bg-white border-slate-200 text-slate-700">
+                                        {srv}
+                                      </Badge>
+                                    ))}
+                                    {extraServicesCount > 0 && (
+                                      <Badge variant="outline" className="text-[11px] bg-white border-dashed border-slate-200 text-slate-500">
+                                        +{extraServicesCount}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
+
+                                {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {order.departamentosSelecionados.slice(0, 2).map((dep) => (
+                                      <Badge key={dep.id} variant="outline" className="text-[11px] bg-slate-50 border-slate-200 text-slate-700">
+                                        {dep.nome || dep.id}
+                                      </Badge>
+                                    ))}
+                                    {order.departamentosSelecionados.length > 2 && (
+                                      <Badge variant="outline" className="text-[11px] bg-slate-50 border-dashed border-slate-200 text-slate-500">
+                                        +{order.departamentosSelecionados.length - 2}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
+
                                 {showFullDetails && (
                                   <>
-                                    <div className="text-xs text-slate-500">
-                                      {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
-                                    </div>
                                     {order.servicos && (
                                       <div className="text-xs text-slate-600">
                                         Serviços: <span className="text-slate-700">{`${servicesText.slice(0, 80)}${servicesText.length > 80 ? '…' : ''}`}</span>
                                       </div>
                                     )}
-                                    {serviceBadges.length > 0 && (
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        {serviceBadges.map((srv, idx) => (
-                                          <Badge key={`${order.id}-srv-${idx}`} variant="outline" className="text-[11px] bg-white border-slate-200 text-slate-700">
-                                            {srv}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
-                                    {order.setorAtual && (
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <div
-                                          className="w-3 h-3 rounded-full"
-                                          style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
-                                        />
-                                        <span className="text-xs text-slate-600">
-                                          {SETORES_NOMES[order.setorAtual] || order.setorAtual}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        {order.departamentosSelecionados.map((dep) => (
-                                          <Badge key={dep.id} variant="outline" className="text-[11px] bg-slate-50 border-slate-200 text-slate-700">
-                                            {dep.nome || dep.id}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
                                     {Array.isArray(order.observacoesFluxo) && order.observacoesFluxo.length > 0 && (() => {
                                       const lastObs = order.observacoesFluxo[order.observacoesFluxo.length - 1];
                                       return (
-                                        <div className="mt-1 text-xs text-slate-600">
+                                        <div className="mt-1 text-[11px] text-slate-600">
                                           Obs.: {(lastObs?.observacao || '').slice(0, 80)}{(lastObs?.observacao || '').length > 80 ? '…' : ''}
                                           {lastObs?.usuarioNome ? ` • ${lastObs.usuarioNome}` : ''}
                                           {lastObs?.timestamp ? ` • ${new Date(lastObs.timestamp).toLocaleDateString('pt-BR')}` : ''}
@@ -1571,84 +1573,94 @@ export default function StatusControlPage() {
                                   </>
                                 )}
                               </div>
-                              <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0 hover:bg-slate-200"
-                                  draggable={false}
-                                  onMouseDown={(e) => { e.stopPropagation(); }}
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setShowOrderDetails(true);
-                                  }}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0 hover:bg-slate-200"
-                                  draggable={false}
-                                  onMouseDown={(e) => { e.stopPropagation(); }}
-                                  onClick={() => generateOrderPDF(order)}
-                                >
-                                  <FileText className="w-4 h-4" />
-                                </Button>
+
+                              <div className="flex flex-col gap-2 items-end">
+                                {(() => {
+                                  const resp = getResponsavelAtual(order);
+                                  return resp ? (
+                                    <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[11px]">
+                                      {resp}
+                                    </Badge>
+                                  ) : null;
+                                })()}
+                                <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 hover:bg-slate-200"
+                                    draggable={false}
+                                    onMouseDown={(e) => { e.stopPropagation(); }}
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setShowOrderDetails(true);
+                                    }}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 hover:bg-slate-200"
+                                    draggable={false}
+                                    onMouseDown={(e) => { e.stopPropagation(); }}
+                                    onClick={() => generateOrderPDF(order)}
+                                  >
+                                    <FileText className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
 
                             {showFullDetails && (
-                              <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:flex-wrap">
+                              <div className="mt-3 flex flex-wrap gap-2">
                                 <Button
                                   size="sm"
-                                  variant="outline"
-                                  className="justify-between"
+                                  variant="ghost"
+                                  className="h-8 px-2"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     openMoveDialogForOrder(order, getPreviousStatus(order.status));
                                   }}
                                   disabled={!getPreviousStatus(order.status)}
+                                  title="Status anterior"
                                 >
                                   <ArrowLeft className="w-4 h-4" />
-                                  Status anterior
                                 </Button>
                                 <Button
                                   size="sm"
-                                  className="justify-between"
+                                  className="h-8 px-3"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     openMoveDialogForOrder(order, getNextStatus(order.status));
                                   }}
                                   disabled={!getNextStatus(order.status)}
                                 >
-                                  Próximo status
-                                  <ArrowRight className="w-4 h-4" />
+                                  Próximo
+                                  <ArrowRight className="w-4 h-4 ml-1" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="justify-between"
+                                  className="h-8 px-3"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     const nextSame = getNextStatusSameDept(order.status);
                                     if (nextSame) {
                                       openMoveDialogForOrder(order, nextSame);
                                     } else {
-                                      toast.info("Não há próxima coluna no mesmo setor");
+                                      toast.info("Sem próxima coluna no setor");
                                     }
                                   }}
                                   disabled={!getNextStatusSameDept(order.status)}
                                 >
-                                  Próxima no setor
-                                  <ArrowRight className="w-4 h-4" />
+                                  Próx. setor
                                 </Button>
                                 <Select
                                   onValueChange={(val) => {
                                     openMoveDialogForOrder(order, val);
                                   }}
                                 >
-                                  <SelectTrigger className="h-9">Mover para setor</SelectTrigger>
+                                  <SelectTrigger className="h-8 w-36 text-left">Mover…</SelectTrigger>
                                   <SelectContent>
                                     {Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns).map((col) => (
                                       <SelectItem key={col} value={col} disabled={col === order.status}>
@@ -1660,7 +1672,7 @@ export default function StatusControlPage() {
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                                  className="justify-between"
+                                  className="h-8 px-3"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     const finalStatus = getAtendimentoFinalStatus();
@@ -1672,8 +1684,8 @@ export default function StatusControlPage() {
                                   }}
                                   disabled={getAtendimentoFinalStatus() === null || getAtendimentoFinalStatus() === order.status}
                                 >
-                                  Finalizar (Atendimento)
-                                  <CheckCircle className="w-4 h-4" />
+                                  Finalizar
+                                  <CheckCircle className="w-4 h-4 ml-1" />
                                 </Button>
                               </div>
                             )}
@@ -1689,7 +1701,7 @@ export default function StatusControlPage() {
                                     toggleCardExpansion(order.id);
                                   }}
                                 >
-                                  {isCardExpanded ? "Recolher card" : "Expandir card"}
+                                  {isCardExpanded ? "Ver menos" : "Ver mais"}
                                 </Button>
                               </div>
                             )}
