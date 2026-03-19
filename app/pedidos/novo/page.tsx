@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Loader2, CheckCircle, Search, Upload, X, Plus, Minus } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle, Search, Upload, X, Plus, Minus, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { createPedidoService, getClientesService, getStatusColumnsService, getPedidoIdFromCreateResponse, uploadPedidoFotosService } from "@/lib/apiService"
 import { useRouter } from "next/navigation"
@@ -106,6 +106,39 @@ const departmentFlowGroups = [
   },
 ];
 
+const flowTemplates = [
+  {
+    id: "limpeza-express",
+    name: "Limpeza Express",
+    description: "Lavagem completa com entrega rápida",
+    department: "lavagem",
+    prioridade: "1",
+    flowOptions: ["lavagem-completa"],
+    services: ["limpeza-completa"],
+    observation: "Priorizar secagem acelerada",
+  },
+  {
+    id: "pintura-premium",
+    name: "Pintura Premium",
+    description: "Pintura completa com acabamento",
+    department: "pintura",
+    prioridade: "1",
+    flowOptions: ["pintura-completa", "acabamento-full"],
+    services: ["pintura", "acabamento"],
+    observation: "Garantir cura mínima de 24h",
+  },
+  {
+    id: "reparo-classico",
+    name: "Reparo Clássico",
+    description: "Sapataria + costura",
+    department: "sapataria",
+    prioridade: "2",
+    flowOptions: ["sapataria-completa", "costura-completa"],
+    services: ["reparo", "costura"],
+    observation: "Refazer palmilha se necessário",
+  },
+];
+
 // Interface para serviços selecionados
 interface SelectedService {
   id: string;
@@ -118,6 +151,7 @@ import { useEffect } from "react"
 
 export default function NewOrderPage() {
   const router = useRouter();
+  const DRAFT_KEY = "new-order-draft-v1";
   const [formData, setFormData] = useState({
     clientId: "",
     sneaker: "",
@@ -142,6 +176,46 @@ export default function NewOrderPage() {
   const [loadingClients, setLoadingClients] = useState(true);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw);
+      setFormData((prev) => ({ ...prev, ...(draft.formData || {}) }));
+      if (Array.isArray(draft.selectedServices)) setSelectedServices(draft.selectedServices);
+      if (typeof draft.totalPrice === "number") setTotalPrice(draft.totalPrice);
+      if (typeof draft.signalType === "string") setSignalType(draft.signalType);
+      if (typeof draft.signalValue === "number") setSignalValue(draft.signalValue);
+      if (typeof draft.hasWarranty === "boolean") setHasWarranty(draft.hasWarranty);
+      if (typeof draft.warrantyPrice === "number") setWarrantyPrice(draft.warrantyPrice);
+      if (Array.isArray(draft.selectedAccessories)) setSelectedAccessories(draft.selectedAccessories);
+      if (typeof draft.flowObservation === "string") setFlowObservation(draft.flowObservation);
+      if (Array.isArray(draft.selectedFlowOptions)) setSelectedFlowOptions(draft.selectedFlowOptions);
+      if (typeof draft.prioridade === "string") setPrioridade(draft.prioridade);
+    } catch (err) {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const payload = {
+      formData,
+      selectedServices,
+      totalPrice,
+      signalType,
+      signalValue,
+      hasWarranty,
+      warrantyPrice,
+      selectedAccessories,
+      flowObservation,
+      selectedFlowOptions,
+      prioridade,
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+  }, [formData, selectedServices, totalPrice, signalType, signalValue, hasWarranty, warrantyPrice, selectedAccessories, flowObservation, selectedFlowOptions, prioridade]);
+
+  useEffect(() => {
     async function fetchdata() {
       try {
         const [columnsData, clientsData] = await Promise.all([
@@ -163,8 +237,9 @@ export default function NewOrderPage() {
   // Fotos do tênis (armazenamos também a preview para poder revogar URLs e evitar leaks)
   const MAX_PHOTOS = parseInt(process.env.NEXT_PUBLIC_MAX_PHOTOS || "8", 10) || 8;
   const MAX_FILE_MB = 5; // limite por arquivo antes da compressão
-  type PhotoItem = { file: File; preview: string; uploadedUrl?: string };
+  type PhotoItem = { file: File; preview: string; uploadedUrl?: string; isCover?: boolean };
   const [photos, setPhotos] = useState<PhotoItem[]>([])
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   // Manipuladores de upload/remover foto
   // Faz resize/compress antes de adicionar ao estado para reduzir uso de memória
@@ -230,6 +305,9 @@ export default function NewOrderPage() {
 
     setPhotos((prev) => {
       const merged = [...prev, ...processed].slice(0, MAX_PHOTOS);
+      if (!merged.some(p => p.isCover)) {
+        if (merged[0]) merged[0].isCover = true;
+      }
       return merged;
     });
 
@@ -241,7 +319,24 @@ export default function NewOrderPage() {
     setPhotos((prev) => {
       const item = prev[index];
       if (item?.preview) URL.revokeObjectURL(item.preview);
-      return prev.filter((_, i) => i !== index);
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length && !next.some(p => p.isCover)) {
+        next[0].isCover = true;
+      }
+      return next;
+    });
+  };
+
+  const markAsCover = (index: number) => {
+    setPhotos((prev) => prev.map((p, i) => ({ ...p, isCover: i === index })));
+  };
+
+  const movePhoto = (from: number, to: number) => {
+    setPhotos((prev) => {
+      const arr = [...prev];
+      const [item] = arr.splice(from, 1);
+      arr.splice(to, 0, item);
+      return arr;
     });
   };
   const [isLoading, setIsLoading] = useState(false)
@@ -399,9 +494,59 @@ export default function NewOrderPage() {
     }
   };
 
+  const applyTemplate = (templateId: string) => {
+    const tpl = flowTemplates.find(t => t.id === templateId);
+    if (!tpl) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      department: tpl.department,
+    }));
+
+    setPrioridade(tpl.prioridade);
+    setFlowObservation(tpl.observation);
+    setSelectedFlowOptions(tpl.flowOptions);
+
+    const services = tpl.services
+      .map(id => {
+        const base = availableServices.find((s) => s.id === id);
+        if (!base) return null;
+        return { id: base.id, name: base.name, price: base.suggestedPrice, description: tpl.name } as SelectedService;
+      })
+      .filter(Boolean) as SelectedService[];
+
+    setSelectedServices(services);
+    const servicesTotal = services.reduce((sum, s) => sum + s.price, 0);
+    setTotalPrice(servicesTotal + (hasWarranty ? warrantyPrice : 0));
+    updateSignalValue(servicesTotal + (hasWarranty ? warrantyPrice : 0));
+  };
+
   // Função para remover acessório
   const removeAccessory = (accessory: string) => {
     setSelectedAccessories(prev => prev.filter(acc => acc !== accessory));
+  };
+
+  const resetDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setFormData({
+      clientId: "",
+      sneaker: "",
+      expectedDate: "",
+      department: "atendimento",
+      observations: "",
+    });
+    setFlowObservation("");
+    setSelectedFlowOptions([]);
+    setSelectedServices([]);
+    setTotalPrice(0);
+    setSignalType("50");
+    setSignalValue(0);
+    setHasWarranty(false);
+    setWarrantyPrice(0);
+    setSelectedAccessories([]);
+    setCustomAccessory("");
+    setPrioridade("2");
+    setClientSearch("");
   };
 
   const validateForm = () => {
@@ -498,7 +643,9 @@ export default function NewOrderPage() {
     setSuccess(false);
     setUploadStatus("idle");
     setUploadMessage("");
+    setUploadProgress(0);
     let uploadInProgress = false;
+    let progressTimer: NodeJS.Timeout | null = null;
 
     try {
       // Agregar informações dos serviços
@@ -573,16 +720,22 @@ export default function NewOrderPage() {
         uploadInProgress = true;
         setUploadStatus("loading");
         setUploadMessage("Enviando fotos...");
+        setUploadProgress(10);
+        progressTimer = setInterval(() => {
+          setUploadProgress((prev) => Math.min(prev + 10, 90));
+        }, 400);
         await uploadPedidoFotosService(pedidoId, photos.map((photo) => photo.file));
         uploadInProgress = false;
         setUploadStatus("success");
         setUploadMessage("Fotos enviadas com sucesso.");
+        setUploadProgress(100);
       }
 
       setSuccess(true);
       setIsLoading(false);
       // revoke previews to free memory
       photos.forEach(p => { if (p.preview) URL.revokeObjectURL(p.preview); });
+      localStorage.removeItem(DRAFT_KEY);
       setTimeout(() => {
         router.push("/dashboard");
       }, 1000);
@@ -593,6 +746,9 @@ export default function NewOrderPage() {
         setUploadMessage(err.message || "Erro ao enviar fotos");
       }
       setErrors({ api: err.message || "Erro ao criar pedido" });
+    }
+    finally {
+      if (progressTimer) clearInterval(progressTimer);
     }
   }
 
@@ -632,51 +788,35 @@ export default function NewOrderPage() {
             <CardDescription className="text-slate-600">Preencha os dados do pedido de reforma de calçados</CardDescription>
           </CardHeader>
           <CardContent className="p-8">
-            <div className="space-y-3 p-4 border rounded-lg bg-slate-50 mb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-700">Departamentos envolvidos</p>
-                  <p className="text-xs text-slate-500">Selecione os setores previstos no fluxo do pedido.</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {departmentFlowGroups.map((group) => (
-                  <div key={group.id} className="border rounded-lg p-3 bg-white">
-                    <p className="text-sm font-semibold text-slate-800 mb-2">{group.label}</p>
-                    <div className="space-y-2">
-                      {group.options.map((opt) => {
-                        const checked = selectedFlowOptions.includes(opt.id);
-                        return (
-                          <label key={opt.id} className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="mt-0.5"
-                              checked={checked}
-                              onChange={() => toggleFlowOption(opt.id)}
-                            />
-                            <span>{opt.label}</span>
-                          </label>
-                        );
-                      })}
+            <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-800">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-sm">Campos com * são obrigatórios. Seus dados são salvos automaticamente como rascunho.</AlertDescription>
+            </Alert>
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-8">
+                  <div className="space-y-3">
+                    <Label>Templates rápidos</Label>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {flowTemplates.map((tpl) => (
+                        <Card key={tpl.id} className="border-slate-200 hover:border-slate-300 cursor-pointer" onClick={() => applyTemplate(tpl.id)}>
+                          <CardContent className="p-4 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <p className="font-semibold text-slate-800 text-sm">{tpl.name}</p>
+                              <Badge variant="outline" className="text-[10px]">{tpl.prioridade === "1" ? "Alta" : "Normal"}</Badge>
+                            </div>
+                            <p className="text-xs text-slate-600">{tpl.description}</p>
+                            <div className="text-[11px] text-slate-500">Depto: {tpl.department}</div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-              <div>
-                <Label htmlFor="flowObservation">Observação inicial do fluxo</Label>
-                <Textarea
-                  id="flowObservation"
-                  placeholder="Ex.: Cliente pediu reforçar pintura nas laterais"
-                  value={flowObservation}
-                  onChange={(e) => setFlowObservation(e.target.value)}
-                />
-              </div>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Client Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="client">Cliente *</Label>
-                <div className="space-y-2">
+
+                  {/* Client Selection */}
+                  <div className="space-y-2">
+                    <Label htmlFor="client">Cliente *</Label>
+                    <div className="space-y-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -1089,7 +1229,7 @@ export default function NewOrderPage() {
               {/* Photo Upload */}
               <div className="space-y-4">
                 <Label>Fotos do Tênis</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center bg-slate-50">
                   <input
                     type="file"
                     multiple
@@ -1110,31 +1250,112 @@ export default function NewOrderPage() {
                 {photos.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {photos.map((photo, index) => (
-                      <div key={index} className="relative">
+                      <div
+                        key={index}
+                        className="relative group rounded-lg overflow-hidden border border-slate-200 bg-white shadow-sm"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("text/plain", index.toString());
+                        }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const from = Number(e.dataTransfer.getData("text/plain"));
+                          if (!Number.isNaN(from)) movePhoto(from, index);
+                        }}
+                      >
                         <img
                           src={photo.preview || "/placeholder.svg"}
                           alt={`Foto ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg"
+                          className="w-full h-32 object-cover"
                         />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2 h-6 w-6 p-0"
-                          onClick={() => removePhoto(index)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition" />
+                        <div className="absolute top-2 left-2 flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={photo.isCover ? "default" : "secondary"}
+                            className={`h-7 px-2 text-xs ${photo.isCover ? "bg-emerald-600" : "bg-white/80 text-slate-800"}`}
+                            onClick={() => markAsCover(index)}
+                          >
+                            {photo.isCover ? "Capa" : "Marcar capa"}
+                          </Button>
+                        </div>
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => removePhoto(index)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <div className="absolute bottom-2 left-2 text-[11px] text-white/90 bg-black/40 px-2 py-1 rounded-full">
+                          Arraste para reordenar
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
 
                 {(uploadStatus !== "idle" || uploadMessage) && (
-                  <p className={`text-sm ${uploadStatus === "error" ? "text-red-600" : uploadStatus === "success" ? "text-green-600" : "text-slate-600"}`}>
-                    {uploadStatus === "loading" ? "Fazendo upload das fotos..." : uploadMessage}
-                  </p>
+                  <div className="space-y-2">
+                    <p className={`text-sm ${uploadStatus === "error" ? "text-red-600" : uploadStatus === "success" ? "text-green-600" : "text-slate-600"}`}>
+                      {uploadStatus === "loading" ? "Fazendo upload das fotos..." : uploadMessage}
+                    </p>
+                    {uploadStatus === "loading" && (
+                      <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 animate-pulse" style={{ width: `${uploadProgress}%` }} />
+                      </div>
+                    )}
+                  </div>
                 )}
+              </div>
+
+              <div className="border-t pt-6">
+                <div className="space-y-3 p-4 border rounded-lg bg-slate-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Etapa final</p>
+                      <p className="text-sm font-semibold text-slate-700">Departamentos envolvidos</p>
+                      <p className="text-xs text-slate-500">Selecione os setores previstos no fluxo do pedido.</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {departmentFlowGroups.map((group) => (
+                      <div key={group.id} className="border rounded-lg p-3 bg-white">
+                        <p className="text-sm font-semibold text-slate-800 mb-2">{group.label}</p>
+                        <div className="space-y-2">
+                          {group.options.map((opt) => {
+                            const checked = selectedFlowOptions.includes(opt.id);
+                            return (
+                              <label key={opt.id} className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="mt-0.5"
+                                  checked={checked}
+                                  onChange={() => toggleFlowOption(opt.id)}
+                                />
+                                <span>{opt.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <Label htmlFor="flowObservation">Observação inicial do fluxo</Label>
+                    <Textarea
+                      id="flowObservation"
+                      placeholder="Ex.: Cliente pediu reforçar pintura nas laterais"
+                      value={flowObservation}
+                      onChange={(e) => setFlowObservation(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1180,6 +1401,56 @@ export default function NewOrderPage() {
                     Cancelar
                   </Button>
                 </Link>
+              </div>
+                </div>
+
+                <div className="lg:col-span-1 space-y-4">
+                  <Card className="sticky top-20 border-amber-100 shadow-sm">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Resumo</CardTitle>
+                      <CardDescription>Valores e prazo em tempo real</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-600">Cliente</span>
+                        <span className="font-semibold text-slate-800">{selectedClient?.nomeCompleto || "—"}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-600">Preço total</span>
+                        <span className="font-semibold text-slate-800">R$ {getTotalPrice().toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-600">Sinal</span>
+                        <span className="font-semibold text-slate-800">R$ {signalValue.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-600">Restante</span>
+                        <span className="font-semibold text-slate-800">R$ {Math.max(0, totalPrice - signalValue).toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-600">Prazo</span>
+                        <span className="font-semibold text-slate-800">{formData.expectedDate || "—"}</span>
+                      </div>
+                      {selectedServices.length > 0 && (
+                        <div className="pt-2 border-t border-slate-100 space-y-1 text-xs text-slate-600">
+                          <p className="font-semibold text-slate-700">Serviços</p>
+                          {selectedServices.slice(0, 3).map((s) => (
+                            <p key={s.id} className="flex justify-between">
+                              <span className="truncate mr-2">{s.name}</span>
+                              <span>R$ {s.price.toFixed(2)}</span>
+                            </p>
+                          ))}
+                          {selectedServices.length > 3 && <p className="text-slate-500">+{selectedServices.length - 3} serviço(s)</p>}
+                        </div>
+                      )}
+                      <div className="pt-3 border-t border-slate-100 flex gap-2">
+                        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={resetDraft}>
+                          Limpar rascunho
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </form>
           </CardContent>

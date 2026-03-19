@@ -61,6 +61,17 @@ export default function AdminMetricsPage() {
     return [...departamentos].sort((a, b) => b.total - a.total)
   }, [departamentos])
 
+  const derived = useMemo(() => {
+    const total = resumo?.total ?? 0
+    const abertos = resumo?.abertos ?? 0
+    const finalizados = resumo?.finalizados ?? 0
+    const atrasados = atrasos?.totalAtrasados ?? resumo?.atrasados ?? 0
+    const atrasoMedio = atrasos?.atrasoMedioMs ?? 0
+    const atrasoPct = total > 0 ? (atrasados / total) * 100 : 0
+    const onTimePct = total > 0 ? ((total - atrasados) / total) * 100 : 0
+    return { total, abertos, finalizados, atrasados, atrasoMedio, atrasoPct, onTimePct }
+  }, [resumo, atrasos])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <header className="bg-white border-b border-slate-200 shadow-sm">
@@ -145,6 +156,35 @@ export default function AdminMetricsPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="shadow-sm bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+          <CardHeader className="pb-2">
+            <CardTitle>Métricas avançadas</CardTitle>
+            <CardDescription className="text-slate-200">Lead time, risco de SLA e eficiência</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+              <p className="text-xs uppercase tracking-wide text-slate-200">Lead time (atrasados)</p>
+              <p className="text-2xl font-semibold">{derived.atrasoMedio ? formatDays(derived.atrasoMedio) : "—"}</p>
+              <p className="text-[11px] text-slate-300">Tempo médio além do prazo</p>
+            </div>
+            <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+              <p className="text-xs uppercase tracking-wide text-slate-200">Risco SLA</p>
+              <p className="text-2xl font-semibold text-amber-300">{derived.atrasoPct ? formatPct(derived.atrasoPct) : "0%"}</p>
+              <p className="text-[11px] text-slate-300">Pedidos atrasados vs total</p>
+            </div>
+            <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+              <p className="text-xs uppercase tracking-wide text-slate-200">On-time</p>
+              <p className="text-2xl font-semibold text-emerald-200">{derived.onTimePct ? formatPct(derived.onTimePct) : "100%"}</p>
+              <p className="text-[11px] text-slate-300">Entregues dentro do prazo</p>
+            </div>
+            <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+              <p className="text-xs uppercase tracking-wide text-slate-200">Retrabalho</p>
+              <p className="text-2xl font-semibold text-slate-100">—</p>
+              <p className="text-[11px] text-slate-300">Aguardando dado do backend</p>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2 shadow-sm">

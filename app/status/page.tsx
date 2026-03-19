@@ -27,6 +27,7 @@ import {
   AlertTriangle,
   ChevronRight,
   Filter,
+  MessageCircle,
   Headphones,
   Scissors,
   Droplets,
@@ -223,10 +224,12 @@ export default function StatusControlPage() {
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [selectedSector, setSelectedSector] = useState("next");
+  const [quickView, setQuickView] = useState<"all" | "today" | "overdue" | "high" | "due24">("all");
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [funcionarioFilter, setFuncionarioFilter] = useState("");
   const [activeFuncionarioFilter, setActiveFuncionarioFilter] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
 
   // Dialog de movimento
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
@@ -883,6 +886,28 @@ export default function StatusControlPage() {
     }
   };
 
+  const getOrderTotal = (order: Order) => {
+    const val = order.precoTotal ?? order.preco ?? order.price ?? 0;
+    return typeof val === "number" ? val : Number(val) || 0;
+  };
+
+  const formatCurrency = (val: number) =>
+    val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const getSlaInfo = (order: Order) => {
+    const expectedRaw = order.expectedDate || order.dataPrevistaEntrega;
+    if (!expectedRaw) return { label: "Sem prazo", tone: "gray", className: "bg-slate-100 text-slate-700" };
+    const expected = new Date(expectedRaw).getTime();
+    if (Number.isNaN(expected)) return { label: "Sem prazo", tone: "gray", className: "bg-slate-100 text-slate-700" };
+    const now = Date.now();
+    const diffMs = expected - now;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMs < 0) return { label: "Atrasado", tone: "red", className: "bg-red-100 text-red-700" };
+    if (diffDays <= 1) return { label: "24h", tone: "amber", className: "bg-amber-100 text-amber-700" };
+    return { label: `${diffDays}d`, tone: "green", className: "bg-emerald-100 text-emerald-700" };
+  };
+
   const getFirstPhotoUrl = (fotos?: any[]): string | null => {
     if (!Array.isArray(fotos)) return null;
     const pick = fotos.find((f) => {
@@ -929,11 +954,77 @@ export default function StatusControlPage() {
   }, [baseStatusColumns, userInfo]);
 
   const filteredOrders = useMemo(() => {
+    let list = orders;
     if (priorityFilter === "high") {
-      return orders.filter((o) => o.prioridade === 1);
+      list = list.filter((o) => o.prioridade === 1);
     }
-    return orders;
-  }, [orders, priorityFilter]);
+
+    // Presets de visão rápida
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    const now = Date.now();
+    const in24h = now + 24 * 60 * 60 * 1000;
+
+    if (quickView !== "all") {
+      list = list.filter((o) => {
+        const expectedRaw = o.expectedDate || o.dataPrevistaEntrega;
+        if (!expectedRaw) return quickView === "high" ? o.prioridade === 1 : false;
+        const expected = new Date(expectedRaw).getTime();
+        if (Number.isNaN(expected)) return quickView === "high" ? o.prioridade === 1 : false;
+
+        if (quickView === "today") {
+          return expected >= startOfToday.getTime() && expected <= endOfToday.getTime();
+        }
+        if (quickView === "overdue") {
+          return expected < startOfToday.getTime();
+        }
+        if (quickView === "due24") {
+          return expected >= startOfToday.getTime() && expected <= in24h;
+        }
+        if (quickView === "high") {
+          return o.prioridade === 1;
+        }
+        return true;
+      });
+    }
+
+    const clientTerm = clientFilter.trim().toLowerCase();
+    if (clientTerm) {
+      list = list.filter((o) =>
+        (o.clientName || "").toLowerCase().includes(clientTerm) ||
+        (o.clientCpf || "").replace(/\D/g, "").includes(clientTerm.replace(/\D/g, "")) ||
+        (o.codigo || "").toLowerCase().includes(clientTerm) ||
+        (o.id || "").toLowerCase().includes(clientTerm)
+      );
+    }
+    return list;
+  }, [orders, priorityFilter, clientFilter, quickView]);
+
+  const dueSoonCount = useMemo(() => {
+    const now = Date.now();
+    const in24h = now + 24 * 60 * 60 * 1000;
+    return orders.filter((o) => {
+      const raw = o.expectedDate || o.dataPrevistaEntrega;
+      if (!raw) return false;
+      const ts = new Date(raw).getTime();
+      if (Number.isNaN(ts)) return false;
+      return ts >= now && ts <= in24h;
+    }).length;
+  }, [orders]);
+
+  const overdueCount = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    return orders.filter((o) => {
+      const raw = o.expectedDate || o.dataPrevistaEntrega;
+      if (!raw) return false;
+      const ts = new Date(raw).getTime();
+      if (Number.isNaN(ts)) return false;
+      return ts < startOfToday.getTime();
+    }).length;
+  }, [orders]);
 
   useEffect(() => {
     if (moveDialogOpen && moveTargetSetorId) {
@@ -1296,6 +1387,34 @@ export default function StatusControlPage() {
               </div>
             </div>
 
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Filtrar por cliente / CPF / código
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Input
+                    type="text"
+                    placeholder="Ex.: Maria, 12345678900 ou #ID"
+                    value={clientFilter}
+                    onChange={(e) => setClientFilter(e.target.value)}
+                    className="pl-9 h-9 border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 md:justify-end">
+                <Button
+                  variant="outline"
+                  className="h-9"
+                  onClick={() => setClientFilter("")}
+                  disabled={!clientFilter.trim()}
+                >
+                  Limpar
+                </Button>
+              </div>
+            </div>
+
             <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
               <div className="flex items-center gap-2">
                 <input
@@ -1334,6 +1453,21 @@ export default function StatusControlPage() {
                 </label>
               </div>
             </div>
+
+            <div className="mt-4 flex flex-wrap gap-2 text-sm">
+              <span className="text-slate-600 font-medium mr-2">Vistas rápidas:</span>
+              {[{ id: "all", label: "Tudo" }, { id: "today", label: "Hoje" }, { id: "overdue", label: "Atrasados" }, { id: "due24", label: "Próx. 24h" }, { id: "high", label: "Alta" }].map((view) => (
+                <Button
+                  key={view.id}
+                  size="sm"
+                  variant={quickView === view.id ? "default" : "outline"}
+                  className="h-8"
+                  onClick={() => setQuickView(view.id as typeof quickView)}
+                >
+                  {view.label}
+                </Button>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
@@ -1363,6 +1497,16 @@ export default function StatusControlPage() {
                 : "text-green-800"
             }>
               {successMessage}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {(dueSoonCount > 0 || overdueCount > 0) && (
+          <Alert className={`mb-6 ${overdueCount > 0 ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+            <AlertTriangle className={`h-5 w-5 ${overdueCount > 0 ? "text-red-600" : "text-amber-600"}`} />
+            <AlertDescription className={`${overdueCount > 0 ? "text-red-800" : "text-amber-800"}`}>
+              {overdueCount > 0 && <span className="mr-3 font-semibold">{overdueCount} atrasado(s).</span>}
+              {dueSoonCount > 0 && <span>{dueSoonCount} vencem em 24h.</span>}
             </AlertDescription>
           </Alert>
         )}
@@ -1408,6 +1552,7 @@ export default function StatusControlPage() {
               const statusInfo = getStatusInfo(columnName);
               const StatusIcon = statusInfo.icon;
               const ordersInColumn = ordersByStatus[columnName] || [];
+              const totalValue = ordersInColumn.reduce((sum, order) => sum + getOrderTotal(order), 0);
               const isCollapsed = collapsedColumns.has(columnName);
               const isDropTarget = dragOverColumn === columnName;
 
@@ -1415,13 +1560,13 @@ export default function StatusControlPage() {
                 <Card
                   id={getColumnDomId(columnName)}
                   key={columnName}
-                  className={`border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 bg-white min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-blue-400 shadow-2xl scale-[1.01]" : ""}`}
+                  className={`border border-white/50 shadow-[0_10px_35px_-18px_rgba(15,23,42,0.6)] hover:shadow-[0_18px_48px_-18px_rgba(59,130,246,0.55)] transition-all duration-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 backdrop-blur min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-sky-400 shadow-2xl scale-[1.01]" : ""}`}
                   onDragOver={handleDragOver}
                   onDragEnter={() => handleDragEnter(columnName)}
                   onDragLeave={() => handleDragLeave(columnName)}
                   onDrop={() => handleDrop(columnName)}
                 >
-                  <CardHeader className="rounded-t-lg border-b border-slate-100 bg-white">
+                  <CardHeader className="rounded-t-lg border-b border-white/70 bg-white/80 backdrop-blur">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={`h-9 w-9 rounded-lg flex items-center justify-center bg-gradient-to-br ${statusInfo.gradient} text-white shadow-sm`}>
@@ -1454,7 +1599,7 @@ export default function StatusControlPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-4 min-h-96 bg-white">
+                  <CardContent className="p-4 min-h-96 bg-white/80 backdrop-blur">
                     {isCollapsed ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         {ordersInColumn.length ? (
@@ -1504,13 +1649,17 @@ export default function StatusControlPage() {
                         const dept = resolveDeptFromSetor(order.setorAtual) || resolveDeptFromStatus(order.status, order.setorAtual);
                         const DeptIcon = getDeptIcon(dept) || StatusIcon;
                         const thumb = getFirstPhotoUrl(order.fotos);
+                        const sla = getSlaInfo(order);
+                        const isOverdue = sla.tone === "red";
+                        const whatsappMessage = `Olá ${order.clientName || "cliente"}, aqui é da Worqera. Pedido #${order.codigo || order.id} está em ${getStatusInfo(order.status).label}. Qualquer dúvida, estamos à disposição!`;
+                        const whatsappHref = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
 
                         return (
                             <div
                               key={order.id}
                               draggable
                               onDragStart={() => handleDragStart(order.id)}
-                              className={`bg-white border border-slate-200 rounded-xl p-3 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
+                              className={`bg-white/90 border border-slate-200/80 rounded-xl p-3 cursor-move hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200 transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
                               style={{ borderLeftWidth: 6, borderLeftColor: SETORES_CORES[order.setorAtual || ''] || '#94a3b8' }}
                             >
                             <div className="flex items-start gap-3">
@@ -1536,6 +1685,9 @@ export default function StatusControlPage() {
                                   {typeof order.prioridade === 'number' && order.prioridade === 1 && (
                                     <Badge className="bg-red-500 text-white">Alta</Badge>
                                   )}
+                                  <Badge className={`${sla.className} text-[10px] px-2 py-0.5 border border-white/40`}>
+                                    SLA {sla.label}
+                                  </Badge>
                                   <Button
                                     size="icon"
                                     variant="ghost"
@@ -1630,6 +1782,22 @@ export default function StatusControlPage() {
                                   ) : null;
                                 })()}
                                 <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {isOverdue && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 w-8 p-0 hover:bg-emerald-100 text-emerald-700"
+                                      draggable={false}
+                                      onMouseDown={(e) => { e.stopPropagation(); }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(whatsappHref, "_blank");
+                                      }}
+                                      title="Chamar no WhatsApp"
+                                    >
+                                      <MessageCircle className="w-4 h-4" />
+                                    </Button>
+                                  )}
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -1762,6 +1930,10 @@ export default function StatusControlPage() {
                     </div>
                     )}
                   </CardContent>
+                  <div className="border-t border-slate-100 bg-slate-50 px-4 py-3 flex items-center justify-between text-xs text-slate-600 rounded-b-lg">
+                    <span>{ordersInColumn.length} pedido(s)</span>
+                    <span className="font-semibold text-slate-800">{formatCurrency(totalValue)}</span>
+                  </div>
                 </Card>
               );
             })}
