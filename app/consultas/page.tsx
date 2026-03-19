@@ -346,12 +346,18 @@ export default function ConsultasPage() {
       }
 
       const pedidosResult = results.pop();
-      const pedidosData = pedidosResult?.data || pedidosResult || [];
+      const pedidosData = Array.isArray(pedidosResult?.data)
+        ? pedidosResult.data
+        : Array.isArray(pedidosResult)
+          ? pedidosResult
+          : [];
+
       setOrders((prev) => lastKey ? [...prev, ...pedidosData] : pedidosData);
       setNextToken(pedidosResult?.nextToken || null);
     } catch (err: any) {
       console.error(err);
       setError("Erro ao buscar dados");
+      setOrders([]);
     } finally {
       setLoading(false);
     }
