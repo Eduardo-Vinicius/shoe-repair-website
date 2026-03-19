@@ -246,6 +246,17 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
     .filter((foto): foto is string => Boolean(foto));
 
   const servicoLabel = formatServicos(pedidoAtual.servicos || pedidoAtual.tipoServico);
+  const firstFoto = fotosValidas[0] || null;
+
+  const getInitials = (name?: string) => {
+    if (!name) return "";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const handleRefreshLinks = async () => {
     if (!pedidoAtual.id) return;
@@ -314,34 +325,46 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
     <Dialog open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            Detalhes do Pedido #{pedidoAtual.codigo || pedidoAtual.id}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2"
-              onClick={() => navigator.clipboard.writeText(pedidoAtual.codigo || pedidoAtual.id)}
-            >
-              Copiar
-            </Button>
-          </DialogTitle>
-          <DialogDescription>
-            {loadingCliente ? (
-              "Carregando dados do cliente..."
-            ) : errorCliente ? (
-              <span className="text-red-500">Erro: {errorCliente}</span>
-            ) : cliente ? (
-              <>
-                Cliente: <span className="font-semibold">{cliente.nomeCompleto}</span> ({cliente.cpf}
-                {cliente.telefone ? ` • ${cliente.telefone}` : ""})
-              </>
-            ) : (
-              <>
-                Cliente: <span className="font-semibold">{pedidoAtual.clientName}</span> ({pedidoAtual.clientCpf}
-                {pedidoAtual.clientPhone ? ` • ${pedidoAtual.clientPhone}` : ""})
-              </>
-            )}
-          </DialogDescription>
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center text-slate-600 text-sm font-semibold">
+              {firstFoto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={firstFoto} alt="Foto do pedido" className="w-full h-full object-cover" />
+              ) : (
+                getInitials(pedidoAtual.clientName || pedidoAtual.modeloTenis || "") || "?"
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="flex items-center gap-2">
+                Detalhes do Pedido #{pedidoAtual.codigo || pedidoAtual.id}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2"
+                  onClick={() => navigator.clipboard.writeText(pedidoAtual.codigo || pedidoAtual.id)}
+                >
+                  Copiar
+                </Button>
+              </DialogTitle>
+              <DialogDescription>
+                {loadingCliente ? (
+                  "Carregando dados do cliente..."
+                ) : errorCliente ? (
+                  <span className="text-red-500">Erro: {errorCliente}</span>
+                ) : cliente ? (
+                  <>
+                    Cliente: <span className="font-semibold">{cliente.nomeCompleto}</span> ({cliente.cpf}
+                    {cliente.telefone ? ` • ${cliente.telefone}` : ""})
+                  </>
+                ) : (
+                  <>
+                    Cliente: <span className="font-semibold">{pedidoAtual.clientName}</span> ({pedidoAtual.clientCpf}
+                    {pedidoAtual.clientPhone ? ` • ${pedidoAtual.clientPhone}` : ""})
+                  </>
+                )}
+              </DialogDescription>
+            </div>
+          </div>
           {loadingCliente && (
             <div className="mt-2 space-y-2">
               <div className="h-3 w-40 rounded bg-slate-200 animate-pulse" />
@@ -370,7 +393,18 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
         </DialogHeader>
         <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-2">{/*Conteúdo com scroll*/}
           <div><strong>Tênis:</strong> {pedidoAtual.modeloTenis || pedidoAtual.sneaker}</div>
-          <div><strong>Serviço:</strong> {servicoLabel || "-"}</div>
+          <div className="space-y-1">
+            <div><strong>Serviço:</strong> {servicoLabel || "-"}</div>
+            {servicoLabel && (
+              <div className="flex flex-wrap gap-2">
+                {servicoLabel.split(",").map((srv, idx) => (
+                  <Badge key={`srv-${idx}`} variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 text-xs">
+                    {srv.trim()}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
           {pedidoAtual.descricaoServicos && (
             <div><strong>Descrição:</strong> {pedidoAtual.descricaoServicos}</div>
           )}

@@ -26,7 +26,14 @@ import {
   TrendingUp,
   AlertTriangle,
   ChevronRight,
-  Filter
+  Filter,
+  Headphones,
+  Scissors,
+  Droplets,
+  Paintbrush,
+  Wrench,
+  Sparkles,
+  Hammer
 } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
@@ -854,6 +861,27 @@ export default function StatusControlPage() {
     return null;
   };
 
+  const getDeptIcon = (dept: string | null) => {
+    switch (dept) {
+      case "atendimento":
+        return Headphones;
+      case "sapataria":
+        return Hammer;
+      case "costura":
+        return Scissors;
+      case "lavagem":
+        return Droplets;
+      case "pintura":
+        return Paintbrush;
+      case "montagem":
+        return Wrench;
+      case "acabamento":
+        return Sparkles;
+      default:
+        return null;
+    }
+  };
+
   const slugify = (value: string) => {
     return value
       .toLowerCase()
@@ -1374,13 +1402,13 @@ export default function StatusControlPage() {
                 <Card
                   id={getColumnDomId(columnName)}
                   key={columnName}
-                  className={`border border-slate-100/80 shadow-sm hover:shadow-lg transition-all duration-300 bg-gradient-to-b from-white to-slate-50 min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-blue-400 shadow-2xl scale-[1.01]" : ""}`}
+                  className={`border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 bg-white min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-blue-400 shadow-2xl scale-[1.01]" : ""}`}
                   onDragOver={handleDragOver}
                   onDragEnter={() => handleDragEnter(columnName)}
                   onDragLeave={() => handleDragLeave(columnName)}
                   onDrop={() => handleDrop(columnName)}
                 >
-                  <CardHeader className="rounded-t-lg border-b border-slate-100 bg-white/80 backdrop-blur">
+                  <CardHeader className="rounded-t-lg border-b border-slate-100 bg-white">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={`h-9 w-9 rounded-lg flex items-center justify-center bg-gradient-to-br ${statusInfo.gradient} text-white shadow-sm`}>
@@ -1413,7 +1441,7 @@ export default function StatusControlPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-4 min-h-96 bg-gradient-to-b from-white to-slate-50">
+                  <CardContent className="p-4 min-h-96 bg-white">
                     {isCollapsed ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         {ordersInColumn.length ? (
@@ -1460,13 +1488,15 @@ export default function StatusControlPage() {
                           .filter(Boolean);
                         const serviceBadges = serviceBadgesRaw.slice(0, 2);
                         const extraServicesCount = Math.max(serviceBadgesRaw.length - 2, 0);
+                        const dept = resolveDeptFromSetor(order.setorAtual) || resolveDeptFromStatus(order.status, order.setorAtual);
+                        const DeptIcon = getDeptIcon(dept) || StatusIcon;
 
                         return (
                           <div
                             key={order.id}
                             draggable
                             onDragStart={() => handleDragStart(order.id)}
-                            className={`bg-white/90 border border-slate-200 rounded-lg p-3 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group card-animate-in ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
+                            className={`bg-white border border-slate-200 rounded-xl p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group card-animate-in ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
                           >
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0 mt-1">
@@ -1475,7 +1505,7 @@ export default function StatusControlPage() {
                                   style={{ backgroundColor: SETORES_CORES[order.setorAtual || ''] || '#64748b' }}
                                   title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
                                 >
-                                  <StatusIcon className="w-4 h-4" />
+                                  <DeptIcon className="w-4 h-4" />
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0 space-y-1">
@@ -1612,36 +1642,34 @@ export default function StatusControlPage() {
                             </div>
 
                             {showFullDetails && (
-                              <div className="mt-3 flex flex-wrap gap-2">
+                              <div className="mt-3 grid grid-cols-2 gap-2">
                                 <Button
                                   size="sm"
-                                  variant="ghost"
-                                  className="h-8 px-2"
+                                  variant="outline"
+                                  className="h-8"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     openMoveDialogForOrder(order, getPreviousStatus(order.status));
                                   }}
                                   disabled={!getPreviousStatus(order.status)}
-                                  title="Status anterior"
                                 >
-                                  <ArrowLeft className="w-4 h-4" />
+                                  <ArrowLeft className="w-4 h-4 mr-1" /> Anterior
                                 </Button>
                                 <Button
                                   size="sm"
-                                  className="h-8 px-3"
+                                  className="h-8"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     openMoveDialogForOrder(order, getNextStatus(order.status));
                                   }}
                                   disabled={!getNextStatus(order.status)}
                                 >
-                                  Próximo
-                                  <ArrowRight className="w-4 h-4 ml-1" />
+                                  Próximo <ArrowRight className="w-4 h-4 ml-1" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 px-3"
+                                  className="h-8"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     const nextSame = getNextStatusSameDept(order.status);
@@ -1653,14 +1681,14 @@ export default function StatusControlPage() {
                                   }}
                                   disabled={!getNextStatusSameDept(order.status)}
                                 >
-                                  Próx. setor
+                                  Próx. no setor
                                 </Button>
                                 <Select
                                   onValueChange={(val) => {
                                     openMoveDialogForOrder(order, val);
                                   }}
                                 >
-                                  <SelectTrigger className="h-8 w-36 text-left">Mover…</SelectTrigger>
+                                  <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
                                   <SelectContent>
                                     {Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns).map((col) => (
                                       <SelectItem key={col} value={col} disabled={col === order.status}>
@@ -1672,7 +1700,7 @@ export default function StatusControlPage() {
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                                  className="h-8 px-3"
+                                  className="h-8"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     const finalStatus = getAtendimentoFinalStatus();
@@ -1684,8 +1712,7 @@ export default function StatusControlPage() {
                                   }}
                                   disabled={getAtendimentoFinalStatus() === null || getAtendimentoFinalStatus() === order.status}
                                 >
-                                  Finalizar
-                                  <CheckCircle className="w-4 h-4 ml-1" />
+                                  Finalizar <CheckCircle className="w-4 h-4 ml-1" />
                                 </Button>
                               </div>
                             )}
