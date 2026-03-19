@@ -1492,12 +1492,13 @@ export default function StatusControlPage() {
                         const DeptIcon = getDeptIcon(dept) || StatusIcon;
 
                         return (
-                          <div
-                            key={order.id}
-                            draggable
-                            onDragStart={() => handleDragStart(order.id)}
-                            className={`bg-white border border-slate-200 rounded-xl p-4 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group card-animate-in ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
-                          >
+                            <div
+                              key={order.id}
+                              draggable
+                              onDragStart={() => handleDragStart(order.id)}
+                              className={`bg-white border border-slate-200 rounded-xl p-3 cursor-move hover:shadow-md hover:border-slate-300 transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
+                              style={{ borderLeftWidth: 6, borderLeftColor: SETORES_CORES[order.setorAtual || ''] || '#94a3b8' }}
+                            >
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0 mt-1">
                                 <div
@@ -1510,7 +1511,21 @@ export default function StatusControlPage() {
                               </div>
                               <div className="flex-1 min-w-0 space-y-1">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h4 className="font-semibold text-slate-800 leading-tight">#{order.codigo || order.id}</h4>
+                                  <h4 className="font-semibold text-slate-800 leading-tight text-[13px]">#{order.codigo || order.id}</h4>
+                                  <span className="text-[11px] text-slate-500">
+                                    {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
+                                  </span>
+                                  {typeof order.prioridade === 'number' && (
+                                    <Badge className={
+                                      order.prioridade === 1
+                                        ? "bg-red-500 text-white"
+                                        : order.prioridade === 2
+                                        ? "bg-amber-500 text-white"
+                                        : "bg-emerald-500 text-white"
+                                    }>
+                                      {order.prioridade === 1 ? "Alta" : order.prioridade === 2 ? "Média" : "Baixa"}
+                                    </Badge>
+                                  )}
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -1526,24 +1541,15 @@ export default function StatusControlPage() {
                                   >
                                     Copiar
                                   </Button>
-                                  {typeof order.prioridade === 'number' && (
-                                    <Badge className={
-                                      order.prioridade === 1
-                                        ? "bg-red-500 text-white"
-                                        : order.prioridade === 2
-                                        ? "bg-amber-500 text-white"
-                                        : "bg-emerald-500 text-white"
-                                    }>
-                                      {order.prioridade === 1 ? "Alta" : order.prioridade === 2 ? "Média" : "Baixa"}
-                                    </Badge>
-                                  )}
-                                  <span className="text-[11px] text-slate-500">
-                                    {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
-                                  </span>
                                 </div>
 
-                                <p className="text-sm text-slate-700 truncate">{order.clientName}</p>
-                                <p className="text-xs text-slate-500 truncate">{order.modeloTenis}</p>
+                                <div className="flex items-center gap-2 text-[12px] text-slate-600">
+                                  <DeptIcon className="w-3 h-3" />
+                                  <span className="truncate">{SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}</span>
+                                </div>
+
+                                <p className="text-[13px] text-slate-700 truncate">{order.clientName}</p>
+                                <p className="text-[11px] text-slate-500 truncate">{order.modeloTenis}</p>
 
                                 {!showFullDetails && order.setorAtual && (
                                   <div className="flex items-center gap-2 mt-1">
@@ -1556,12 +1562,12 @@ export default function StatusControlPage() {
                                 {serviceBadges.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {serviceBadges.map((srv, idx) => (
-                                      <Badge key={`${order.id}-srv-${idx}`} variant="outline" className="text-[11px] bg-white border-slate-200 text-slate-700">
+                                      <Badge key={`${order.id}-srv-${idx}`} variant="outline" className="text-[10px] bg-white border-slate-200 text-slate-700 px-2 py-0.5">
                                         {srv}
                                       </Badge>
                                     ))}
                                     {extraServicesCount > 0 && (
-                                      <Badge variant="outline" className="text-[11px] bg-white border-dashed border-slate-200 text-slate-500">
+                                      <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
                                         +{extraServicesCount}
                                       </Badge>
                                     )}
@@ -1571,12 +1577,12 @@ export default function StatusControlPage() {
                                 {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {order.departamentosSelecionados.slice(0, 2).map((dep) => (
-                                      <Badge key={dep.id} variant="outline" className="text-[11px] bg-slate-50 border-slate-200 text-slate-700">
+                                      <Badge key={dep.id} variant="outline" className="text-[10px] bg-slate-50 border-slate-200 text-slate-700 px-2 py-0.5">
                                         {dep.nome || dep.id}
                                       </Badge>
                                     ))}
                                     {order.departamentosSelecionados.length > 2 && (
-                                      <Badge variant="outline" className="text-[11px] bg-slate-50 border-dashed border-slate-200 text-slate-500">
+                                      <Badge variant="outline" className="text-[10px] bg-slate-50 border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
                                         +{order.departamentosSelecionados.length - 2}
                                       </Badge>
                                     )}
