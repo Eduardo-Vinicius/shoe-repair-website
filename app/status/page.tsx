@@ -1667,13 +1667,13 @@ export default function StatusControlPage() {
                               key={order.id}
                               draggable
                               onDragStart={() => handleDragStart(order.id)}
-                              className={`bg-white/90 border rounded-xl p-3 cursor-move transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "ring-2 ring-red-300 border-red-200 bg-rose-50" : "border-slate-200/80 hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200"}`}
+                              className={`bg-white/90 border rounded-xl p-4 cursor-move transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "ring-2 ring-red-300 border-red-200 bg-rose-50" : "border-slate-200/80 hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200"}`}
                               style={{ borderLeftWidth: 6, borderLeftColor: SETORES_CORES[order.setorAtual || ''] || '#94a3b8' }}
                             >
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 mt-1">
+                            <div className="flex flex-col gap-3 items-stretch">
+                              <div className="flex items-center justify-center gap-3 text-center">
                                 <div
-                                  className="w-9 h-9 rounded-full flex items-center justify-center text-white overflow-hidden"
+                                  className="w-10 h-10 rounded-full flex items-center justify-center text-white overflow-hidden shrink-0"
                                   style={{ backgroundColor: SETORES_CORES[order.setorAtual || ''] || '#64748b' }}
                                   title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
                                 >
@@ -1683,54 +1683,53 @@ export default function StatusControlPage() {
                                     <DeptIcon className="w-4 h-4" />
                                   )}
                                 </div>
-                              </div>
-                              <div className="flex-1 min-w-0 space-y-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <h4 className="font-semibold text-slate-800 leading-tight text-[13px]">#{order.codigo || order.id}</h4>
-                                  <span className="text-[11px] text-slate-500">
-                                    {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
-                                  </span>
-                                  {typeof order.prioridade === 'number' && order.prioridade === 1 && (
-                                    <Badge className="bg-red-500 text-white">Alta</Badge>
-                                  )}
-                                  <Badge className={`${sla.className} text-[10px] px-2 py-0.5 border border-white/40`}>
-                                    SLA {sla.label}
-                                  </Badge>
-                                  {isOverdue && (
-                                    <Badge className="bg-red-600 text-white text-[10px] px-2 py-0.5">Atrasado</Badge>
-                                  )}
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-7 w-7 text-slate-500 hover:text-slate-800"
-                                    draggable={false}
-                                    onMouseDown={(e) => { e.stopPropagation(); }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigator.clipboard.writeText(order.codigo || order.id);
-                                      toast.success("Número copiado");
-                                    }}
-                                    title="Copiar número"
-                                  >
-                                    <ClipboardCopy className="w-4 h-4" />
-                                  </Button>
-                                </div>
-
-                                <div className="flex items-center gap-2 text-[12px] text-slate-600">
-                                  <DeptIcon className="w-3 h-3" />
-                                  <span className="truncate">{SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}</span>
-                                </div>
-
-                                <p className="text-[13px] text-slate-700 truncate">{order.clientName}</p>
-                                <p className="text-[11px] text-slate-500 truncate">{order.modeloTenis}</p>
-
-                                {!showFullDetails && order.setorAtual && (
-                                  <div className="flex items-center gap-2 mt-1">
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <div className="flex flex-wrap items-center justify-center gap-2">
+                                    <h4 className="font-semibold text-slate-900 leading-tight text-[13px]">#{order.codigo || order.id}</h4>
                                     <span className="text-[11px] text-slate-500">
-                                      {SETORES_NOMES[order.setorAtual] || order.setorAtual}
+                                      {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
                                     </span>
+                                    {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                                      <Badge className="bg-red-500 text-white">Alta</Badge>
+                                    )}
+                                    <Badge className={`${sla.className} text-[10px] px-2 py-0.5 border border-white/40`}>
+                                      SLA {sla.label}
+                                    </Badge>
+                                    {isOverdue && (
+                                      <Badge className="bg-red-600 text-white text-[10px] px-2 py-0.5">Atrasado</Badge>
+                                    )}
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7 text-slate-500 hover:text-slate-800"
+                                      draggable={false}
+                                      onMouseDown={(e) => { e.stopPropagation(); }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(order.codigo || order.id);
+                                        toast.success("Número copiado");
+                                      }}
+                                      title="Copiar número"
+                                    >
+                                      <ClipboardCopy className="w-4 h-4" />
+                                    </Button>
                                   </div>
-                                )}
+
+                                  <div className="flex items-center justify-center gap-2 text-[12px] text-slate-600">
+                                    <DeptIcon className="w-3 h-3" />
+                                    <span className="truncate">{SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}</span>
+                                  </div>
+
+                                  <p className="text-[13px] text-slate-800 line-clamp-1 text-center">{order.clientName}</p>
+                                  <p className="text-[12px] text-slate-600 line-clamp-1 text-center">{order.modeloTenis}</p>
+
+                                  {!showFullDetails && order.setorAtual && (
+                                    <div className="flex items-center justify-center gap-2 mt-1 text-[11px] text-slate-500">
+                                      <span>{SETORES_NOMES[order.setorAtual] || order.setorAtual}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
 
                                 {showFullDetails && (
                                   <div className="mt-2 space-y-2 text-xs text-slate-600 leading-tight">

@@ -74,105 +74,103 @@ export default function AdminMetricsPage() {
   }, [resumo, atrasos])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      <header className="bg-white border-b border-slate-200 shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50">
+      <header className="border-b border-white/10 bg-slate-950/70 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-blue-700" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <BarChart3 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Painel de Métricas</h1>
-              <p className="text-xs text-slate-500">Visão de desempenho operacional</p>
+              <h1 className="text-xl font-semibold text-white">Painel de Métricas</h1>
+              <p className="text-xs text-slate-300">Visão executiva de desempenho</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="h-9">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar ao menu
-              </Button>
-            </Link>
-            {lastUpdated && <Badge variant="outline" className="text-slate-600">Atualizado {new Date(lastUpdated).toLocaleString('pt-BR')}</Badge>}
-            <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
+            {lastUpdated && (
+              <Badge variant="outline" className="border-white/20 bg-white/5 text-slate-100">
+                Atualizado {new Date(lastUpdated).toLocaleString('pt-BR')}
+              </Badge>
+            )}
+            <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="border-white/30 text-white hover:bg-white/10">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               <span className="ml-2">Atualizar</span>
             </Button>
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm" className="h-9 text-slate-200 hover:text-white">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="bg-rose-950/70 border-rose-700 text-rose-100">
             <AlertTriangle className="w-4 h-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-blue-600 text-white border-0 shadow-lg">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-blue-100">Pedidos abertos</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold">{resumo?.abertos ?? 0}</div>
-                <p className="text-sm text-blue-100">Em produção</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-white/80" />
-            </CardContent>
-          </Card>
-
-          <Card className="bg-emerald-600 text-white border-0 shadow-lg">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-emerald-100">Pedidos finalizados</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold">{resumo?.finalizados ?? 0}</div>
-                <p className="text-sm text-emerald-100">Concluídos</p>
-              </div>
-              <Award className="w-8 h-8 text-white/80" />
-            </CardContent>
-          </Card>
-
-          <Card className="bg-amber-500 text-white border-0 shadow-lg">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-amber-100">Pedidos em atraso</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold">{atrasos?.totalAtrasados ?? resumo?.atrasados ?? 0}</div>
-                <p className="text-sm text-amber-100">Atenção imediata</p>
-              </div>
-              <Clock className="w-8 h-8 text-white/80" />
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-900 text-white border-0 shadow-lg">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-200">Atraso médio</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <div>
-                <div className="text-3xl font-bold">{atrasos?.atrasoMedioMs ? formatDays(atrasos.atrasoMedioMs) : "0"}</div>
-                <p className="text-sm text-slate-200">Entre pedidos atrasados</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-white/80" />
-            </CardContent>
-          </Card>
+          {[{
+            title: "Pedidos abertos",
+            value: resumo?.abertos ?? 0,
+            hint: "Em produção",
+            icon: TrendingUp,
+            bg: "from-blue-500/80 to-indigo-500/80",
+          }, {
+            title: "Pedidos finalizados",
+            value: resumo?.finalizados ?? 0,
+            hint: "Concluídos",
+            icon: Award,
+            bg: "from-emerald-500/80 to-teal-500/80",
+          }, {
+            title: "Pedidos em atraso",
+            value: atrasos?.totalAtrasados ?? resumo?.atrasados ?? 0,
+            hint: "Atenção imediata",
+            icon: Clock,
+            bg: "from-amber-500/90 to-orange-500/80",
+          }, {
+            title: "Atraso médio",
+            value: atrasos?.atrasoMedioMs ? formatDays(atrasos.atrasoMedioMs) : "0",
+            hint: "Entre atrasados",
+            icon: AlertTriangle,
+            bg: "from-slate-800 to-slate-700",
+          }].map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card key={card.title} className="relative overflow-hidden border border-white/10 bg-gradient-to-br shadow-xl shadow-black/30">
+                <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12), transparent 35%)" }} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.bg}`} />
+                <CardHeader className="pb-1 relative text-white">
+                  <CardTitle className="text-sm font-semibold text-white/80">{card.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="relative flex items-center justify-between text-white">
+                  <div>
+                    <div className="text-3xl font-bold leading-tight">{card.value}</div>
+                    <p className="text-sm text-white/80">{card.hint}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/15 border border-white/10">
+                    <Icon className="w-7 h-7 text-white" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
-        <Card className="shadow-sm bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+        <Card className="shadow-2xl shadow-black/30 border border-white/10 bg-slate-900/80 backdrop-blur">
           <CardHeader className="pb-2">
-            <CardTitle>Métricas avançadas</CardTitle>
-            <CardDescription className="text-slate-200">Lead time, risco de SLA e eficiência</CardDescription>
+            <CardTitle className="text-white">Métricas avançadas</CardTitle>
+            <CardDescription className="text-slate-300">Lead time, risco de SLA e eficiência</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-3 rounded-lg bg-white/5 border border-white/10">
               <p className="text-xs uppercase tracking-wide text-slate-200">Lead time (atrasados)</p>
-              <p className="text-2xl font-semibold">{derived.atrasoMedio ? formatDays(derived.atrasoMedio) : "—"}</p>
+              <p className="text-2xl font-semibold text-white">{derived.atrasoMedio ? formatDays(derived.atrasoMedio) : "—"}</p>
               <p className="text-[11px] text-slate-300">Tempo médio além do prazo</p>
             </div>
             <div className="p-3 rounded-lg bg-white/5 border border-white/10">
@@ -194,23 +192,23 @@ export default function AdminMetricsPage() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 shadow-sm">
+          <Card className="lg:col-span-2 shadow-xl shadow-black/20 border border-white/10 bg-white/5">
             <CardHeader>
-              <CardTitle>Pedidos por departamento</CardTitle>
-              <CardDescription>Distribuição atual por setor</CardDescription>
+              <CardTitle className="text-white">Pedidos por departamento</CardTitle>
+              <CardDescription className="text-slate-300">Distribuição atual por setor</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {setoresList.length === 0 && <p className="text-sm text-slate-500">Sem dados.</p>}
+            <CardContent className="space-y-4">
+              {setoresList.length === 0 && <p className="text-sm text-slate-300">Sem dados.</p>}
               {setoresList.map((item) => {
                 const pct = (resumo?.total ?? 0) ? (item.total / (resumo?.total ?? 0)) * 100 : 0
                 return (
-                  <div key={item.setorId || item.setorNome || "setor"} className="space-y-1">
-                    <div className="flex justify-between text-sm text-slate-700">
-                      <span>{item.setorNome || item.setorId}</span>
-                      <span>{item.total} • {formatPct(pct)}</span>
+                  <div key={item.setorId || item.setorNome || "setor"} className="space-y-2">
+                    <div className="flex justify-between text-sm text-slate-100">
+                      <span className="font-medium">{item.setorNome || item.setorId}</span>
+                      <span className="text-slate-300">{item.total} • {formatPct(pct)}</span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                      <div className="h-full bg-blue-500" style={{ width: `${pct}%` }}></div>
+                    <div className="h-2.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500" style={{ width: `${pct}%` }}></div>
                     </div>
                   </div>
                 )
@@ -218,47 +216,52 @@ export default function AdminMetricsPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
+          <Card className="shadow-xl shadow-black/20 border border-white/10 bg-white/5">
             <CardHeader>
-              <CardTitle>Top 5 funcionários</CardTitle>
-              <CardDescription>Pedidos associados (funcionário atual)</CardDescription>
+              <CardTitle className="text-white">Top 5 funcionários</CardTitle>
+              <CardDescription className="text-slate-300">Pedidos associados (funcionário atual)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {(funcionarios?.length ?? 0) === 0 && <p className="text-sm text-slate-500">Sem dados.</p>}
+              {(funcionarios?.length ?? 0) === 0 && <p className="text-sm text-slate-300">Sem dados.</p>}
               {funcionarios?.map((item, idx) => (
-                <div key={item.funcionarioNome} className="flex items-center justify-between text-sm">
+                <div key={item.funcionarioNome} className="flex items-center justify-between text-sm text-white/90 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-slate-500" />
-                    <span className="font-medium text-slate-800">{idx + 1}. {item.funcionarioNome}</span>
+                    <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-semibold text-white/80">
+                      {idx + 1}
+                    </div>
+                    <div className="flex flex-col leading-tight">
+                      <span className="font-medium text-white">{item.funcionarioNome}</span>
+                      <span className="text-[11px] text-slate-300">Pedidos atuais</span>
+                    </div>
                   </div>
-                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">{item.total}</Badge>
+                  <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-100 border-emerald-500/30">{item.total}</Badge>
                 </div>
               ))}
             </CardContent>
           </Card>
         </div>
 
-        <Card className="shadow-sm">
+        <Card className="shadow-2xl shadow-black/25 border border-white/10 bg-white/5">
           <CardHeader>
-            <CardTitle>Pedidos em atraso</CardTitle>
-            <CardDescription>Lista resumida dos pedidos que passaram do prazo</CardDescription>
+            <CardTitle className="text-white">Pedidos em atraso</CardTitle>
+            <CardDescription className="text-slate-300">Lista resumida dos pedidos que passaram do prazo</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {(atrasos?.itens?.length ?? 0) === 0 && (
-              <p className="text-sm text-slate-500">Sem pedidos em atraso.</p>
+              <p className="text-sm text-slate-300">Sem pedidos em atraso.</p>
             )}
             {atrasos?.itens?.slice(0, 10).map((o) => {
               const atrasoMs = Date.now() - new Date(o.dataPrevistaEntrega as string).getTime()
               return (
-                <div key={o.id} className="flex items-center justify-between border border-slate-200 rounded-lg p-3">
+                <div key={o.id} className="flex items-center justify-between rounded-lg px-4 py-3 border border-white/10 bg-gradient-to-r from-rose-950/50 to-rose-900/30 text-white">
                   <div className="space-y-1">
-                    <div className="font-semibold text-slate-800">#{o.codigo || o.id}</div>
-                    <div className="text-xs text-slate-500">Status: {o.status}</div>
-                    {o.funcionarioAtual && <div className="text-xs text-slate-500">Resp.: {o.funcionarioAtual}</div>}
+                    <div className="font-semibold">#{o.codigo || o.id}</div>
+                    <div className="text-xs text-rose-100/80">Status: {o.status}</div>
+                    {o.funcionarioAtual && <div className="text-xs text-rose-100/80">Resp.: {o.funcionarioAtual}</div>}
                   </div>
                   <div className="text-right">
-                    <Badge variant="destructive">{formatDays(atrasoMs)}</Badge>
-                    <div className="text-xs text-slate-500 mt-1">Venc. {new Date(o.dataPrevistaEntrega as string).toLocaleDateString('pt-BR')}</div>
+                    <Badge variant="destructive" className="bg-rose-600 text-white border-rose-500/60">{formatDays(atrasoMs)}</Badge>
+                    <div className="text-xs text-rose-100/80 mt-1">Venc. {new Date(o.dataPrevistaEntrega as string).toLocaleDateString('pt-BR')}</div>
                   </div>
                 </div>
               )
