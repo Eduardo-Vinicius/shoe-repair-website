@@ -123,7 +123,7 @@ export default function ClientsPage() {
             <CardDescription>Pesquise por nome, CPF, telefone ou email</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -154,53 +154,51 @@ export default function ClientsPage() {
             <div className="grid gap-4">
               {filteredClients.map((client, idx) => (
                 <Card key={client.id || idx} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div>
-                            <h3 className="text-lg font-semibold">{client.nomeCompleto}</h3>
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="min-w-0">
+                            <h3 className="text-lg font-semibold break-words">{client.nomeCompleto}</h3>
                             <p className="text-sm text-muted-foreground">CPF: {client.cpf}</p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center gap-2 break-words">
                             <Phone className="w-4 h-4 text-muted-foreground" />
-                            <span>{client.telefone}</span>
+                            <span className="break-all">{client.telefone}</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 break-words">
                             <Mail className="w-4 h-4 text-muted-foreground" />
-                            <span>{client.email}</span>
+                            <span className="break-all">{client.email}</span>
                           </div>
-                          <div className="flex items-center gap-2 col-span-2">
-                            <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">
+                          <div className="flex items-start gap-2 col-span-1 md:col-span-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                            <span className="break-words">
                               {client.logradouro}, {client.numero} - {client.bairro}, {client.cidade} - {client.estado} {client.cep}
                               {client.complemento ? `, ${client.complemento}` : ""}
                             </span>
                           </div>
                           {client.observacoes && (
-                            <div className="col-span-2 text-xs text-muted-foreground italic">Obs: {client.observacoes}</div>
+                            <div className="col-span-1 md:col-span-2 text-xs text-muted-foreground italic break-words">Obs: {client.observacoes}</div>
                           )}
                         </div>
                       </div>
 
-                      <div className="text-right space-y-2">
-                        <div>
-                          {/* Se quiser exibir pedidos, adapte conforme resposta da API */}
-                        </div>
-                        <div className="flex gap-2">
+                      <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto">
+                        <div className="flex flex-wrap gap-2 w-full sm:justify-end">
                           <Button
                             variant="outline"
                             size="sm"
+                            className="flex-1 sm:flex-none"
                             onClick={() => {
                               window.location.href = `/consultas?searchType=nome&searchTerm=${encodeURIComponent(client.nomeCompleto)}&tab=pedidos`
                             }}
                           >
                             Ver Pedidos
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => openEditModal(client)}>
+                          <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => openEditModal(client)}>
                             <Edit className="w-4 h-4 mr-1" />
                             Editar
                           </Button>

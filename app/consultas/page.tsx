@@ -342,7 +342,12 @@ export default function ConsultasPage() {
 
       if (loadClients) {
         const clientesData = results.shift();
-        setClients(clientesData || []);
+        const clientesNormalizados = Array.isArray(clientesData)
+          ? clientesData
+          : Array.isArray(clientesData?.data)
+            ? clientesData.data
+            : [];
+        setClients(clientesNormalizados);
       }
 
       const pedidosResult = results.pop();
@@ -422,9 +427,11 @@ export default function ConsultasPage() {
   }, []);
 
   // Filter clients based on search criteria
+  const clientesLista = Array.isArray(clients) ? clients : [];
+
   const filteredClients = hasSearched
     ? (searchTerm.trim()
-        ? clients.filter((client) => {
+        ? clientesLista.filter((client) => {
             switch (searchType) {
               case "nome":
                 return (client.nomeCompleto || "").toLowerCase().includes(searchTerm.toLowerCase());
@@ -438,7 +445,7 @@ export default function ConsultasPage() {
                 return false;
             }
           })
-        : clients)
+        : clientesLista)
     : [];
 
   // Filter orders based on search criteria
