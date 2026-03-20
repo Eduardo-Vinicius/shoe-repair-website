@@ -1685,7 +1685,7 @@ export default function StatusControlPage() {
                                     <div className="flex items-start justify-between gap-2">
                                       <div className="min-w-0">
                                         <div className="flex items-center gap-2">
-                                          <h4 className="font-semibold text-slate-900 leading-tight text-[13px] truncate">#{order.codigo || order.id}</h4>
+                                          <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono">#{order.codigo || order.id}</h4>
                                           <Button
                                             size="icon"
                                             variant="ghost"
@@ -1835,6 +1835,17 @@ export default function StatusControlPage() {
                                     <FileText className="w-4 h-4" />
                                   </Button>
                                 </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openMoveDialogForOrder(order, getNextStatus(order.status) || getNextStatusSameDept(order.status));
+                                  }}
+                                >
+                                  Mover
+                                </Button>
                               </div>
 
                               {showFullDetails && (
