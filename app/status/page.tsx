@@ -1835,17 +1835,19 @@ export default function StatusControlPage() {
                                     <FileText className="w-4 h-4" />
                                   </Button>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openMoveDialogForOrder(order, getNextStatus(order.status) || getNextStatusSameDept(order.status));
-                                  }}
-                                >
-                                  Mover
-                                </Button>
+                                {!showFullDetails && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openMoveDialogForOrder(order, getNextStatus(order.status) || getNextStatusSameDept(order.status));
+                                    }}
+                                  >
+                                    Mover
+                                  </Button>
+                                )}
                               </div>
 
                               {showFullDetails && (
