@@ -24,7 +24,8 @@ export default function TVDashboard() {
 
   const buscar = async () => {
     try {
-      const data = await getSetoresEstatisticasService();
+      const raw = await getSetoresEstatisticasService();
+      const data = (raw || {}) as Record<string, EstatisticaSetor>;
       setEstatisticas(data);
       setLastUpdate(new Date().toLocaleTimeString("pt-BR"));
 
@@ -32,9 +33,10 @@ export default function TVDashboard() {
       if (data) {
         const totals: Record<string, number> = {};
         Object.entries(data).forEach(([id, d]) => {
-          totals[id] = d.quantidade;
+          const qty = typeof d?.quantidade === "number" ? d.quantidade : 0;
+          totals[id] = qty;
           const prev = prevTotalsRef.current[id] || 0;
-          if (d.quantidade > prev) {
+          if (qty > prev) {
             setFlashSetor(id);
             if (!audioRef.current) {
               // Pequeno beep inline (data URI) para evitar asset externo
