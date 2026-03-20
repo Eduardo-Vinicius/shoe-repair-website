@@ -1541,8 +1541,11 @@ export default function StatusControlPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto pb-4 -mx-2 sm:mx-0 snap-x snap-mandatory">
-            <div className="grid grid-flow-col auto-cols-[minmax(260px,1fr)] md:auto-cols-[minmax(300px,1fr)] gap-3 sm:gap-5 pr-4 sm:pr-0 min-w-[260px]">
+          <div className="overflow-x-auto sm:overflow-visible pb-4 -mx-2 sm:mx-0 snap-x snap-mandatory">
+            <div className="grid gap-3 sm:gap-5 pr-4 sm:pr-0 min-w-[260px]
+              grid-flow-col auto-cols-[minmax(280px,1fr)]
+              sm:grid-flow-row sm:auto-cols-auto sm:min-w-0
+              sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Object.entries(filteredStatusColumns).map(([columnName, columnOrders]) => {
               const statusInfo = getStatusInfo(columnName);
               const StatusIcon = statusInfo.icon;
@@ -1555,7 +1558,7 @@ export default function StatusControlPage() {
                 <Card
                   id={getColumnDomId(columnName)}
                   key={columnName}
-                  className={`border border-white/50 shadow-[0_10px_35px_-18px_rgba(15,23,42,0.6)] hover:shadow-[0_18px_48px_-18px_rgba(59,130,246,0.55)] transition-all duration-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 backdrop-blur min-w-[280px] sm:min-w-[320px] lg:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-sky-400 shadow-2xl scale-[1.01]" : ""}`}
+                  className={`border border-white/50 shadow-[0_10px_35px_-18px_rgba(15,23,42,0.6)] hover:shadow-[0_18px_48px_-18px_rgba(59,130,246,0.55)] transition-all duration-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 backdrop-blur min-w-[260px] sm:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-sky-400 shadow-2xl scale-[1.01]" : ""}`}
                   onDragOver={handleDragOver}
                   onDragEnter={() => handleDragEnter(columnName)}
                   onDragLeave={() => handleDragLeave(columnName)}
@@ -1851,7 +1854,7 @@ export default function StatusControlPage() {
                                 </div>
                               )}
 
-                              {compactView && (
+                              {compactView && !showFullDetails && (
                                 <div className="mt-2 flex gap-2 w-full">
                                   <Button
                                     size="sm"
