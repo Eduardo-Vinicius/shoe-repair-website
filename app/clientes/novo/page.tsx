@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 import { createClienteService } from "@/lib/apiService"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function NewClientPage() {
   const router = useRouter();
@@ -33,7 +33,6 @@ export default function NewClientPage() {
     notes: "",
   })
   const [isLoading, setIsLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -92,20 +91,22 @@ export default function NewClientPage() {
       newErrors.cep = "CEP deve ter 8 dígitos"
     }
 
+    const firstError = Object.values(newErrors)[0]
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return { isValid: Object.keys(newErrors).length === 0, firstError }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    const { isValid, firstError } = validateForm();
+    if (!isValid) {
+      if (firstError) toast.error(firstError);
       return;
     }
 
     setIsLoading(true);
     setErrors({});
-    setSuccess(false);
 
     try {
       await createClienteService({
@@ -122,12 +123,13 @@ export default function NewClientPage() {
         complemento: formData.complemento,
         observacoes: formData.notes,
       });
-      setSuccess(true);
       setIsLoading(false);
+      toast.success("Cliente cadastrado com sucesso!");
       router.push("/clientes");
     } catch (err: any) {
       setIsLoading(false);
       setErrors({ api: err.message || "Erro ao cadastrar cliente" });
+      toast.error(err.message || "Erro ao cadastrar cliente");
     }
   }
 
@@ -174,13 +176,6 @@ export default function NewClientPage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {success && (
-          <Alert className="mb-6 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">Cliente cadastrado com sucesso!</AlertDescription>
-          </Alert>
-        )}
-
         <Card className="shadow-lg border-0 bg-white">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-100">
             <CardTitle className="text-2xl text-slate-800">Cadastrar Novo Cliente</CardTitle>

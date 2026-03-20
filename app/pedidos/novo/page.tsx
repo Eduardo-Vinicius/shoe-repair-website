@@ -9,9 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Loader2, CheckCircle, Search, Upload, X, Plus, Minus, AlertTriangle } from "lucide-react"
+import { ArrowLeft, Loader2, Search, Upload, X, Plus, Minus } from "lucide-react"
 import Link from "next/link"
 import { createPedidoService, getClientesService, getStatusColumnsService, getPedidoIdFromCreateResponse, uploadPedidoFotosService } from "@/lib/apiService"
 import { useRouter } from "next/navigation"
@@ -294,7 +293,6 @@ export default function NewOrderPage() {
     });
   };
   const [isLoading, setIsLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [uploadStatus, setUploadStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [uploadMessage, setUploadMessage] = useState("")
@@ -549,8 +547,9 @@ export default function NewOrderPage() {
       newErrors.signal = "Valor de sinal deve estar entre R$ 0,00 e o valor total"
     }
 
+    const firstError = Object.values(newErrors)[0]
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return { isValid: Object.keys(newErrors).length === 0, firstError }
   }
 
   const getFirstStatusForSector = (sector: string): string | null => {
@@ -594,8 +593,8 @@ export default function NewOrderPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      const firstError = Object.values(errors)[0];
+    const { isValid, firstError } = validateForm();
+    if (!isValid) {
       if (firstError) toast.error(firstError);
       return;
     }
@@ -608,7 +607,6 @@ export default function NewOrderPage() {
 
     setIsLoading(true);
     setErrors({});
-    setSuccess(false);
     setUploadStatus("idle");
     setUploadMessage("");
     setUploadProgress(0);
@@ -699,7 +697,6 @@ export default function NewOrderPage() {
         setUploadProgress(100);
       }
 
-      setSuccess(true);
       toast.success("Pedido criado com sucesso!");
       setIsLoading(false);
       // revoke previews to free memory
@@ -746,23 +743,12 @@ export default function NewOrderPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {success && (
-          <Alert className="mb-6 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">Pedido criado com sucesso!</AlertDescription>
-          </Alert>
-        )}
-
         <Card className="shadow-lg border-0 bg-white">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-100">
             <CardTitle className="text-2xl text-slate-800">Criar Novo Pedido</CardTitle>
             <CardDescription className="text-slate-600">Preencha os dados do pedido de reforma de calçados</CardDescription>
           </CardHeader>
           <CardContent className="p-8">
-            <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-800">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-sm">Campos com * são obrigatórios. Seus dados são salvos automaticamente como rascunho.</AlertDescription>
-            </Alert>
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-8">

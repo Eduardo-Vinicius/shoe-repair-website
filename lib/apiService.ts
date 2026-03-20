@@ -1,3 +1,5 @@
+import { buildCacheKey, fetchWithCache, invalidateCacheByPrefix } from "./cache";
+
 export interface ServicoPedido {
   preco: number;
   nome: string;
@@ -71,7 +73,9 @@ export async function updateClienteService(id: string, cliente: Partial<{
     body: JSON.stringify(cliente),
   });
   if (!response.ok) throw new Error("Erro ao atualizar cliente");
-  return response.json();
+  const result = await response.json();
+  invalidateCacheByPrefix(CLIENTES_CACHE_PREFIXES);
+  return result;
 }
 
 // Busca pedido por ID
@@ -120,6 +124,20 @@ function extractPedidoIdFromPayload(payload: any): string | null {
   return typeof id === "string" && id.trim() ? id : null;
 }
 
+const PEDIDOS_CACHE_PREFIXES = [
+  "pedidos:list",
+  "pedidos:kanban",
+  "pedidos:consulta",
+  "dashboard",
+  "setores:estatisticas",
+  "metrics:resumo",
+  "metrics:departamentos",
+  "metrics:atrasos",
+];
+
+const CLIENTES_CACHE_PREFIXES = ["clientes"];
+const FUNCIONARIOS_CACHE_PREFIXES = ["funcionarios", "funcionario:"];
+
 export interface PedidoPdfAsset {
   id?: string;
   nome?: string;
@@ -144,62 +162,51 @@ export interface Funcionario {
 
 // --- Métricas ---
 export async function getMetricsResumoService() {
-  const response = await fetch(`${API_BASE_URL}/metrics/resumo`, {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey("metrics:resumo", token);
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/resumo`, {
     method: "GET",
     headers: getAuthHeaders(),
-  });
+  }, { cacheKey, ttlMs: 60_000 });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao carregar métricas (resumo)");
-  }
-
-  return resolveApiPayload(await response.json());
+  return resolveApiPayload(result);
 }
 
 export async function getMetricsDepartamentosService() {
-  const response = await fetch(`${API_BASE_URL}/metrics/departamentos`, {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey("metrics:departamentos", token);
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/departamentos`, {
     method: "GET",
     headers: getAuthHeaders(),
-  });
+  }, { cacheKey, ttlMs: 60_000 });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao carregar métricas de departamentos");
-  }
-
-  return resolveApiPayload(await response.json());
+  return resolveApiPayload(result);
 }
 
 export async function getMetricsFuncionariosService(limit = 10) {
   const query = new URLSearchParams();
   if (typeof limit === "number") query.append("limit", String(limit));
+  const qs = query.toString();
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`metrics:funcionarios:${limit ?? "all"}`, token);
 
-  const response = await fetch(`${API_BASE_URL}/metrics/funcionarios${query.toString() ? `?${query.toString()}` : ""}`, {
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/funcionarios${qs ? `?${qs}` : ""}`, {
     method: "GET",
     headers: getAuthHeaders(),
-  });
+  }, { cacheKey, ttlMs: 60_000 });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao carregar métricas de funcionários");
-  }
-
-  return resolveApiPayload(await response.json());
+  return resolveApiPayload(result);
 }
 
 export async function getMetricsAtrasosService() {
-  const response = await fetch(`${API_BASE_URL}/metrics/atrasos`, {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey("metrics:atrasos", token);
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/atrasos`, {
     method: "GET",
     headers: getAuthHeaders(),
-  });
+  }, { cacheKey, ttlMs: 60_000 });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao carregar métricas de atrasos");
-  }
-
-  return resolveApiPayload(await response.json());
+  return resolveApiPayload(result);
 }
 
 export async function getPedidoService(id: string) {
@@ -310,7 +317,9 @@ export async function createFuncionarioService(data: {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || "Erro ao criar funcionário");
   }
-  return resolveApiPayload(await response.json());
+  const result = await response.json();
+  invalidateCacheByPrefix(FUNCIONARIOS_CACHE_PREFIXES);
+  return resolveApiPayload(result);
 }
 
 export async function listFuncionariosService(params: {
@@ -323,29 +332,29 @@ export async function listFuncionariosService(params: {
   if (typeof params.ativo === "boolean") query.append("ativo", String(params.ativo));
   if (typeof params.limit === "number") query.append("limit", String(params.limit));
 
-  const response = await fetch(`${API_BASE_URL}/funcionarios${query.toString() ? `?${query.toString()}` : ""}`, {
+  const qs = query.toString();
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`funcionarios:${qs || "all"}`, token);
+
+  const result = await fetchWithCache(`${API_BASE_URL}/funcionarios${qs ? `?${qs}` : ""}`, {
     method: "GET",
     headers: getAuthHeaders(),
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao listar funcionários");
-  }
-  const result = await response.json();
+  }, { cacheKey, ttlMs: 5 * 60_000 });
+
   const payload = resolveApiPayload(result);
   return Array.isArray(payload) ? payload : [];
 }
 
 export async function getFuncionarioService(id: string): Promise<Funcionario> {
-  const response = await fetch(`${API_BASE_URL}/funcionarios/${id}`, {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`funcionario:${id}`, token);
+
+  const result = await fetchWithCache(`${API_BASE_URL}/funcionarios/${id}`, {
     method: "GET",
     headers: getAuthHeaders(),
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao buscar funcionário");
-  }
-  return resolveApiPayload(await response.json());
+  }, { cacheKey, ttlMs: 5 * 60_000 });
+
+  return resolveApiPayload(result);
 }
 
 export async function updateFuncionarioService(id: string, data: Partial<Funcionario>) {
@@ -358,7 +367,9 @@ export async function updateFuncionarioService(id: string, data: Partial<Funcion
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || "Erro ao atualizar funcionário");
   }
-  return resolveApiPayload(await response.json());
+  const result = await response.json();
+  invalidateCacheByPrefix(FUNCIONARIOS_CACHE_PREFIXES);
+  return resolveApiPayload(result);
 }
 
 export async function deleteFuncionarioService(id: string) {
@@ -370,7 +381,9 @@ export async function deleteFuncionarioService(id: string) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || "Erro ao desativar funcionário");
   }
-  return resolveApiPayload(await response.json());
+  const result = await response.json();
+  invalidateCacheByPrefix(FUNCIONARIOS_CACHE_PREFIXES);
+  return resolveApiPayload(result);
 }
 
 // Cria um novo pedido
@@ -411,7 +424,9 @@ export async function createPedidoService(pedido: {
     body: JSON.stringify(pedido),
   });
   if (!response.ok) throw new Error("Erro ao criar pedido");
-  return response.json();
+  const result = await response.json();
+  invalidateCacheByPrefix(PEDIDOS_CACHE_PREFIXES);
+  return result;
 }
 
 // Cria um novo cliente
@@ -439,22 +454,23 @@ export async function createClienteService(cliente: {
     body: JSON.stringify(cliente),
   });
   if (!response.ok) throw new Error("Erro ao criar cliente");
-  return response.json();
+  const result = await response.json();
+  invalidateCacheByPrefix(CLIENTES_CACHE_PREFIXES);
+  return result;
 }
 
 // Busca lista de clientes
-export async function getClientesService() {
-  const token = localStorage.getItem("token")
-  const response = await fetch(`${API_BASE_URL}/clientes`, {
+export async function getClientesService(forceRefresh = false) {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey("clientes", token);
+
+  return fetchWithCache(`${API_BASE_URL}/clientes`, {
     method: "GET",
-    headers: { 
+    headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     },
-  })
-  if (!response.ok) throw new Error("Email ou senha incorretos");
-  const data = await response.json()
-  return data
+  }, { cacheKey, ttlMs: 5 * 60_000, forceRefresh });
 }
 
 export async function loginService(email: string, password: string) {
@@ -473,84 +489,68 @@ export async function loginService(email: string, password: string) {
 }
 
 // Busca colunas de status filtradas conforme permissão do usuário (para exibição)
-export async function getStatusColumnsService() {
-  const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/status/columns/filtered`, {
+export async function getStatusColumnsService(forceRefresh = false) {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey("status:columns:filtered", token);
+
+  const result = await fetchWithCache(`${API_BASE_URL}/status/columns/filtered`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-  });
+  }, { cacheKey, ttlMs: 10 * 60_000, forceRefresh });
   
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao buscar colunas de status");
-  }
-  
-  const result = await response.json();
   return result.data; // Retorna apenas os dados das colunas visíveis ao usuário
 }
 
 // Busca todas as colunas de status (sem filtro) para permitir movimentação para qualquer setor
-export async function getAllStatusColumnsService() {
-  const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/status/columns`, {
+export async function getAllStatusColumnsService(forceRefresh = false) {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey("status:columns:all", token);
+
+  const result = await fetchWithCache(`${API_BASE_URL}/status/columns`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-  });
+  }, { cacheKey, ttlMs: 10 * 60_000, forceRefresh });
   
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao buscar todas as colunas de status");
-  }
-  
-  const result = await response.json();
   return result.data; // Retorna todas as colunas (sem filtros)
 }
 
 // Busca lista de pedidos
-export async function getOrdersStatusService(funcionario?: string) {
-  const token = localStorage.getItem("token");
+export async function getOrdersStatusService(funcionario?: string, opts: { forceRefresh?: boolean } = {}) {
+  const token = getAuthToken();
   const query = funcionario && funcionario.trim().length > 0
     ? `?funcionario=${encodeURIComponent(funcionario.trim())}`
     : "";
-  const response = await fetch(`${API_BASE_URL}/pedidos/kanban/status${query}`, {
+  const cacheKey = buildCacheKey(`pedidos:kanban:${funcionario || "all"}`, token);
+
+  const result = await fetchWithCache(`${API_BASE_URL}/pedidos/kanban/status${query}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-  });
+  }, { cacheKey, ttlMs: 10_000, forceRefresh: opts.forceRefresh });
   
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao buscar pedidos");
-  }
-  
-  const result = await response.json();
   return result.data; // Retorna apenas o array de pedidos
 }
 
-export async function getOrdersService() {
-  const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/pedidos`, {
+export async function getOrdersService(opts: { forceRefresh?: boolean } = {}) {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey("pedidos:list", token);
+
+  const result = await fetchWithCache(`${API_BASE_URL}/pedidos`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-  });
+  }, { cacheKey, ttlMs: 10_000, forceRefresh: opts.forceRefresh });
   
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao buscar pedidos");
-  }
-  
-  const result = await response.json();
   return result.data || result; // Retorna result.data se existir, senão result
 }
 
@@ -574,6 +574,7 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
   }
   
   const result = await response.json();
+  invalidateCacheByPrefix(PEDIDOS_CACHE_PREFIXES);
   return result.data || result; // Compatível com respostas antigas e novas
 }
 
@@ -603,43 +604,37 @@ export async function updateOrderService(orderId: string, orderData: {
   }
   
   const result = await response.json();
+  invalidateCacheByPrefix(PEDIDOS_CACHE_PREFIXES);
   return result.data; // Retorna o pedido atualizado
 }
 
-export async function getDashboardService() {
-  const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/dashboard`, {
+export async function getDashboardService(opts: { forceRefresh?: boolean } = {}) {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey("dashboard", token);
+
+  const result = await fetchWithCache(`${API_BASE_URL}/dashboard`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-  });
+  }, { cacheKey, ttlMs: 15_000, forceRefresh: opts.forceRefresh });
   
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao buscar dados do dashboard");
-  }
-  
-  const result = await response.json();
   return result; // Retorna o objeto completo, não result.data
 }
 
 // Estatísticas por setor
-export async function getSetoresEstatisticasService() {
-  const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/setores/estatisticas`, {
+export async function getSetoresEstatisticasService(opts: { forceRefresh?: boolean } = {}) {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey("setores:estatisticas", token);
+  const result = await fetchWithCache(`${API_BASE_URL}/setores/estatisticas`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao buscar estatísticas de setores");
-  }
-  const result = await response.json();
+  }, { cacheKey, ttlMs: 30_000, forceRefresh: opts.forceRefresh });
+  if (!result) return result;
   return result.data || result;
 }
 
@@ -724,6 +719,7 @@ export async function moverPedidoSetorService(
     throw err;
   }
   const result = await response.json();
+  invalidateCacheByPrefix(PEDIDOS_CACHE_PREFIXES);
   return result.data || result;
 }
 
@@ -738,8 +734,8 @@ export async function getPedidosConsultaService(params: {
   dataFim?: string;
   limit?: number;
   lastKey?: string;
-} = {}) {
-  const token = localStorage.getItem("token");
+} = {}, opts: { forceRefresh?: boolean } = {}) {
+  const token = getAuthToken();
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value === undefined || value === null) return;
@@ -749,20 +745,15 @@ export async function getPedidosConsultaService(params: {
   });
 
   const qs = query.toString();
-  const response = await fetch(`${API_BASE_URL}/pedidos/consulta${qs ? `?${qs}` : ""}`, {
+  const cacheKey = buildCacheKey(`pedidos:consulta:${qs || "all"}`, token);
+  const result = await fetchWithCache(`${API_BASE_URL}/pedidos/consulta${qs ? `?${qs}` : ""}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-  });
+  }, { cacheKey, ttlMs: 15_000, forceRefresh: opts.forceRefresh });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Erro ao consultar pedidos");
-  }
-
-  const result = await response.json();
   return result.data ? result : { data: result.data || result, nextToken: undefined, count: Array.isArray(result) ? result.length : 0 };
 }
 

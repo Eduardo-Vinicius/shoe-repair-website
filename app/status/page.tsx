@@ -1641,7 +1641,7 @@ export default function StatusControlPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         {ordersInColumn.map((order) => {
                           const isCardExpanded = expandedCards.has(order.id);
                           const showFullDetails = !compactView || isCardExpanded;
@@ -1681,7 +1681,7 @@ export default function StatusControlPage() {
                                       <DeptIcon className="w-4 h-4" />
                                     )}
                                   </div>
-                                  <div className="flex-1 min-w-0 space-y-1">
+                                  <div className="flex flex-col gap-2 items-end">
                                     <div className="flex items-start justify-between gap-2">
                                       <div className="min-w-0">
                                         <div className="flex items-start justify-between gap-2">
@@ -1731,19 +1731,6 @@ export default function StatusControlPage() {
                                         </span>
                                       )}
                                     </div>
-                                  </div>
-                                </div>
-
-                                {showFullDetails && (
-                                  <div className="mt-2 space-y-2 text-xs text-slate-600 leading-tight">
-                                    {serviceBadges.length > 0 && (
-                                      <div className="flex flex-wrap gap-1">
-                                        {serviceBadges.map((srv, idx) => (
-                                          <Badge key={`${order.id}-srv-${idx}`} variant="outline" className="text-[10px] bg-white border-slate-200 text-slate-700 px-2 py-0.5">
-                                            {srv}
-                                          </Badge>
-                                        ))}
-                                        {extraServicesCount > 0 && (
                                           <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
                                             +{extraServicesCount}
                                           </Badge>
@@ -1767,68 +1754,68 @@ export default function StatusControlPage() {
                                     )}
 
                                     {order.servicos && (
-                                      <div className="text-slate-700 leading-snug">
-                                        <span className="font-semibold text-[11px] text-slate-600 mr-1">Serviços:</span>
-                                        <span className="line-clamp-2 text-[12px] inline-block align-middle max-w-full">{servicesText || '-'}</span>
-                                      </div>
-                                    )}
+                                      <div className="flex flex-col gap-2.5">
+                                        <div className="flex items-start gap-2">
+                                          <div
+                                            className="w-10 h-10 rounded-full flex items-center justify-center text-white overflow-hidden shrink-0"
+                                            style={{ backgroundColor: SETORES_CORES[order.setorAtual || ''] || '#64748b' }}
+                                            title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
+                                          >
+                                            {thumb ? (
+                                              <img src={thumb} alt="thumb" className="w-full h-full object-cover" />
+                                            ) : (
+                                              <DeptIcon className="w-4 h-4" />
+                                            )}
+                                          </div>
+                                            <div className="flex-1 min-w-0 space-y-1">
+                                              <div className="flex items-start justify-between gap-2">
+                                                <div className="min-w-0">
+                                                  <div className="flex items-center gap-1.5 min-w-0">
+                                                    <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono truncate max-w-[140px]">
+                                                      #{order.codigo || order.id}
+                                                    </h4>
+                                                    <Button
+                                                      size="icon"
+                                                      variant="ghost"
+                                                      className="h-6 w-6 text-slate-500 hover:text-slate-800 shrink-0"
+                                                      draggable={false}
+                                                      onMouseDown={(e) => { e.stopPropagation(); }}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigator.clipboard.writeText(order.codigo || order.id);
+                                                        toast.success("Número copiado");
+                                                      }}
+                                                      title="Copiar número"
+                                                    >
+                                                      <ClipboardCopy className="w-4 h-4" />
+                                                      </Button>
+                                                    </div>
+                                                    <div className="text-[11px] text-slate-500">{new Date(order.dataCriacao).toLocaleDateString('pt-BR')}</div>
+                                                  </div>
+                                                  <div className="flex items-center gap-2">
+                                                    {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                                                      <Badge className="bg-red-500 text-white shrink-0">Alta</Badge>
+                                                    )}
+                                                    <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50 shrink-0 max-w-[140px] truncate">
+                                                      {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
+                                                    </Badge>
+                                                  </div>
+                                                </div>
+                                              <p className="text-[13px] text-slate-900 font-medium line-clamp-1">{order.clientName}</p>
+                                              <p className="text-[12px] text-slate-600 line-clamp-1">{order.modeloTenis}</p>
 
-                                    {Array.isArray(order.observacoesFluxo) && order.observacoesFluxo.length > 0 && (() => {
-                                      const lastObs = order.observacoesFluxo[order.observacoesFluxo.length - 1];
-                                      const obsText = (lastObs?.observacao || '').trim();
-                                      return obsText ? (
-                                        <div className="text-[11px] text-slate-600 max-h-10 overflow-hidden">
-                                          <span className="font-semibold text-[11px] text-slate-600 mr-1">Obs.:</span>
-                                          <span className="line-clamp-2 inline-block align-middle max-w-full">{obsText}</span>
-                                          {lastObs?.usuarioNome ? ` • ${lastObs.usuarioNome}` : ''}
-                                          {lastObs?.timestamp ? ` • ${new Date(lastObs.timestamp).toLocaleDateString('pt-BR')}` : ''}
-                                        </div>
-                                      ) : null;
-                                    })()}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex flex-col gap-2 items-end">
-                                {(() => {
-                                  const resp = getResponsavelAtual(order);
-                                  return resp ? (
-                                    <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[11px]">
-                                      {resp}
-                                    </Badge>
-                                  ) : null;
-                                })()}
-                                <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {isOverdue && (
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-8 w-8 p-0 hover:bg-emerald-100 text-emerald-700"
-                                      draggable={false}
-                                      onMouseDown={(e) => { e.stopPropagation(); }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.open(whatsappHref, "_blank");
-                                      }}
-                                      title="Chamar no WhatsApp"
-                                    >
-                                      <MessageCircle className="w-4 h-4" />
-                                    </Button>
-                                  )}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 w-8 p-0 hover:bg-slate-200"
-                                    draggable={false}
-                                    onMouseDown={(e) => { e.stopPropagation(); }}
-                                    onClick={() => {
-                                      setSelectedOrder(order);
-                                      setShowOrderDetails(true);
-                                    }}
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </Button>
-                                  <Button
+                                              <div className="flex items-center gap-2 text-[11px]">
+                                                <Badge className={`${isOverdue ? "bg-red-600 text-white" : "bg-emerald-100 text-emerald-700"} text-[10px] px-2 py-0.5`}>
+                                                  {isOverdue ? "Atrasado" : "Previsto"}
+                                                </Badge>
+                                                {(order.expectedDate || order.dataPrevistaEntrega) && (
+                                                  <span className={isOverdue ? "text-rose-600 font-semibold" : "text-slate-600"}>
+                                                    {new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
                                     size="sm"
                                     variant="ghost"
                                     className="h-8 w-8 p-0 hover:bg-slate-200"
@@ -1932,11 +1919,21 @@ export default function StatusControlPage() {
                               )}
 
                               {compactView && (
-                                <div className="mt-2 flex justify-end">
+                                <div className="mt-2 flex gap-2 w-full">
+                                  <Button
+                                    size="sm"
+                                    className="h-9 flex-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openMoveDialogForOrder(order, getNextStatus(order.status) || getNextStatusSameDept(order.status));
+                                    }}
+                                  >
+                                    Mover
+                                  </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-8"
+                                    className="h-9 flex-1"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleCardExpansion(order.id);

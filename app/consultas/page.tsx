@@ -8,12 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, ArrowLeft, User, Package, Calendar, Filter, FileText, CheckCircle, Edit } from "lucide-react"
+import { Search, ArrowLeft, User, Package, Calendar, Filter, FileText, Edit } from "lucide-react"
 import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
 import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
@@ -128,7 +127,6 @@ export default function ConsultasPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState("");
   
   // Estados para o modal de detalhes do pedido
   const [modalOpen, setModalOpen] = useState(false);
@@ -240,26 +238,17 @@ export default function ConsultasPage() {
     
     // Validação básica
     if (!editForm.modeloTenis.trim()) {
-      const msg = "O modelo do tênis é obrigatório";
-      setSuccessMessage(msg);
-      toast.error(msg);
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.error("O modelo do tênis é obrigatório");
       return;
     }
     
     if (!editForm.servicos.trim()) {
-      const msg = "Os serviços são obrigatórios";
-      setSuccessMessage(msg);
-      toast.error(msg);
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.error("Os serviços são obrigatórios");
       return;
     }
     
     if (editForm.price <= 0) {
-      const msg = "O valor deve ser maior que zero";
-      setSuccessMessage(msg);
-      toast.error(msg);
-      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.error("O valor deve ser maior que zero");
       return;
     }
     
@@ -271,9 +260,7 @@ export default function ConsultasPage() {
       const updatedOrder = await updateOrderService(editingOrder.id, editForm);
       
       const msg = `Pedido #${editingOrder.codigo || editingOrder.id} atualizado com sucesso!`;
-      setSuccessMessage(msg);
       toast.success(msg);
-      setTimeout(() => setSuccessMessage(""), 3000);
       
       // Fechar modal e recarregar dados
       handleCloseEditModal();
@@ -288,9 +275,7 @@ export default function ConsultasPage() {
       } else if (error.message.includes("permissão")) {
         errorMessage = "Você não tem permissão para editar este pedido";
       }
-      setSuccessMessage(errorMessage);
       toast.error(errorMessage);
-      setTimeout(() => setSuccessMessage(""), 5000);
     } finally {
       setEditLoading(false);
     }
@@ -299,7 +284,6 @@ export default function ConsultasPage() {
   // Função para gerar PDF do pedido
   const generateOrderPDF = async (order: any) => {
     try {
-      setSuccessMessage("Gerando PDF do pedido...");
       toast.info("Gerando PDF do pedido...");
       
       // Chama o service do backend para gerar o PDF
@@ -307,9 +291,7 @@ export default function ConsultasPage() {
       downloadBlobAsFile(pdfBlob, `pedido-${order.id}.pdf`);
 
       const msg = `PDF do pedido #${order.codigo || order.id} gerado com sucesso!`;
-      setSuccessMessage(msg);
       toast.success(msg);
-      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       console.error("Erro ao gerar PDF:", error);
       
@@ -323,9 +305,7 @@ export default function ConsultasPage() {
         errorMessage = "Você não tem permissão para gerar PDF deste pedido";
       }
       
-      setSuccessMessage(errorMessage);
       toast.error(errorMessage);
-      setTimeout(() => setSuccessMessage(""), 5000);
     }
   };
 
@@ -712,13 +692,6 @@ export default function ConsultasPage() {
         {/* Results */}
         {hasSearched && (
           <>
-            {/* Success Message */}
-            {successMessage && (
-              <Alert className="mb-6 border-green-200 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
-              </Alert>
-            )}
           <Tabs value={tab} onValueChange={setTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="clientes" className="flex items-center">
