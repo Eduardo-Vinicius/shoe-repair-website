@@ -1604,33 +1604,40 @@ export default function StatusControlPage() {
                     {isCollapsed ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         {ordersInColumn.length ? (
-                          ordersInColumn.map((order) => (
-                            <button
-                              key={order.id}
-                              className={`w-full flex items-center justify-between rounded px-3 py-2 text-left transition ${getSlaInfo(order).tone === 'red' ? 'border border-red-200 bg-rose-50' : 'border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'}`}
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setShowOrderDetails(true);
-                              }}
-                            >
-                              <div className="flex flex-col min-w-0">
-                                <span className="font-semibold truncate">#{order.codigo || order.id}</span>
-                                <span className="text-xs text-slate-600 truncate">{order.clientName}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {typeof order.prioridade === 'number' && order.prioridade === 1 && (
-                                  <Badge className="bg-red-500 text-white">Alta</Badge>
-                                )}
-                                {order.setorAtual && (
-                                  <span
-                                    className="inline-flex h-3 w-3 rounded-full"
-                                    style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
-                                    title={SETORES_NOMES[order.setorAtual] || order.setorAtual}
-                                  />
-                                )}
-                              </div>
-                            </button>
-                          ))
+                          ordersInColumn.map((order) => {
+                            const sla = getSlaInfo(order);
+                            const overdue = sla.tone === 'red';
+                            return (
+                              <button
+                                key={order.id}
+                                className={`w-full flex items-center justify-between rounded px-3 py-2 text-left transition ${overdue ? 'border border-red-200 bg-rose-50' : 'border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'}`}
+                                onClick={() => {
+                                  setSelectedOrder(order);
+                                  setShowOrderDetails(true);
+                                }}
+                              >
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-semibold truncate flex items-center gap-1">
+                                    #{order.codigo || order.id}
+                                    {overdue && <span className="text-[10px] text-rose-600 font-semibold">Atrasado</span>}
+                                  </span>
+                                  <span className="text-xs text-slate-600 truncate">{order.clientName}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                                    <Badge className="bg-red-500 text-white">Alta</Badge>
+                                  )}
+                                  {order.setorAtual && (
+                                    <span
+                                      className="inline-flex h-3 w-3 rounded-full"
+                                      style={{ backgroundColor: SETORES_CORES[order.setorAtual] || '#ddd' }}
+                                      title={SETORES_NOMES[order.setorAtual] || order.setorAtual}
+                                    />
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })
                         ) : (
                           <div className="text-center text-slate-400">Nenhum pedido</div>
                         )}
