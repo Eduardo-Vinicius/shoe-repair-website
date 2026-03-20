@@ -580,15 +580,17 @@ export default function ConsultasPage() {
               <div className="space-y-2">
                 <Label htmlFor="funcionario">Funcionário</Label>
                 <Select
-                  value={consultaFilters.funcionario}
-                  onValueChange={(value) => setConsultaFilters({ ...consultaFilters, funcionario: value })}
+                  value={consultaFilters.funcionario || "todos"}
+                  onValueChange={(value) =>
+                    setConsultaFilters({ ...consultaFilters, funcionario: value === "todos" ? "" : value })
+                  }
                   disabled={funcionariosLoading}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={funcionariosLoading ? "Carregando..." : "Selecione"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="todos">Todos</SelectItem>
                     {funcionarios.map((f) => (
                       <SelectItem key={f.id} value={f.nome}>
                         {f.nome}

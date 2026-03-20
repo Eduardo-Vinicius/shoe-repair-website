@@ -45,66 +45,17 @@ interface StatusColumn {
   [columnName: string]: any[];
 }
 
-// Departamentos disponíveis (para status inicial)
-const departments = [
-  { value: "atendimento", label: "Atendimento" },
-  { value: "sapataria", label: "Sapataria" },
-  { value: "costura", label: "Costura" },
-  { value: "lavagem", label: "Lavagem" },
-  { value: "acabamento", label: "Acabamento" },
-  { value: "pintura", label: "Pintura" },
-];
+// Departamento inicial fixo: Atendimento
+const departments = [{ value: "atendimento", label: "Atendimento" }];
 
-// Grupos de fluxo por departamento (para demarcar no cadastro)
+// Grupos de fluxo por departamento (apenas nomes dos setores, sem variações)
 const departmentFlowGroups = [
-  {
-    id: "pintura",
-    label: "Pintura",
-    options: [
-      { id: "pintura-completa", label: "Pintura - Completa" },
-      { id: "pintura-parcial", label: "Pintura - Parcial" },
-    ],
-  },
-  {
-    id: "lavagem",
-    label: "Lavagem",
-    options: [
-      { id: "lavagem-completa", label: "Lavagem - Completa" },
-      { id: "lavagem-reforco", label: "Lavagem - Reforço" },
-    ],
-  },
-  {
-    id: "costura",
-    label: "Costura",
-    options: [
-      { id: "costura-completa", label: "Costura - Completa" },
-      { id: "costura-pontos", label: "Costura - Pontos específicos" },
-    ],
-  },
-  {
-    id: "sapataria",
-    label: "Sapataria",
-    options: [
-      { id: "sapataria-completa", label: "Sapataria - Completa" },
-      { id: "sapataria-parcial", label: "Sapataria - Parcial" },
-    ],
-  },
-  {
-    id: "acabamento",
-    label: "Acabamento",
-    options: [
-      { id: "acabamento-full", label: "Acabamento - Full" },
-      { id: "acabamento-detalhe", label: "Acabamento - Detalhe" },
-    ],
-  },
-  {
-    id: "atendimento",
-    label: "Atendimento",
-    options: [
-      { id: "atendimento-recebido", label: "Atendimento - Recebido" },
-      { id: "atendimento-orcado", label: "Atendimento - Orçado" },
-    ],
-  },
+  { id: "pintura", label: "Pintura", options: [{ id: "pintura", label: "Pintura" }] },
+  { id: "lavagem", label: "Lavagem", options: [{ id: "lavagem", label: "Lavagem" }] },
+  { id: "costura", label: "Costura", options: [{ id: "costura", label: "Costura" }] },
+  { id: "sapataria", label: "Sapataria", options: [{ id: "sapataria", label: "Sapataria" }] },
+  { id: "acabamento", label: "Acabamento", options: [{ id: "acabamento", label: "Acabamento" }] },
+  { id: "atendimento", label: "Atendimento", options: [{ id: "atendimento", label: "Atendimento" }] },
 ];
 
 const flowTemplates = [
@@ -157,11 +108,11 @@ export default function NewOrderPage() {
     clientId: "",
     sneaker: "",
     expectedDate: "",
-    department: "atendimento", // Departamento de destino
+    department: "atendimento", // Departamento inicial fixo
     observations: "",
   })
   const [flowObservation, setFlowObservation] = useState("");
-  const [selectedFlowOptions, setSelectedFlowOptions] = useState<string[]>([]);
+  const [selectedFlowOptions, setSelectedFlowOptions] = useState<string[]>(["atendimento"]);
   const [prioridade, setPrioridade] = useState<string>("2")
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([])
   const [totalPrice, setTotalPrice] = useState(0)
@@ -191,7 +142,9 @@ export default function NewOrderPage() {
       if (typeof draft.warrantyPrice === "number") setWarrantyPrice(draft.warrantyPrice);
       if (Array.isArray(draft.selectedAccessories)) setSelectedAccessories(draft.selectedAccessories);
       if (typeof draft.flowObservation === "string") setFlowObservation(draft.flowObservation);
-      if (Array.isArray(draft.selectedFlowOptions)) setSelectedFlowOptions(draft.selectedFlowOptions);
+      if (Array.isArray(draft.selectedFlowOptions) && draft.selectedFlowOptions.length) {
+        setSelectedFlowOptions(draft.selectedFlowOptions);
+      }
       if (typeof draft.prioridade === "string") setPrioridade(draft.prioridade);
     } catch (err) {
       // ignore
@@ -501,12 +454,12 @@ export default function NewOrderPage() {
 
     setFormData((prev) => ({
       ...prev,
-      department: tpl.department,
+      department: "atendimento", // mantém atendimento como setor inicial
     }));
 
     setPrioridade(tpl.prioridade);
     setFlowObservation(tpl.observation);
-    setSelectedFlowOptions(tpl.flowOptions);
+    setSelectedFlowOptions(["atendimento", ...tpl.flowOptions.filter((id) => id !== "atendimento")]);
 
     const services = tpl.services
       .map(id => {
@@ -537,7 +490,7 @@ export default function NewOrderPage() {
       observations: "",
     });
     setFlowObservation("");
-    setSelectedFlowOptions([]);
+    setSelectedFlowOptions(["atendimento"]);
     setSelectedServices([]);
     setTotalPrice(0);
     setSignalType("50");
@@ -623,6 +576,8 @@ export default function NewOrderPage() {
       const lower = col.toLowerCase();
       return patterns.some((p) => lower.includes(p.toLowerCase()));
     });
+    // Fallback absoluto para garantir início em Atendimento
+    if (!foundAny && sector === "atendimento") return "Atendimento - Recebido";
     return foundAny || null;
   };
 
@@ -878,21 +833,15 @@ export default function NewOrderPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="department">Departamento *</Label>
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => handleSelectChange("department", value)}
-                  >
-                    <SelectTrigger className={errors.department ? "border-destructive" : ""}>
-                      <SelectValue placeholder="Selecione o departamento" />
+                  <Select value="atendimento" disabled>
+                    <SelectTrigger className={`${errors.department ? "border-destructive" : ""} pointer-events-none opacity-70`}>
+                      <SelectValue placeholder="Atendimento" />
                     </SelectTrigger>
                     <SelectContent>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept.value} value={dept.value}>
-                          {dept.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="atendimento">Atendimento</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-slate-500">O pedido sempre inicia em Atendimento.</p>
                   {errors.department && <p className="text-sm text-destructive">{errors.department}</p>}
                 </div>
               </div>
