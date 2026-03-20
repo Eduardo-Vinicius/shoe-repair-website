@@ -188,16 +188,14 @@ export default function ClientsPage() {
 
                       <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto">
                         <div className="flex flex-wrap gap-2 w-full sm:justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
+                          <Link
+                            href={(client.cpf ? `/consultas?searchType=cpf&searchTerm=${encodeURIComponent((client.cpf || "").replace(/\D/g, ""))}&tab=pedidos` : `/consultas?searchType=nome&searchTerm=${encodeURIComponent(client.nomeCompleto || client.name || "")}&tab=pedidos`) || "/consultas"}
                             className="flex-1 sm:flex-none"
-                            onClick={() => {
-                              window.location.href = `/consultas?searchType=nome&searchTerm=${encodeURIComponent(client.nomeCompleto)}&tab=pedidos`
-                            }}
                           >
-                            Ver Pedidos
-                          </Button>
+                            <Button variant="outline" size="sm" className="w-full">
+                              Ver Pedidos
+                            </Button>
+                          </Link>
                           <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => openEditModal(client)}>
                             <Edit className="w-4 h-4 mr-1" />
                             Editar
