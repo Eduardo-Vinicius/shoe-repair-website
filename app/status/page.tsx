@@ -1996,36 +1996,47 @@ export default function StatusControlPage() {
                   <SelectContent>
                     {(() => {
                       const columnsToShow = allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns;
-                      const grouped = Object.keys(columnsToShow).reduce((acc, columnName) => {
-                        const lowerName = columnName.toLowerCase();
-                        let department = "Outros";
-                        if (lowerName.includes("atendimento")) department = "Atendimento";
-                        else if (lowerName.includes("sapataria")) department = "Sapataria";
-                        else if (lowerName.includes("costura")) department = "Costura";
-                        else if (lowerName.includes("lavagem")) department = "Lavagem";
-                        else if (lowerName.includes("pintura")) department = "Pintura";
-                        else if (lowerName.includes("montagem")) department = "Montagem";
-                        else if (lowerName.includes("acabamento")) department = "Acabamento";
-                        if (!acc[department]) acc[department] = [];
-                        acc[department].push(columnName);
-                        return acc;
-                      }, {} as Record<string, string[]>);
 
-                      return Object.entries(grouped).map(([dept, columns]) => (
-                        <div key={dept}>
-                          <SelectItem value={`header-${dept}`} disabled className="font-semibold text-slate-700 bg-slate-50">
-                            {dept}
-                          </SelectItem>
-                          {columns.map((col) => (
-                            <SelectItem key={col} value={col} disabled={col === moveNewStatus}>
-                              {getStatusInfo(col).label}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value={`divider-${dept}`} disabled>
-                            <hr className="my-1 border-slate-200" />
-                          </SelectItem>
-                        </div>
-                      ));
+                      // Mostrar status especiais (iniciais/finais) com o nome original
+                      const specialStatuses = Object.keys(columnsToShow).filter((col) => {
+                        const lower = col.toLowerCase();
+                        return lower.includes("receb") || lower.includes("entreg") || lower.includes("final");
+                      });
+
+                      // Opções por setor: sempre levam para o primeiro status do setor (A Fazer)
+                      const sectorOptions = getAvailableSectors()
+                        .map((sector) => ({
+                          label: sector.label,
+                          status: getFirstStatusForSector(sector.value),
+                          setorId: sector.value,
+                        }))
+                        .filter((opt) => opt.status);
+
+                      const rendered = new Set<string>();
+
+                      return (
+                        <>
+                          {specialStatuses.map((col) => {
+                            if (rendered.has(col)) return null;
+                            rendered.add(col);
+                            return (
+                              <SelectItem key={col} value={col} disabled={col === moveNewStatus}>
+                                {getStatusInfo(col).label}
+                              </SelectItem>
+                            );
+                          })}
+
+                          {sectorOptions.map((opt) => {
+                            if (!opt.status || rendered.has(opt.status)) return null;
+                            rendered.add(opt.status);
+                            return (
+                              <SelectItem key={opt.status} value={opt.status} disabled={opt.status === moveNewStatus}>
+                                {opt.label}
+                              </SelectItem>
+                            );
+                          })}
+                        </>
+                      );
                     })()}
                   </SelectContent>
                 </Select>
