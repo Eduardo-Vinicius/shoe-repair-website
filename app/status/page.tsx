@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import {
   ArrowLeft,
@@ -1606,7 +1607,7 @@ export default function StatusControlPage() {
                           ordersInColumn.map((order) => (
                             <button
                               key={order.id}
-                              className="w-full flex items-center justify-between rounded border border-slate-200 bg-slate-50 px-3 py-2 text-left hover:border-slate-300 hover:bg-white transition"
+                              className={`w-full flex items-center justify-between rounded px-3 py-2 text-left transition ${getSlaInfo(order).tone === 'red' ? 'border border-red-200 bg-rose-50' : 'border border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'}`}
                               onClick={() => {
                                 setSelectedOrder(order);
                                 setShowOrderDetails(true);
@@ -1659,7 +1660,7 @@ export default function StatusControlPage() {
                               key={order.id}
                               draggable
                               onDragStart={() => handleDragStart(order.id)}
-                              className={`bg-white/90 border border-slate-200/80 rounded-xl p-3 cursor-move hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200 transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""}`}
+                              className={`bg-white/90 border rounded-xl p-3 cursor-move transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "ring-2 ring-red-300 border-red-200 bg-rose-50" : "border-slate-200/80 hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200"}`}
                               style={{ borderLeftWidth: 6, borderLeftColor: SETORES_CORES[order.setorAtual || ''] || '#94a3b8' }}
                             >
                             <div className="flex items-start gap-3">
@@ -1688,6 +1689,9 @@ export default function StatusControlPage() {
                                   <Badge className={`${sla.className} text-[10px] px-2 py-0.5 border border-white/40`}>
                                     SLA {sla.label}
                                   </Badge>
+                                  {isOverdue && (
+                                    <Badge className="bg-red-600 text-white text-[10px] px-2 py-0.5">Atrasado</Badge>
+                                  )}
                                   <Button
                                     size="icon"
                                     variant="ghost"
@@ -2010,11 +2014,12 @@ export default function StatusControlPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Observação (opcional)</label>
-                <Input
+                <label className="text-sm font-medium">Observação / Comentário (para exceções)</label>
+                <Textarea
                   value={movedByNote}
                   onChange={(e) => setMovedByNote(e.target.value)}
-                  placeholder="Ex.: Motivo da mudança"
+                  placeholder="Explique o motivo ou exceção desta movimentação"
+                  rows={3}
                 />
               </div>
             </div>

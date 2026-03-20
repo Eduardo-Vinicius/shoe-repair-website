@@ -510,6 +510,16 @@ export default function NewOrderPage() {
       newErrors.clientId = "Cliente é obrigatório"
     }
 
+    // Email do cliente é obrigatório (usa o cliente selecionado)
+    if (selectedClient && !selectedClient.email) {
+      newErrors.clientId = "Cliente selecionado sem email cadastrado"
+    }
+
+    if (!selectedClient && clients.length > 0) {
+      // Se tem lista carregada, reforça a escolha
+      newErrors.clientId = newErrors.clientId || "Selecione um cliente com email"
+    }
+
     if (!formData.sneaker.trim()) {
       newErrors.sneaker = "Modelo do tênis é obrigatório"
     }

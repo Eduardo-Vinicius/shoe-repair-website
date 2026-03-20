@@ -330,11 +330,42 @@ export default function ConsultasPage() {
       const promises: Array<Promise<any>> = [];
       if (loadClients) promises.push(getClientesService());
 
-      const query = {
+      const query: Record<string, any> = {
         ...consultaFilters,
         lastKey: lastKey || undefined,
         status: consultaFilters.status === "todos" ? "" : consultaFilters.status,
-      } as any;
+      };
+
+      // Mapear busca principal para parâmetros esperados pela API
+      const term = searchTerm.trim();
+      if (term) {
+        switch (searchType) {
+          case "nome":
+            query.clientName = term;
+            break;
+          case "cpf":
+            query.clientCpf = term.replace(/\D/g, "");
+            break;
+          case "telefone":
+            query.clientPhone = term.replace(/\D/g, "");
+            break;
+          case "email":
+            query.clientEmail = term;
+            break;
+          case "tenis":
+            query.modeloTenis = term;
+            break;
+          default:
+            break;
+        }
+      }
+
+      // Evitar enviar campos vazios/"todos" para não quebrar o backend
+      Object.keys(query).forEach((k) => {
+        const v = query[k];
+        if (v === undefined || v === null) delete query[k];
+        else if (typeof v === "string" && !v.trim()) delete query[k];
+      });
 
       promises.push(getPedidosConsultaService(query));
 
