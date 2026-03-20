@@ -1667,11 +1667,11 @@ export default function StatusControlPage() {
                               key={order.id}
                               draggable
                               onDragStart={() => handleDragStart(order.id)}
-                              className={`bg-white/90 border rounded-xl p-4 cursor-move transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "ring-2 ring-red-300 border-red-200 bg-rose-50" : "border-slate-200/80 hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200"}`}
+                              className={`bg-white/95 border rounded-xl p-4 cursor-move transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "ring-2 ring-red-300 border-red-200 bg-rose-50" : "border-slate-200/80 hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200"}`}
                               style={{ borderLeftWidth: 6, borderLeftColor: SETORES_CORES[order.setorAtual || ''] || '#94a3b8' }}
                             >
-                            <div className="flex flex-col gap-3 items-stretch">
-                              <div className="flex items-center justify-center gap-3 text-center">
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-start gap-3">
                                 <div
                                   className="w-10 h-10 rounded-full flex items-center justify-center text-white overflow-hidden shrink-0"
                                   style={{ backgroundColor: SETORES_CORES[order.setorAtual || ''] || '#64748b' }}
@@ -1684,66 +1684,56 @@ export default function StatusControlPage() {
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0 space-y-1">
-                                  <div className="flex flex-wrap items-center justify-center gap-2">
-                                    <h4 className="font-semibold text-slate-900 leading-tight text-[13px]">#{order.codigo || order.id}</h4>
-                                    <span className="text-[11px] text-slate-500">
-                                      {new Date(order.dataCriacao).toLocaleDateString('pt-BR')}
-                                    </span>
-                                    {typeof order.prioridade === 'number' && order.prioridade === 1 && (
-                                      <Badge className="bg-red-500 text-white">Alta</Badge>
-                                    )}
-                                    <Badge className={`${sla.className} text-[10px] px-2 py-0.5 border border-white/40`}>
-                                      SLA {sla.label}
-                                    </Badge>
-                                    {isOverdue && (
-                                      <Badge className="bg-red-600 text-white text-[10px] px-2 py-0.5">Atrasado</Badge>
-                                    )}
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-7 w-7 text-slate-500 hover:text-slate-800"
-                                      draggable={false}
-                                      onMouseDown={(e) => { e.stopPropagation(); }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigator.clipboard.writeText(order.codigo || order.id);
-                                        toast.success("Número copiado");
-                                      }}
-                                      title="Copiar número"
-                                    >
-                                      <ClipboardCopy className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-
-                                  <div className="flex items-center justify-center gap-2 text-[12px] text-slate-600">
-                                    <DeptIcon className="w-3 h-3" />
-                                    <span className="truncate">{SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}</span>
-                                  </div>
-
-                                  <p className="text-[13px] text-slate-800 line-clamp-1 text-center">{order.clientName}</p>
-                                  <p className="text-[12px] text-slate-600 line-clamp-1 text-center">{order.modeloTenis}</p>
-
-                                  {!showFullDetails && order.setorAtual && (
-                                    <div className="flex items-center justify-center gap-2 mt-1 text-[11px] text-slate-500">
-                                      <span>{SETORES_NOMES[order.setorAtual] || order.setorAtual}</span>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="font-semibold text-slate-900 leading-tight text-[13px] truncate">#{order.codigo || order.id}</h4>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-7 w-7 text-slate-500 hover:text-slate-800"
+                                          draggable={false}
+                                          onMouseDown={(e) => { e.stopPropagation(); }}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(order.codigo || order.id);
+                                            toast.success("Número copiado");
+                                          }}
+                                          title="Copiar número"
+                                        >
+                                          <ClipboardCopy className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                      <div className="text-[11px] text-slate-500">{new Date(order.dataCriacao).toLocaleDateString('pt-BR')}</div>
                                     </div>
-                                  )}
+                                    <div className="flex flex-wrap items-center gap-2 justify-end">
+                                      {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                                        <Badge className="bg-red-500 text-white">Alta</Badge>
+                                      )}
+                                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50">
+                                        {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
+                                      </Badge>
+                                    </div>
+                                  </div>
+
+                                  <p className="text-[13px] text-slate-900 font-medium line-clamp-1">{order.clientName}</p>
+                                  <p className="text-[12px] text-slate-600 line-clamp-1">{order.modeloTenis}</p>
+
+                                  <div className="flex items-center gap-2 text-[11px]">
+                                    <Badge className={`${isOverdue ? "bg-red-600 text-white" : "bg-emerald-100 text-emerald-700"} text-[10px] px-2 py-0.5`}> 
+                                      {isOverdue ? "Atrasado" : "Previsto"}
+                                    </Badge>
+                                    {(order.expectedDate || order.dataPrevistaEntrega) && (
+                                      <span className={isOverdue ? "text-rose-600 font-semibold" : "text-slate-600"}>
+                                        {new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
                                 {showFullDetails && (
                                   <div className="mt-2 space-y-2 text-xs text-slate-600 leading-tight">
-                                    {isOverdue && (
-                                      <div className="flex items-center gap-1 text-rose-600 font-semibold">
-                                        <AlertTriangle className="w-3.5 h-3.5" />
-                                        <span>Atrasado</span>
-                                        <span className="text-[11px] font-normal text-rose-500">
-                                          {order.expectedDate || order.dataPrevistaEntrega
-                                            ? `Previsto ${new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')}`
-                                            : ''}
-                                        </span>
-                                      </div>
-                                    )}
                                     {serviceBadges.length > 0 && (
                                       <div className="flex flex-wrap gap-1">
                                         {serviceBadges.map((srv, idx) => (
