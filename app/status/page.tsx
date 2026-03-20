@@ -839,6 +839,38 @@ export default function StatusControlPage() {
     return cols[cols.length - 1];
   }, [allStatusColumns, statusColumns]);
 
+  const getMoveOptionsList = useCallback(() => {
+    const columnsToShow = allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns;
+    const specialStatuses = Object.keys(columnsToShow).filter((col) => {
+      const lower = col.toLowerCase();
+      return lower.includes("receb") || lower.includes("entreg") || lower.includes("final");
+    });
+
+    const sectorOptions = getAvailableSectors()
+      .map((sector) => ({
+        label: sector.label,
+        status: getFirstStatusForSector(sector.value),
+      }))
+      .filter((opt) => opt.status);
+
+    const rendered = new Set<string>();
+    const result: Array<{ value: string; label: string }> = [];
+
+    specialStatuses.forEach((col) => {
+      if (rendered.has(col)) return;
+      rendered.add(col);
+      result.push({ value: col, label: getStatusInfo(col).label });
+    });
+
+    sectorOptions.forEach((opt) => {
+      if (!opt.status || rendered.has(opt.status)) return;
+      rendered.add(opt.status);
+      result.push({ value: opt.status, label: opt.label });
+    });
+
+    return result;
+  }, [allStatusColumns, getAvailableSectors, getFirstStatusForSector, statusColumns]);
+
   const resolveDeptFromSetor = (setorId?: string | null): string | null => {
     if (!setorId) return null;
     const s = setorId.toLowerCase();
@@ -1297,48 +1329,14 @@ export default function StatusControlPage() {
                     <SelectItem value="divider1" disabled>
                       <hr className="my-1 border-slate-300" />
                     </SelectItem>
-
-                    {/* Agrupar colunas por departamento */}
-                    {(() => {
-                      // Mostra todas as colunas disponíveis para mover (sem filtro por departamento)
-                      const columnsToShow = allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns;
-
-                      const groupedColumns = Object.keys(columnsToShow).reduce((acc, columnName) => {
-                        const lowerName = columnName.toLowerCase();
-                        let department = 'Outros';
-
-                        if (lowerName.includes('atendimento')) department = '🏢 Atendimento';
-                        else if (lowerName.includes('sapataria')) department = '👞 Sapataria';
-                        else if (lowerName.includes('costura')) department = '🪡 Costura';
-                        else if (lowerName.includes('lavagem')) department = '🧼 Lavagem';
-                        else if (lowerName.includes('pintura')) department = '🎨 Pintura';
-                        else if (lowerName.includes('montagem')) department = '🔧 Montagem';
-                        else if (lowerName.includes('acabamento')) department = '✨ Acabamento';
-
-                        if (!acc[department]) acc[department] = [];
-                        acc[department].push(columnName);
-                        return acc;
-                      }, {} as Record<string, string[]>);
-
-                      return Object.entries(groupedColumns).map(([department, columns]) => (
-                        <div key={department}>
-                          <SelectItem value={`header-${department}`} disabled className="font-semibold text-slate-700 bg-slate-50">
-                            {department}
-                          </SelectItem>
-                          {columns.map((columnName) => (
-                            <SelectItem key={columnName} value={columnName} className="pl-6">
-                              <div className="flex items-center">
-                                <Move className="w-4 h-4 mr-2" />
-                                {getStatusInfo(columnName).label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                          <SelectItem value={`divider-${department}`} disabled>
-                            <hr className="my-1 border-slate-200" />
-                          </SelectItem>
+                    {getMoveOptionsList().map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} className="pl-2">
+                        <div className="flex items-center gap-2">
+                          <Move className="w-4 h-4" />
+                          {opt.label}
                         </div>
-                      ));
-                    })()}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1889,9 +1887,9 @@ export default function StatusControlPage() {
                                   >
                                     <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
                                     <SelectContent>
-                                      {Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns).map((col) => (
-                                        <SelectItem key={col} value={col} disabled={col === order.status}>
-                                          {getStatusInfo(col).label}
+                                      {getMoveOptionsList().map((opt) => (
+                                        <SelectItem key={opt.value} value={opt.value} disabled={opt.value === order.status}>
+                                          {opt.label}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -1977,80 +1975,24 @@ export default function StatusControlPage() {
                 const currentLabel = getStatusInfo(order?.status || "").label;
                 const newLabel = getStatusInfo(moveNewStatus).label;
                 return (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-                    <p className="text-sm text-slate-700">
-                      Pedido #{order?.codigo || moveOrderId}: {currentLabel || ""} → {newLabel}
-                    </p>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded flex items-center gap-2">
+                    <p className="text-sm text-slate-700 font-semibold">Pedido #{order?.codigo || moveOrderId}</p>
+                    <span className="text-xs text-slate-500">|</span>
+                    <Badge variant="outline" className="text-xs bg-slate-100 border-slate-200 text-slate-700">{currentLabel || "Atual"}</Badge>
+                    <span className="text-slate-500">→</span>
+                    <Badge className="text-xs bg-blue-600 text-white">{newLabel}</Badge>
                   </div>
                 );
               })()}
               <div>
                 <p className="text-sm text-slate-600">
-                  Informe quem está movendo o pedido e escolha para qual status levar.
+                  Informe quem está movendo o pedido.
                 </p>
+                {!moveNewStatus && (
+                  <p className="text-xs text-amber-600 mt-1">Destino não definido, selecione um status pelo card ou ação rápida antes de abrir.</p>
+                )}
               </div>
 
-              {/* Seleção de destino (qualquer coluna/setor) */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Mover para</label>
-                <Select
-                  value={moveNewStatus || ""}
-                  onValueChange={(val) => {
-                    setMoveNewStatus(val);
-                    setMoveTargetSetorId(mapStatusToSetorId(val, moveTargetSetorId));
-                  }}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Selecione o destino" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(() => {
-                      const columnsToShow = allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns;
-
-                      // Mostrar status especiais (iniciais/finais) com o nome original
-                      const specialStatuses = Object.keys(columnsToShow).filter((col) => {
-                        const lower = col.toLowerCase();
-                        return lower.includes("receb") || lower.includes("entreg") || lower.includes("final");
-                      });
-
-                      // Opções por setor: sempre levam para o primeiro status do setor (A Fazer)
-                      const sectorOptions = getAvailableSectors()
-                        .map((sector) => ({
-                          label: sector.label,
-                          status: getFirstStatusForSector(sector.value),
-                          setorId: sector.value,
-                        }))
-                        .filter((opt) => opt.status);
-
-                      const rendered = new Set<string>();
-
-                      return (
-                        <>
-                          {specialStatuses.map((col) => {
-                            if (rendered.has(col)) return null;
-                            rendered.add(col);
-                            return (
-                              <SelectItem key={col} value={col} disabled={col === moveNewStatus}>
-                                {getStatusInfo(col).label}
-                              </SelectItem>
-                            );
-                          })}
-
-                          {sectorOptions.map((opt) => {
-                            if (!opt.status || rendered.has(opt.status)) return null;
-                            rendered.add(opt.status);
-                            return (
-                              <SelectItem key={opt.status} value={opt.status} disabled={opt.status === moveNewStatus}>
-                                {opt.label}
-                              </SelectItem>
-                            );
-                          })}
-                        </>
-                      );
-                    })()}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Funcionário</label>
                 {funcionariosLoading ? (
@@ -2128,6 +2070,7 @@ export default function StatusControlPage() {
                   setMoveNewStatus(null);
                   setDraggedOrderId(null);
                 }}
+                disabled={!moveNewStatus}
               >
                 Confirmar
               </Button>
