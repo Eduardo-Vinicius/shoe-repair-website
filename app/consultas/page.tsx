@@ -336,27 +336,13 @@ export default function ConsultasPage() {
         status: consultaFilters.status === "todos" ? "" : consultaFilters.status,
       };
 
-      // Mapear busca principal para parâmetros esperados pela API
+      // Mapear busca principal para o filtro "cliente" aceito pela API
       const term = searchTerm.trim();
       if (term) {
-        switch (searchType) {
-          case "nome":
-            query.clientName = term;
-            break;
-          case "cpf":
-            query.clientCpf = term.replace(/\D/g, "");
-            break;
-          case "telefone":
-            query.clientPhone = term.replace(/\D/g, "");
-            break;
-          case "email":
-            query.clientEmail = term;
-            break;
-          case "tenis":
-            query.modeloTenis = term;
-            break;
-          default:
-            break;
+        if (searchType === "cpf" || searchType === "telefone") {
+          query.cliente = term.replace(/\D/g, "");
+        } else {
+          query.cliente = term;
         }
       }
 
