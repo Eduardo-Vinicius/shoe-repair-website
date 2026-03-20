@@ -79,7 +79,7 @@ export default function TVDashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
           {setoresList.map(([setorId, dados]) => {
             const slowPedidos = (dados.pedidos || []).filter(p => (p.tempoNoSetor || 0) >= 24);
             const hasSlow = slowPedidos.length > 0;
@@ -90,41 +90,34 @@ export default function TVDashboard() {
                 style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))" }}
               >
                 <div className="absolute inset-0 opacity-60" style={{ background: `radial-gradient(circle at 20% 20%, ${dados.cor}33, transparent 40%), radial-gradient(circle at 80% 0%, #ffffff22, transparent 35%)` }} />
-                <div className="relative flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-300">Setor</p>
-                    <h3 className="text-2xl font-bold text-white drop-shadow-sm">{dados.nome}</h3>
-                  </div>
+
+                <div className="relative flex flex-col items-center text-center gap-2">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-slate-300">Setor</p>
+                  <h3 className="text-xl font-bold text-white drop-shadow-sm line-clamp-1 max-w-[180px]">{dados.nome}</h3>
                   <div className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: `${dados.cor}22`, color: dados.cor }}>
                     {dados.quantidade === 1 ? "1 pedido" : `${dados.quantidade} pedidos`}
                   </div>
-                </div>
-
-                <div className="relative mt-4 flex items-end justify-between">
-                  <div className="text-6xl font-black" style={{ color: dados.cor }}>
+                  <div className="text-5xl font-black" style={{ color: dados.cor }}>
                     {dados.quantidade}
                   </div>
-                  <div className="text-right text-sm text-slate-300">
+                  <div className="text-sm text-slate-200">
                     <p className="font-semibold text-white">Tempo médio</p>
                     <p className="text-slate-200">{slowPedidos[0]?.tempoNoSetor ? `${slowPedidos[0].tempoNoSetor}h` : "—"}</p>
                   </div>
+                  {hasSlow && (
+                    <div className="text-[11px] text-amber-200 flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-amber-300 animate-pulse" />
+                      Atrasados no setor
+                    </div>
+                  )}
                 </div>
 
-                {hasSlow && (
-                  <div className="mt-3 text-xs text-amber-200 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-amber-300 animate-pulse" />
-                    Atrasados no setor
-                  </div>
-                )}
-
                 {dados.quantidade > 0 && (
-                  <div className="relative mt-4 space-y-2 max-h-48 overflow-y-auto pr-1">
+                  <div className="relative mt-4 space-y-2 max-h-40 overflow-y-auto pr-1 text-center">
                     {dados.pedidos.map((pedido) => (
-                      <div key={pedido.id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-left backdrop-blur">
-                        <div>
-                          <div className="text-white font-mono text-sm">#{pedido.codigo}</div>
-                          <div className="text-slate-200 text-xs truncate max-w-[200px]">{pedido.cliente}</div>
-                        </div>
+                      <div key={pedido.id} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-left backdrop-blur flex flex-col items-center gap-1">
+                        <div className="text-white font-mono text-sm">#{pedido.codigo}</div>
+                        <div className="text-slate-200 text-xs truncate max-w-[180px] text-center">{pedido.cliente}</div>
                         {pedido.tempoNoSetor && pedido.tempoNoSetor > 0 && (
                           <div className={`text-xs font-semibold ${pedido.tempoNoSetor >= 24 ? "text-amber-300" : "text-emerald-200"}`}>
                             ⏱ {pedido.tempoNoSetor}h

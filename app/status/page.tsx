@@ -1733,13 +1733,15 @@ export default function StatusControlPage() {
                                 )}
 
                                 {showFullDetails && (
-                                  <div className="mt-2 space-y-2 text-xs text-slate-600">
+                                  <div className="mt-2 space-y-2 text-xs text-slate-600 leading-tight">
                                     {isOverdue && (
-                                      <div className="flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-rose-700">
+                                      <div className="flex items-center gap-1 text-rose-600 font-semibold">
                                         <AlertTriangle className="w-3.5 h-3.5" />
-                                        <span className="font-semibold">Atrasado</span>
-                                        <span className="text-[11px] text-rose-600">
-                                          Previsto {order.expectedDate || order.dataPrevistaEntrega ? new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR') : ""}
+                                        <span>Atrasado</span>
+                                        <span className="text-[11px] font-normal text-rose-500">
+                                          {order.expectedDate || order.dataPrevistaEntrega
+                                            ? `Previsto ${new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')}`
+                                            : ''}
                                         </span>
                                       </div>
                                     )}
@@ -1774,9 +1776,9 @@ export default function StatusControlPage() {
                                     )}
 
                                     {order.servicos && (
-                                      <div className="max-h-14 overflow-hidden text-slate-700 leading-snug">
+                                      <div className="text-slate-700 leading-snug">
                                         <span className="font-semibold text-[11px] text-slate-600 mr-1">Serviços:</span>
-                                        <span className="line-clamp-2 text-[12px]">{servicesText || '-'}</span>
+                                        <span className="line-clamp-2 text-[12px] inline-block align-middle max-w-full">{servicesText || '-'}</span>
                                       </div>
                                     )}
 
@@ -1786,7 +1788,7 @@ export default function StatusControlPage() {
                                       return obsText ? (
                                         <div className="text-[11px] text-slate-600 max-h-10 overflow-hidden">
                                           <span className="font-semibold text-[11px] text-slate-600 mr-1">Obs.:</span>
-                                          <span className="line-clamp-2">{obsText}</span>
+                                          <span className="line-clamp-2 inline-block align-middle max-w-full">{obsText}</span>
                                           {lastObs?.usuarioNome ? ` • ${lastObs.usuarioNome}` : ''}
                                           {lastObs?.timestamp ? ` • ${new Date(lastObs.timestamp).toLocaleDateString('pt-BR')}` : ''}
                                         </div>
