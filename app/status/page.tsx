@@ -1558,7 +1558,7 @@ export default function StatusControlPage() {
                 <Card
                   id={getColumnDomId(columnName)}
                   key={columnName}
-                  className={`border border-white/50 shadow-[0_10px_35px_-18px_rgba(15,23,42,0.6)] hover:shadow-[0_18px_48px_-18px_rgba(59,130,246,0.55)] transition-all duration-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 backdrop-blur min-w-[260px] sm:min-w-0 max-w-[360px] w-full snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-sky-400 shadow-2xl scale-[1.01]" : ""}`}
+                  className={`border border-white/50 shadow-[0_10px_35px_-18px_rgba(15,23,42,0.6)] hover:shadow-[0_18px_48px_-18px_rgba(59,130,246,0.55)] transition-all duration-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 backdrop-blur min-w-[260px] sm:min-w-0 w-full snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-sky-400 shadow-2xl scale-[1.01]" : ""}`}
                   onDragOver={handleDragOver}
                   onDragEnter={() => handleDragEnter(columnName)}
                   onDragLeave={() => handleDragLeave(columnName)}
@@ -1857,10 +1857,11 @@ export default function StatusControlPage() {
                                     className="h-9 flex-1"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      toggleCardExpansion(order.id);
+                                      setSelectedOrder(order);
+                                      setShowOrderDetails(true);
                                     }}
                                   >
-                                    {isCardExpanded ? "Ver menos" : "Ver mais"}
+                                    Ver mais
                                   </Button>
                                 </div>
                               )}
