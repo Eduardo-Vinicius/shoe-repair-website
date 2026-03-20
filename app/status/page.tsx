@@ -1725,54 +1725,67 @@ export default function StatusControlPage() {
                                   </div>
                                 )}
 
-                                {serviceBadges.length > 0 && showFullDetails && (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {serviceBadges.map((srv, idx) => (
-                                      <Badge key={`${order.id}-srv-${idx}`} variant="outline" className="text-[10px] bg-white border-slate-200 text-slate-700 px-2 py-0.5">
-                                        {srv}
-                                      </Badge>
-                                    ))}
-                                    {extraServicesCount > 0 && (
-                                      <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
-                                        +{extraServicesCount}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                )}
-
-                                {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && showFullDetails && (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {order.departamentosSelecionados.slice(0, 2).map((dep) => (
-                                      <Badge key={dep.id} variant="outline" className="text-[10px] bg-slate-50 border-slate-200 text-slate-700 px-2 py-0.5">
-                                        {dep.nome || dep.id}
-                                      </Badge>
-                                    ))}
-                                    {order.departamentosSelecionados.length > 2 && (
-                                      <Badge variant="outline" className="text-[10px] bg-slate-50 border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
-                                        +{order.departamentosSelecionados.length - 2}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                )}
-
                                 {showFullDetails && (
-                                  <>
-                                    {order.servicos && (
-                                      <div className="text-xs text-slate-600">
-                                        Serviços: <span className="text-slate-700">{`${servicesText.slice(0, 80)}${servicesText.length > 80 ? '…' : ''}`}</span>
+                                  <div className="mt-2 space-y-2 text-xs text-slate-600">
+                                    {isOverdue && (
+                                      <div className="flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-rose-700">
+                                        <AlertTriangle className="w-3.5 h-3.5" />
+                                        <span className="font-semibold">Atrasado</span>
+                                        <span className="text-[11px] text-rose-600">
+                                          Previsto {order.expectedDate || order.dataPrevistaEntrega ? new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR') : ""}
+                                        </span>
                                       </div>
                                     )}
+                                    {serviceBadges.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {serviceBadges.map((srv, idx) => (
+                                          <Badge key={`${order.id}-srv-${idx}`} variant="outline" className="text-[10px] bg-white border-slate-200 text-slate-700 px-2 py-0.5">
+                                            {srv}
+                                          </Badge>
+                                        ))}
+                                        {extraServicesCount > 0 && (
+                                          <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
+                                            +{extraServicesCount}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {order.departamentosSelecionados.slice(0, 2).map((dep) => (
+                                          <Badge key={dep.id} variant="outline" className="text-[10px] bg-slate-50 border-slate-200 text-slate-700 px-2 py-0.5">
+                                            {dep.nome || dep.id}
+                                          </Badge>
+                                        ))}
+                                        {order.departamentosSelecionados.length > 2 && (
+                                          <Badge variant="outline" className="text-[10px] bg-slate-50 border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
+                                            +{order.departamentosSelecionados.length - 2}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {order.servicos && (
+                                      <div className="max-h-14 overflow-hidden text-slate-700 leading-snug">
+                                        <span className="font-semibold text-[11px] text-slate-600 mr-1">Serviços:</span>
+                                        <span className="line-clamp-2 text-[12px]">{servicesText || '-'}</span>
+                                      </div>
+                                    )}
+
                                     {Array.isArray(order.observacoesFluxo) && order.observacoesFluxo.length > 0 && (() => {
                                       const lastObs = order.observacoesFluxo[order.observacoesFluxo.length - 1];
-                                      return (
-                                        <div className="mt-1 text-[11px] text-slate-600">
-                                          Obs.: {(lastObs?.observacao || '').slice(0, 80)}{(lastObs?.observacao || '').length > 80 ? '…' : ''}
+                                      const obsText = (lastObs?.observacao || '').trim();
+                                      return obsText ? (
+                                        <div className="text-[11px] text-slate-600 max-h-10 overflow-hidden">
+                                          <span className="font-semibold text-[11px] text-slate-600 mr-1">Obs.:</span>
+                                          <span className="line-clamp-2">{obsText}</span>
                                           {lastObs?.usuarioNome ? ` • ${lastObs.usuarioNome}` : ''}
                                           {lastObs?.timestamp ? ` • ${new Date(lastObs.timestamp).toLocaleDateString('pt-BR')}` : ''}
                                         </div>
-                                      );
+                                      ) : null;
                                     })()}
-                                  </>
+                                  </div>
                                 )}
                               </div>
 
