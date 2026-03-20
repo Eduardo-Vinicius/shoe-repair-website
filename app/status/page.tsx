@@ -1558,7 +1558,7 @@ export default function StatusControlPage() {
                 <Card
                   id={getColumnDomId(columnName)}
                   key={columnName}
-                  className={`border border-white/50 shadow-[0_10px_35px_-18px_rgba(15,23,42,0.6)] hover:shadow-[0_18px_48px_-18px_rgba(59,130,246,0.55)] transition-all duration-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 backdrop-blur min-w-[260px] sm:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-sky-400 shadow-2xl scale-[1.01]" : ""}`}
+                  className={`border border-white/50 shadow-[0_10px_35px_-18px_rgba(15,23,42,0.6)] hover:shadow-[0_18px_48px_-18px_rgba(59,130,246,0.55)] transition-all duration-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 backdrop-blur min-w-[260px] sm:min-w-0 max-w-[360px] w-full snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-sky-400 shadow-2xl scale-[1.01]" : ""}`}
                   onDragOver={handleDragOver}
                   onDragEnter={() => handleDragEnter(columnName)}
                   onDragLeave={() => handleDragLeave(columnName)}
@@ -1597,7 +1597,7 @@ export default function StatusControlPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-3 sm:p-4 min-h-[22rem] bg-white/85 backdrop-blur">
+                  <CardContent className="p-3 sm:p-4 min-h-[20rem] bg-white/90 backdrop-blur">
                     {isCollapsed ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         {ordersInColumn.length ? (
@@ -1762,22 +1762,9 @@ export default function StatusControlPage() {
                                   </div>
                                 </div>
  
-                                {!showFullDetails && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openMoveDialogForOrder(order, getNextStatus(order.status) || getNextStatusSameDept(order.status));
-                                    }}
-                                  >
-                                    Mover
-                                  </Button>
-                                )}
                               </div>
 
-                              {showFullDetails && (
+                              {showFullDetails ? (
                                 <div className="mt-3 grid grid-cols-2 gap-2">
                                   <Button
                                     size="sm"
@@ -1852,9 +1839,7 @@ export default function StatusControlPage() {
                                     Finalizar <CheckCircle className="w-4 h-4 ml-1" />
                                   </Button>
                                 </div>
-                              )}
-
-                              {compactView && !showFullDetails && (
+                              ) : (
                                 <div className="mt-2 flex gap-2 w-full">
                                   <Button
                                     size="sm"
