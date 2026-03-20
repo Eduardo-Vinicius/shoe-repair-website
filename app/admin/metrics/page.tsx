@@ -76,25 +76,25 @@ export default function AdminMetricsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50">
       <header className="border-b border-white/10 bg-slate-950/70 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 flex flex-wrap items-center justify-between gap-3 py-3">
+          <div className="flex items-center gap-3 min-w-[240px]">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <BarChart3 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-white">Painel de Métricas</h1>
+              <h1 className="text-lg sm:text-xl font-semibold text-white leading-tight">Painel de Métricas</h1>
               <p className="text-xs text-slate-300">Visão executiva de desempenho</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
             {lastUpdated && (
-              <Badge variant="outline" className="border-white/20 bg-white/5 text-slate-100">
+              <Badge variant="outline" className="border-white/20 bg-white/5 text-slate-100 text-[11px]">
                 Atualizado {new Date(lastUpdated).toLocaleString('pt-BR')}
               </Badge>
             )}
-            <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="border-white/30 text-white hover:bg-white/10">
+            <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="border-white/30 text-white hover:bg-white/10 h-9 px-3">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              <span className="ml-2">Atualizar</span>
+              <span className="ml-2 text-sm">Atualizar</span>
             </Button>
             <Link href="/dashboard">
               <Button variant="ghost" size="sm" className="h-9 text-slate-200 hover:text-white">
@@ -106,7 +106,7 @@ export default function AdminMetricsPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {error && (
           <Alert variant="destructive" className="bg-rose-950/70 border-rose-700 text-rose-100">
             <AlertTriangle className="w-4 h-4" />
@@ -114,7 +114,7 @@ export default function AdminMetricsPage() {
           </Alert>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[{
             title: "Pedidos abertos",
             value: resumo?.abertos ?? 0,
@@ -167,7 +167,7 @@ export default function AdminMetricsPage() {
             <CardTitle className="text-white">Métricas avançadas</CardTitle>
             <CardDescription className="text-slate-300">Lead time, risco de SLA e eficiência</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             <div className="p-3 rounded-lg bg-white/5 border border-white/10">
               <p className="text-xs uppercase tracking-wide text-slate-200">Lead time (atrasados)</p>
               <p className="text-2xl font-semibold text-white">{derived.atrasoMedio ? formatDays(derived.atrasoMedio) : "—"}</p>

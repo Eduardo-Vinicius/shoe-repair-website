@@ -1542,7 +1542,7 @@ export default function StatusControlPage() {
           </div>
 
           <div className="overflow-x-auto pb-4 -mx-2 sm:mx-0 snap-x snap-mandatory">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pr-4 sm:pr-0 min-w-[320px]">
+            <div className="grid grid-flow-col auto-cols-[minmax(280px,1fr)] md:auto-cols-[minmax(320px,1fr)] gap-4 sm:gap-6 pr-4 sm:pr-0 min-w-[280px]">
             {Object.entries(filteredStatusColumns).map(([columnName, columnOrders]) => {
               const statusInfo = getStatusInfo(columnName);
               const StatusIcon = statusInfo.icon;
