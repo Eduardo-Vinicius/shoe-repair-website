@@ -1684,14 +1684,15 @@ export default function StatusControlPage() {
                                   <div className="flex-1 min-w-0 space-y-1">
                                     <div className="flex items-start justify-between gap-2">
                                       <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <h4 className="font-semibold text-slate-900 leading-tight text-[12px] font-mono whitespace-nowrap">
-                                            #{order.codigo || order.id}
-                                          </h4>
-                                          <Button
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex items-center gap-1 min-w-0">
+                                            <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono truncate max-w-[120px]">
+                                              #{order.codigo || order.id}
+                                            </h4>
+                                            <Button
                                             size="icon"
                                             variant="ghost"
-                                            className="h-7 w-7 text-slate-500 hover:text-slate-800"
+                                              className="h-6 w-6 text-slate-500 hover:text-slate-800 shrink-0"
                                             draggable={false}
                                             onMouseDown={(e) => { e.stopPropagation(); }}
                                             onClick={(e) => {
@@ -1702,17 +1703,18 @@ export default function StatusControlPage() {
                                             title="Copiar número"
                                           >
                                             <ClipboardCopy className="w-4 h-4" />
-                                          </Button>
+                                            </Button>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                                              <Badge className="bg-red-500 text-white shrink-0">Alta</Badge>
+                                            )}
+                                            <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50 shrink-0 max-w-[140px] truncate">
+                                              {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
+                                            </Badge>
+                                          </div>
                                         </div>
                                         <div className="text-[11px] text-slate-500">{new Date(order.dataCriacao).toLocaleDateString('pt-BR')}</div>
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-2 justify-end">
-                                        {typeof order.prioridade === 'number' && order.prioridade === 1 && (
-                                          <Badge className="bg-red-500 text-white">Alta</Badge>
-                                        )}
-                                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50">
-                                          {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
-                                        </Badge>
                                       </div>
                                     </div>
 
