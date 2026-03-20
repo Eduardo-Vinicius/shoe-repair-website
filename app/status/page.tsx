@@ -1542,7 +1542,7 @@ export default function StatusControlPage() {
           </div>
 
           <div className="overflow-x-auto pb-4 -mx-2 sm:mx-0 snap-x snap-mandatory">
-            <div className="grid grid-flow-col auto-cols-[minmax(280px,1fr)] md:auto-cols-[minmax(320px,1fr)] gap-4 sm:gap-6 pr-4 sm:pr-0 min-w-[280px]">
+            <div className="grid grid-flow-col auto-cols-[minmax(260px,1fr)] md:auto-cols-[minmax(300px,1fr)] gap-3 sm:gap-5 pr-4 sm:pr-0 min-w-[260px]">
             {Object.entries(filteredStatusColumns).map(([columnName, columnOrders]) => {
               const statusInfo = getStatusInfo(columnName);
               const StatusIcon = statusInfo.icon;
@@ -1594,7 +1594,7 @@ export default function StatusControlPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-4 min-h-96 bg-white/80 backdrop-blur">
+                  <CardContent className="p-3 sm:p-4 min-h-[22rem] bg-white/85 backdrop-blur">
                     {isCollapsed ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         {ordersInColumn.length ? (
@@ -1742,84 +1742,18 @@ export default function StatusControlPage() {
                                         )}
                                       </div>
                                     )}
-
-                                    {order.servicos && (
-                                      <div className="flex flex-col gap-2.5">
-                                        <div className="flex items-start gap-2">
-                                          <div
-                                            className="w-10 h-10 rounded-full flex items-center justify-center text-white overflow-hidden shrink-0"
-                                            style={{ backgroundColor: SETORES_CORES[order.setorAtual || ''] || '#64748b' }}
-                                            title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
-                                          >
-                                            {thumb ? (
-                                              <img src={thumb} alt="thumb" className="w-full h-full object-cover" />
-                                            ) : (
-                                              <DeptIcon className="w-4 h-4" />
-                                            )}
-                                          </div>
-                                          <div className="flex-1 min-w-0 space-y-1">
-                                            <div className="flex items-start justify-between gap-2">
-                                              <div className="min-w-0">
-                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                  <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono truncate max-w-[140px]">
-                                                    #{order.codigo || order.id}
-                                                  </h4>
-                                                  <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-6 w-6 text-slate-500 hover:text-slate-800 shrink-0"
-                                                    draggable={false}
-                                                    onMouseDown={(e) => { e.stopPropagation(); }}
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      navigator.clipboard.writeText(order.codigo || order.id);
-                                                      toast.success("Número copiado");
-                                                    }}
-                                                    title="Copiar número"
-                                                  >
-                                                    <ClipboardCopy className="w-4 h-4" />
-                                                  </Button>
-                                                </div>
-                                                <div className="text-[11px] text-slate-500">{new Date(order.dataCriacao).toLocaleDateString('pt-BR')}</div>
-                                              </div>
-                                              <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="h-8 w-8 p-0 hover:bg-slate-200"
-                                                draggable={false}
-                                                onMouseDown={(e) => { e.stopPropagation(); }}
-                                                onClick={() => generateOrderPDF(order)}
-                                              >
-                                                <FileText className="w-4 h-4" />
-                                              </Button>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              {typeof order.prioridade === 'number' && order.prioridade === 1 && (
-                                                <Badge className="bg-red-500 text-white shrink-0">Alta</Badge>
-                                              )}
-                                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50 shrink-0 max-w-[140px] truncate">
-                                                {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
-                                              </Badge>
-                                            </div>
-                                            <p className="text-[13px] text-slate-900 font-medium line-clamp-1">{order.clientName}</p>
-                                            <p className="text-[12px] text-slate-600 line-clamp-1">{order.modeloTenis}</p>
-                                            <div className="flex items-center gap-2 text-[11px]">
-                                              <Badge className={`${isOverdue ? "bg-red-600 text-white" : "bg-emerald-100 text-emerald-700"} text-[10px] px-2 py-0.5`}>
-                                                {isOverdue ? "Atrasado" : "Previsto"}
-                                              </Badge>
-                                              {(order.expectedDate || order.dataPrevistaEntrega) && (
-                                                <span className={isOverdue ? "text-rose-600 font-semibold" : "text-slate-600"}>
-                                                  {new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')}
-                                                </span>
-                                              )}
-                                              {extraServicesCount > 0 && (
-                                                <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
-                                                  +{extraServicesCount}
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
+                                    {serviceBadges.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {serviceBadges.map((svc) => (
+                                          <Badge key={svc} variant="secondary" className="text-[11px] bg-slate-100 text-slate-700 border-slate-200 px-2 py-0.5">
+                                            {svc}
+                                          </Badge>
+                                        ))}
+                                        {extraServicesCount > 0 && (
+                                          <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
+                                            +{extraServicesCount}
+                                          </Badge>
+                                        )}
                                       </div>
                                     )}
                                   </div>
