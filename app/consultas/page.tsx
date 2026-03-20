@@ -240,19 +240,25 @@ export default function ConsultasPage() {
     
     // Validação básica
     if (!editForm.modeloTenis.trim()) {
-      setSuccessMessage("O modelo do tênis é obrigatório");
+      const msg = "O modelo do tênis é obrigatório";
+      setSuccessMessage(msg);
+      toast.error(msg);
       setTimeout(() => setSuccessMessage(""), 3000);
       return;
     }
     
     if (!editForm.servicos.trim()) {
-      setSuccessMessage("Os serviços são obrigatórios");
+      const msg = "Os serviços são obrigatórios";
+      setSuccessMessage(msg);
+      toast.error(msg);
       setTimeout(() => setSuccessMessage(""), 3000);
       return;
     }
     
     if (editForm.price <= 0) {
-      setSuccessMessage("O valor deve ser maior que zero");
+      const msg = "O valor deve ser maior que zero";
+      setSuccessMessage(msg);
+      toast.error(msg);
       setTimeout(() => setSuccessMessage(""), 3000);
       return;
     }
@@ -264,7 +270,9 @@ export default function ConsultasPage() {
       // Chama a API para atualizar o pedido
       const updatedOrder = await updateOrderService(editingOrder.id, editForm);
       
-      setSuccessMessage(`Pedido #${editingOrder.codigo || editingOrder.id} atualizado com sucesso!`);
+      const msg = `Pedido #${editingOrder.codigo || editingOrder.id} atualizado com sucesso!`;
+      setSuccessMessage(msg);
+      toast.success(msg);
       setTimeout(() => setSuccessMessage(""), 3000);
       
       // Fechar modal e recarregar dados
@@ -281,6 +289,7 @@ export default function ConsultasPage() {
         errorMessage = "Você não tem permissão para editar este pedido";
       }
       setSuccessMessage(errorMessage);
+      toast.error(errorMessage);
       setTimeout(() => setSuccessMessage(""), 5000);
     } finally {
       setEditLoading(false);
@@ -291,12 +300,15 @@ export default function ConsultasPage() {
   const generateOrderPDF = async (order: any) => {
     try {
       setSuccessMessage("Gerando PDF do pedido...");
+      toast.info("Gerando PDF do pedido...");
       
       // Chama o service do backend para gerar o PDF
       const pdfBlob = await generateOrderPDFService(order.id);
       downloadBlobAsFile(pdfBlob, `pedido-${order.id}.pdf`);
 
-      setSuccessMessage(`PDF do pedido #${order.codigo || order.id} gerado com sucesso!`);
+      const msg = `PDF do pedido #${order.codigo || order.id} gerado com sucesso!`;
+      setSuccessMessage(msg);
+      toast.success(msg);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       console.error("Erro ao gerar PDF:", error);
@@ -312,6 +324,7 @@ export default function ConsultasPage() {
       }
       
       setSuccessMessage(errorMessage);
+      toast.error(errorMessage);
       setTimeout(() => setSuccessMessage(""), 5000);
     }
   };
@@ -381,6 +394,7 @@ export default function ConsultasPage() {
     } catch (err: any) {
       console.error(err);
       setError("Erro ao buscar dados");
+      toast.error("Erro ao buscar dados");
       setOrders([]);
     } finally {
       setLoading(false);
@@ -447,6 +461,7 @@ export default function ConsultasPage() {
       setFuncionarios(data || []);
     } catch (err) {
       console.error("Erro ao carregar funcionários", err);
+      toast.error("Erro ao carregar funcionários");
     } finally {
       setFuncionariosLoading(false);
     }

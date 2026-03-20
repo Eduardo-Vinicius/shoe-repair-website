@@ -180,7 +180,7 @@ export default function NewOrderPage() {
         setStatusColumns(columnsData);
         setClients(clientsData);
       } catch (err) {
-        // erro ao buscar clientes
+        toast.error("Erro ao carregar clientes/colunas");
       } finally {
         setLoadingClients(false);
       }
@@ -595,6 +595,8 @@ export default function NewOrderPage() {
     e.preventDefault();
 
     if (!validateForm()) {
+      const firstError = Object.values(errors)[0];
+      if (firstError) toast.error(firstError);
       return;
     }
 
@@ -698,6 +700,7 @@ export default function NewOrderPage() {
       }
 
       setSuccess(true);
+      toast.success("Pedido criado com sucesso!");
       setIsLoading(false);
       // revoke previews to free memory
       photos.forEach(p => { if (p.preview) URL.revokeObjectURL(p.preview); });
@@ -711,7 +714,9 @@ export default function NewOrderPage() {
         setUploadStatus("error");
         setUploadMessage(err.message || "Erro ao enviar fotos");
       }
-      setErrors({ api: err.message || "Erro ao criar pedido" });
+      const errMsg = err.message || "Erro ao criar pedido";
+      setErrors({ api: errMsg });
+      toast.error(errMsg);
     }
     finally {
       if (progressTimer) clearInterval(progressTimer);

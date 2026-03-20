@@ -12,6 +12,7 @@ import { Search, Plus, Phone, Mail, MapPin, ArrowLeft, Edit } from "lucide-react
 import Link from "next/link"
 
 import { getClientesService, updateClienteService } from "@/lib/apiService"
+import { toast } from "sonner"
 
 export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,6 +31,7 @@ export default function ClientsPage() {
         setClients(data);
       } catch (err: any) {
         setError("Erro ao buscar clientes");
+        toast.error("Erro ao buscar clientes");
       } finally {
         setLoading(false);
       }
@@ -61,15 +63,15 @@ export default function ClientsPage() {
     setIsSaving(true);
     try {
       await updateClienteService(editingClient.id, editForm);
-      // Atualiza a lista de clientes
       const updatedClients = clients.map(client => 
         client.id === editingClient.id ? { ...client, ...editForm } : client
       );
       setClients(updatedClients);
+      toast.success("Cliente atualizado com sucesso");
       setIsEditModalOpen(false);
       setEditingClient(null);
     } catch (err: any) {
-      alert("Erro ao atualizar cliente: " + err.message);
+      toast.error("Erro ao atualizar cliente: " + (err.message || "Tente novamente"));
     } finally {
       setIsSaving(false);
     }
