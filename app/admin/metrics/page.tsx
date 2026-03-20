@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getMetricsAtrasosService, getMetricsDepartamentosService, getMetricsFuncionariosService, getMetricsResumoService } from "@/lib/apiService"
-import { Loader2, RefreshCw, TrendingUp, BarChart3, Clock, Users, AlertTriangle, Award } from "lucide-react"
+import { Loader2, RefreshCw, TrendingUp, BarChart3, Clock, Users, AlertTriangle, Award, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 const formatPct = (value: number) => `${Math.round(value)}%`
 
@@ -86,6 +87,12 @@ export default function AdminMetricsPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm" className="h-9">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar ao menu
+              </Button>
+            </Link>
             {lastUpdated && <Badge variant="outline" className="text-slate-600">Atualizado {new Date(lastUpdated).toLocaleString('pt-BR')}</Badge>}
             <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}

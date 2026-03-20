@@ -1976,8 +1976,59 @@ export default function StatusControlPage() {
               })()}
               <div>
                 <p className="text-sm text-slate-600">
-                  Informe quem está movendo o pedido para o novo status.
+                  Informe quem está movendo o pedido e escolha para qual status levar.
                 </p>
+              </div>
+
+              {/* Seleção de destino (qualquer coluna/setor) */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Mover para</label>
+                <Select
+                  value={moveNewStatus || ""}
+                  onValueChange={(val) => {
+                    setMoveNewStatus(val);
+                    setMoveTargetSetorId(mapStatusToSetorId(val, moveTargetSetorId));
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecione o destino" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(() => {
+                      const columnsToShow = allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns;
+                      const grouped = Object.keys(columnsToShow).reduce((acc, columnName) => {
+                        const lowerName = columnName.toLowerCase();
+                        let department = "Outros";
+                        if (lowerName.includes("atendimento")) department = "Atendimento";
+                        else if (lowerName.includes("sapataria")) department = "Sapataria";
+                        else if (lowerName.includes("costura")) department = "Costura";
+                        else if (lowerName.includes("lavagem")) department = "Lavagem";
+                        else if (lowerName.includes("pintura")) department = "Pintura";
+                        else if (lowerName.includes("montagem")) department = "Montagem";
+                        else if (lowerName.includes("acabamento")) department = "Acabamento";
+                        if (!acc[department]) acc[department] = [];
+                        acc[department].push(columnName);
+                        return acc;
+                      }, {} as Record<string, string[]>);
+
+                      return Object.entries(grouped).map(([dept, columns]) => (
+                        <div key={dept}>
+                          <SelectItem value={`header-${dept}`} disabled className="font-semibold text-slate-700 bg-slate-50">
+                            {dept}
+                          </SelectItem>
+                          {columns.map((col) => (
+                            <SelectItem key={col} value={col} disabled={col === moveNewStatus}>
+                              {getStatusInfo(col).label}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value={`divider-${dept}`} disabled>
+                            <hr className="my-1 border-slate-200" />
+                          </SelectItem>
+                        </div>
+                      ));
+                    })()}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Funcionário</label>

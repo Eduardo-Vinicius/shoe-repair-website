@@ -17,6 +17,7 @@ import { Search, ArrowLeft, User, Package, Calendar, Filter, FileText, CheckCirc
 import Link from "next/link"
 import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
 import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
+import { toast } from "sonner"
 
 const getStatusBadge = (status: string) => {
   switch (status) {
