@@ -1178,64 +1178,62 @@ export default function StatusControlPage() {
   const hasData = Object.keys(filteredStatusColumns).length > 0;
   const hasOrders = orders.length > 0;
 
-  const renderNoData = () => (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header Moderno */}
-      <header className="bg-white shadow-lg border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-6">
-              <img
-                src="/worqera_icon.png"
-                alt="Worqera"
-                className="h-12 w-auto"
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-slate-800 font-serif">Controle de Status</h1>
-                <p className="text-sm text-slate-600">Gestão de pedidos</p>
-              </div>
-            </div>
-            <Link href="/dashboard">
-              <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar ao Dashboard
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert className="mb-6 border-yellow-200 bg-yellow-50">
-          <AlertTriangle className="h-5 w-5 text-yellow-600" />
-          <AlertDescription className="text-yellow-800">
-            Não foi possível carregar as colunas de status. Verifique sua conexão e permissões.
-          </AlertDescription>
-        </Alert>
-
-        <Card className="border-0 shadow-lg">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Settings className="w-20 h-20 text-slate-300 mb-6" />
-            <h3 className="text-xl font-semibold text-slate-600 mb-2">
-              Nenhuma coluna de status disponível
-            </h3>
-            <p className="text-slate-500 text-center max-w-md mb-6">
-              Isso pode acontecer se você não tiver permissões adequadas ou se houver um problema na conexão.
-            </p>
-            <Button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-
   if (!hasData) {
-    return renderNoData();
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        {/* Header Moderno */}
+        <header className="bg-white shadow-lg border-b border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-20">
+              <div className="flex items-center space-x-6">
+                <img
+                  src="/worqera_icon.png"
+                  alt="Worqera"
+                  className="h-12 w-auto"
+                />
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-800 font-serif">Controle de Status</h1>
+                  <p className="text-sm text-slate-600">Gestão de pedidos</p>
+                </div>
+              </div>
+              <Link href="/dashboard">
+                <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Voltar ao Dashboard
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            <AlertDescription className="text-yellow-800">
+              Não foi possível carregar as colunas de status. Verifique sua conexão e permissões.
+            </AlertDescription>
+          </Alert>
+
+          <Card className="border-0 shadow-lg">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <Settings className="w-20 h-20 text-slate-300 mb-6" />
+              <h3 className="text-xl font-semibold text-slate-600 mb-2">
+                Nenhuma coluna de status disponível
+              </h3>
+              <p className="text-slate-500 text-center max-w-md mb-6">
+                Isso pode acontecer se você não tiver permissões adequadas ou se houver um problema na conexão.
+              </p>
+              <Button
+                onClick={() => window.location.reload()}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Tentar Novamente
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (
