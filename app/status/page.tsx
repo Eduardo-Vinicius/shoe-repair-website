@@ -336,39 +336,35 @@ export default function StatusControlPage() {
       setLoading(true);
     }
 
+    const promises: Array<Promise<any>> = [
+      getStatusColumnsService(), // filtradas para exibição
+      getAllStatusColumnsService(), // completas para movimentação
+      getOrdersStatusService(filterFuncionario),
+    ];
+
+    if (includeUser) {
+      promises.push(
+        getUserInfoService().catch(() => ({
+          id: '',
+          email: '',
+          role: 'user',
+          departamento: null,
+          nome: 'Usuário',
+        }))
+      );
+    }
+
+    const loadPromise = Promise.all(promises);
+    loadPromiseRef.current = loadPromise;
+
     try {
-      const promises: Array<Promise<any>> = [
-        getStatusColumnsService(), // filtradas para exibição
-        getAllStatusColumnsService(), // completas para movimentação
-        getOrdersStatusService(filterFuncionario),
-      ];
+      const [columnsData, allColumnsData, ordersData, userDataRaw] = await loadPromise;
+      const userData = includeUser ? userDataRaw : userInfo;
 
-      if (includeUser) {
-        promises.push(
-          getUserInfoService().catch(() => ({
-            id: '',
-            email: '',
-            role: 'user',
-            departamento: null,
-            nome: 'Usuário',
-          }))
-        );
-      }
-
-      
-
-  const loadPromise = Promise.all(promises);
-  loadPromiseRef.current = loadPromise;
-
-    const results = await loadPromise;
-      const columnsData = results[0];
-      const allColumnsData = results[1];
-      const ordersData = results[2];
-      const userData = includeUser ? results[3] : userInfo;
-
-      const normalizedColumns = normalizeColumns(columnsData)
-      const normalizedAllColumns = normalizeColumns(allColumnsData)
+      const normalizedColumns = normalizeColumns(columnsData);
+      const normalizedAllColumns = normalizeColumns(allColumnsData);
       const visibleColumns = filterColumnsForDept(normalizedColumns, userData as UserInfo);
+
       const resolveWithColumns = (order: Order, columns: StatusColumn) => {
         const columnNames = Object.keys(columns || {});
         if (!columnNames.length) return order.status || order.setorAtual || null;
@@ -422,7 +418,7 @@ export default function StatusControlPage() {
       setLoading(false);
       loadPromiseRef.current = null;
     }
-  }, [initialLoadDone]);
+  }, [initialLoadDone, userInfo]);
 
   // Carrega as colunas de status, pedidos e informações do usuário
   useEffect(() => {
@@ -1731,12 +1727,6 @@ export default function StatusControlPage() {
                                         </span>
                                       )}
                                     </div>
-                                          <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
-                                            +{extraServicesCount}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    )}
 
                                     {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
                                       <div className="flex flex-wrap gap-1">
@@ -1767,65 +1757,74 @@ export default function StatusControlPage() {
                                               <DeptIcon className="w-4 h-4" />
                                             )}
                                           </div>
-                                            <div className="flex-1 min-w-0 space-y-1">
-                                              <div className="flex items-start justify-between gap-2">
-                                                <div className="min-w-0">
-                                                  <div className="flex items-center gap-1.5 min-w-0">
-                                                    <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono truncate max-w-[140px]">
-                                                      #{order.codigo || order.id}
-                                                    </h4>
-                                                    <Button
-                                                      size="icon"
-                                                      variant="ghost"
-                                                      className="h-6 w-6 text-slate-500 hover:text-slate-800 shrink-0"
-                                                      draggable={false}
-                                                      onMouseDown={(e) => { e.stopPropagation(); }}
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigator.clipboard.writeText(order.codigo || order.id);
-                                                        toast.success("Número copiado");
-                                                      }}
-                                                      title="Copiar número"
-                                                    >
-                                                      <ClipboardCopy className="w-4 h-4" />
-                                                      </Button>
-                                                    </div>
-                                                    <div className="text-[11px] text-slate-500">{new Date(order.dataCriacao).toLocaleDateString('pt-BR')}</div>
-                                                  </div>
-                                                  <div className="flex items-center gap-2">
-                                                    {typeof order.prioridade === 'number' && order.prioridade === 1 && (
-                                                      <Badge className="bg-red-500 text-white shrink-0">Alta</Badge>
-                                                    )}
-                                                    <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50 shrink-0 max-w-[140px] truncate">
-                                                      {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
-                                                    </Badge>
-                                                  </div>
+                                          <div className="flex-1 min-w-0 space-y-1">
+                                            <div className="flex items-start justify-between gap-2">
+                                              <div className="min-w-0">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                  <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono truncate max-w-[140px]">
+                                                    #{order.codigo || order.id}
+                                                  </h4>
+                                                  <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-6 w-6 text-slate-500 hover:text-slate-800 shrink-0"
+                                                    draggable={false}
+                                                    onMouseDown={(e) => { e.stopPropagation(); }}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      navigator.clipboard.writeText(order.codigo || order.id);
+                                                      toast.success("Número copiado");
+                                                    }}
+                                                    title="Copiar número"
+                                                  >
+                                                    <ClipboardCopy className="w-4 h-4" />
+                                                  </Button>
                                                 </div>
-                                              <p className="text-[13px] text-slate-900 font-medium line-clamp-1">{order.clientName}</p>
-                                              <p className="text-[12px] text-slate-600 line-clamp-1">{order.modeloTenis}</p>
-
-                                              <div className="flex items-center gap-2 text-[11px]">
-                                                <Badge className={`${isOverdue ? "bg-red-600 text-white" : "bg-emerald-100 text-emerald-700"} text-[10px] px-2 py-0.5`}>
-                                                  {isOverdue ? "Atrasado" : "Previsto"}
-                                                </Badge>
-                                                {(order.expectedDate || order.dataPrevistaEntrega) && (
-                                                  <span className={isOverdue ? "text-rose-600 font-semibold" : "text-slate-600"}>
-                                                    {new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')}
-                                                  </span>
-                                                )}
+                                                <div className="text-[11px] text-slate-500">{new Date(order.dataCriacao).toLocaleDateString('pt-BR')}</div>
                                               </div>
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-8 w-8 p-0 hover:bg-slate-200"
+                                                draggable={false}
+                                                onMouseDown={(e) => { e.stopPropagation(); }}
+                                                onClick={() => generateOrderPDF(order)}
+                                              >
+                                                <FileText className="w-4 h-4" />
+                                              </Button>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                                                <Badge className="bg-red-500 text-white shrink-0">Alta</Badge>
+                                              )}
+                                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50 shrink-0 max-w-[140px] truncate">
+                                                {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
+                                              </Badge>
+                                            </div>
+                                            <p className="text-[13px] text-slate-900 font-medium line-clamp-1">{order.clientName}</p>
+                                            <p className="text-[12px] text-slate-600 line-clamp-1">{order.modeloTenis}</p>
+                                            <div className="flex items-center gap-2 text-[11px]">
+                                              <Badge className={`${isOverdue ? "bg-red-600 text-white" : "bg-emerald-100 text-emerald-700"} text-[10px] px-2 py-0.5`}>
+                                                {isOverdue ? "Atrasado" : "Previsto"}
+                                              </Badge>
+                                              {(order.expectedDate || order.dataPrevistaEntrega) && (
+                                                <span className={isOverdue ? "text-rose-600 font-semibold" : "text-slate-600"}>
+                                                  {new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')}
+                                                </span>
+                                              )}
+                                              {extraServicesCount > 0 && (
+                                                <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
+                                                  +{extraServicesCount}
+                                                </Badge>
+                                              )}
                                             </div>
                                           </div>
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 w-8 p-0 hover:bg-slate-200"
-                                    draggable={false}
-                                    onMouseDown={(e) => { e.stopPropagation(); }}
-                                    onClick={() => generateOrderPDF(order)}
-                                  >
-                                    <FileText className="w-4 h-4" />
-                                  </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
+ 
                                 {!showFullDetails && (
                                   <Button
                                     size="sm"
