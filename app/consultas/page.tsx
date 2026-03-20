@@ -746,17 +746,13 @@ export default function ConsultasPage() {
                                 <Button variant="outline" size="sm" onClick={() => handleViewClientOrders(client)}>
                                   Ver Pedidos
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    if (client.id) {
-                                      window.location.href = `/clientes/${client.id}`;
-                                    }
-                                  }}
-                                >
-                                  Editar
-                                </Button>
+                                {client.id && (
+                                  <Link href={`/clientes/${client.id}`}>
+                                    <Button variant="outline" size="sm">
+                                      Editar
+                                    </Button>
+                                  </Link>
+                                )}
                               </div>
                             </div>
                           </div>
