@@ -322,8 +322,8 @@ export default function ConsultasPage() {
     )));
   };
   // Busca clientes e pedidos ao buscar
-  const fetchData = async (opts?: { loadClients?: boolean; lastKey?: string | null }) => {
-    const { loadClients = true, lastKey = null } = opts || {};
+  const fetchData = async (opts?: { loadClients?: boolean; lastKey?: string | null; overrideFilters?: Partial<typeof consultaFilters> }) => {
+    const { loadClients = true, lastKey = null, overrideFilters = {} } = opts || {};
     setLoading(true);
     setError(null);
     try {
@@ -332,6 +332,7 @@ export default function ConsultasPage() {
 
       const query: Record<string, any> = {
         ...consultaFilters,
+        ...overrideFilters,
         lastKey: lastKey || undefined,
         status: consultaFilters.status === "todos" ? "" : consultaFilters.status,
       };
@@ -407,6 +408,17 @@ export default function ConsultasPage() {
     }
     await fetchData({ loadClients: true, lastKey: null });
     setHasSearched(true);
+  };
+
+  const handleViewClientOrders = async (client: any) => {
+    const nome = client.nomeCompleto || "";
+    const clienteFiltro = client.id || nome;
+    setSearchType("nome");
+    setSearchTerm(nome);
+    setConsultaFilters((prev) => ({ ...prev, cliente: clienteFiltro }));
+    setTab("pedidos");
+    setHasSearched(true);
+    await fetchData({ loadClients: false, lastKey: null, overrideFilters: { cliente: clienteFiltro } });
   };
 
   const clearSearch = () => {
@@ -731,7 +743,7 @@ export default function ConsultasPage() {
                             </div>
                             <div className="text-right">
                               <div className="mt-2 space-x-2">
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" onClick={() => handleViewClientOrders(client)}>
                                   Ver Pedidos
                                 </Button>
                                 <Button variant="outline" size="sm">
