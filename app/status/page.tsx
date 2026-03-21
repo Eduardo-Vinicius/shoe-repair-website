@@ -1656,7 +1656,6 @@ export default function StatusControlPage() {
                             getPreviousStatus={getPreviousStatus}
                             getNextStatus={getNextStatus}
                             getNextStatusSameDept={getNextStatusSameDept}
-                            getMoveOptionsList={getMoveOptionsList}
                             getAtendimentoFinalStatus={getAtendimentoFinalStatus}
                             sectorTransferOptions={sectorTransferOptions}
                             setSelectedOrder={(o) => { setSelectedOrder(o); setShowOrderDetails(true); }}
@@ -1832,7 +1831,6 @@ const KanbanCard = memo(function KanbanCard(props: {
   getPreviousStatus: (status: string) => string | null;
   getNextStatus: (status: string) => string | null;
   getNextStatusSameDept: (status: string) => string | null;
-  getMoveOptionsList: () => Array<{ value: string; label: string }>;
   getAtendimentoFinalStatus: () => string | null;
   sectorTransferOptions: Array<{ value: string; label: string; targetStatus: string | null }>;
   setSelectedOrder: (o: Order) => void;
@@ -1851,7 +1849,6 @@ const KanbanCard = memo(function KanbanCard(props: {
     getPreviousStatus,
     getNextStatus,
     getNextStatusSameDept,
-    getMoveOptionsList,
     getAtendimentoFinalStatus,
     sectorTransferOptions,
     setSelectedOrder,
@@ -1859,7 +1856,6 @@ const KanbanCard = memo(function KanbanCard(props: {
   } = props;
 
   const showFullDetails = !compactView || isCardExpanded;
-  const moveOptions = getMoveOptionsList();
   const servicesText = formatServicos(order.servicos || order.serviceType || "");
   const serviceBadgesRaw = servicesText
     .split(",")
@@ -1979,63 +1975,19 @@ const KanbanCard = memo(function KanbanCard(props: {
       </div>
 
       {showFullDetails ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-3 gap-2 items-center">
           <Button
             size="sm"
-            variant="outline"
-            className="h-8"
-            onClick={(e) => {
-              e.stopPropagation();
-              openMoveDialogForOrder(order, getPreviousStatus(order.status));
-            }}
-            disabled={!getPreviousStatus(order.status)}
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" /> Anterior
-          </Button>
-          <Button
-            size="sm"
-            className="h-8"
+            className="h-9"
             onClick={(e) => {
               e.stopPropagation();
               openMoveDialogForOrder(order, getNextStatusSameDept(order.status) || getNextStatus(order.status));
             }}
             disabled={!getNextStatus(order.status) && !getNextStatusSameDept(order.status)}
           >
-            Próximo passo <ArrowRight className="w-4 h-4 ml-1" />
+            Avançar
           </Button>
-          {(() => {
-            const nextSame = getNextStatusSameDept(order.status);
-            const nextGlobal = getNextStatus(order.status);
-            if (!nextSame || nextSame === nextGlobal) return null;
-            return (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 col-span-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openMoveDialogForOrder(order, nextSame);
-                }}
-              >
-                Próx. no setor
-              </Button>
-            );
-          })()}
-          <Select
-            onValueChange={(val) => {
-              openMoveDialogForOrder(order, val);
-            }}
-          >
-            <SelectTrigger className="h-8 w-full text-left">Mover status</SelectTrigger>
-            <SelectContent>
-              {moveOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value} disabled={opt.value === order.status}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {sectorTransferOptions.length > 0 && (
+          {sectorTransferOptions.length > 0 ? (
             <Select
               onValueChange={(sectorValue) => {
                 const target = sectorTransferOptions.find((opt) => opt.value === sectorValue);
@@ -2044,7 +1996,7 @@ const KanbanCard = memo(function KanbanCard(props: {
                 }
               }}
             >
-              <SelectTrigger className="h-8 w-full text-left">Mover para setor</SelectTrigger>
+              <SelectTrigger className="h-9 text-left">Mover setor</SelectTrigger>
               <SelectContent>
                 {sectorTransferOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
@@ -2053,47 +2005,23 @@ const KanbanCard = memo(function KanbanCard(props: {
                 ))}
               </SelectContent>
             </Select>
+          ) : (
+            <Button size="sm" variant="outline" className="h-9" disabled>
+              Setores indisponíveis
+            </Button>
           )}
           <Button
             size="sm"
-            variant="secondary"
-            className="h-8"
+            variant="outline"
+            className="h-9"
             onClick={(e) => {
               e.stopPropagation();
-              const finalStatus = getAtendimentoFinalStatus();
-              if (finalStatus && finalStatus !== order.status) {
-                openMoveDialogForOrder(order, finalStatus);
-              } else {
-                toast.info("Já está no atendimento final");
-              }
+              setSelectedOrder(order);
+              setShowOrderDetails(true);
             }}
-            disabled={getAtendimentoFinalStatus() === null || getAtendimentoFinalStatus() === order.status}
           >
-            Finalizar <CheckCircle className="w-4 h-4 ml-1" />
+            Ver mais
           </Button>
-          <div className="col-span-2 flex flex-wrap gap-2 mt-1">
-            {moveOptions.map((opt) => {
-              const targetDept = resolveDeptFromStatus(opt.value);
-              const Icon = getDeptIcon(targetDept);
-              const disabled = opt.value === order.status;
-              return (
-                <Button
-                  key={opt.value}
-                  size="sm"
-                  variant={disabled ? "secondary" : "outline"}
-                  className="h-8"
-                  disabled={disabled}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openMoveDialogForOrder(order, opt.value);
-                  }}
-                >
-                  {Icon ? <Icon className="w-4 h-4 mr-1" /> : null}
-                  {opt.label}
-                </Button>
-              );
-            })}
-          </div>
         </div>
       ) : (
         <div className="mt-3 flex gap-2 w-full items-center">
@@ -2104,10 +2032,11 @@ const KanbanCard = memo(function KanbanCard(props: {
               e.stopPropagation();
               openMoveDialogForOrder(order, getNextStatusSameDept(order.status) || getNextStatus(order.status));
             }}
+            disabled={!getNextStatus(order.status) && !getNextStatusSameDept(order.status)}
           >
-            Próximo passo
+            Avançar
           </Button>
-          {sectorTransferOptions.length > 0 && (
+          {sectorTransferOptions.length > 0 ? (
             <Select
               onValueChange={(sectorValue) => {
                 const target = sectorTransferOptions.find((opt) => opt.value === sectorValue);
@@ -2125,6 +2054,10 @@ const KanbanCard = memo(function KanbanCard(props: {
                 ))}
               </SelectContent>
             </Select>
+          ) : (
+            <Button size="sm" variant="outline" className="h-9 flex-1" disabled>
+              Setores indisponíveis
+            </Button>
           )}
           <Button
             size="sm"
