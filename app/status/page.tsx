@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback, useDeferredValue } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback, useDeferredValue, startTransition } from "react"
+import dynamic from "next/dynamic"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -39,7 +40,7 @@ import {
   ClipboardCopy
 } from "lucide-react"
 import Link from "next/link"
-import { CardDetalhesPedido, PedidoDetalhes } from "@/components/CardDetalhesPedido"
+import type { PedidoDetalhes } from "@/components/CardDetalhesPedido"
 import { getStatusColumnsService, getAllStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile, moverPedidoSetorService } from "@/lib/apiService"
 import { toast } from "sonner"
 import { SETORES_CORES, SETORES_NOMES, SETORES } from "@/lib/setores"
@@ -217,6 +218,7 @@ export default function StatusControlPage() {
   const [statusColumns, setStatusColumns] = useState<StatusColumn>({});
   const [allStatusColumns, setAllStatusColumns] = useState<StatusColumn>({});
   const [orders, setOrders] = useState<Order[]>([]);
+  const deferredOrders = useDeferredValue(orders);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
   const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
@@ -397,12 +399,14 @@ export default function StatusControlPage() {
         return col ? { ...order, status: col } : order;
       });
 
-      setBaseStatusColumns(normalizedColumns);
-      setStatusColumns(visibleColumns);
-      setAllStatusColumns(Object.keys(normalizedAllColumns).length ? normalizedAllColumns : normalizedColumns);
-      setOrders(normalizedOrders);
-      if (includeUser && userData) setUserInfo(userData as UserInfo);
-      setInitialLoadDone(true);
+      startTransition(() => {
+        setBaseStatusColumns(normalizedColumns);
+        setStatusColumns(visibleColumns);
+        setAllStatusColumns(Object.keys(normalizedAllColumns).length ? normalizedAllColumns : normalizedColumns);
+        setOrders(normalizedOrders);
+        if (includeUser && userData) setUserInfo(userData as UserInfo);
+        setInitialLoadDone(true);
+      });
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
       setSuccessMessage("Erro ao carregar dados. Verifique sua conexão e tente novamente.");
@@ -990,7 +994,7 @@ export default function StatusControlPage() {
   }, [baseStatusColumns, userInfo]);
 
   const filteredOrders = useMemo(() => {
-    let list = orders;
+    let list = deferredOrders;
     if (deferredPriorityFilter === "high") {
       list = list.filter((o) => o.prioridade === 1);
     }
@@ -1036,7 +1040,7 @@ export default function StatusControlPage() {
       );
     }
     return list;
-  }, [orders, deferredPriorityFilter, deferredClientFilter, deferredQuickView]);
+  }, [deferredOrders, deferredPriorityFilter, deferredClientFilter, deferredQuickView]);
 
   // Defer listagem filtrada para evitar renderizações pesadas durante digitação
   const deferredFilteredOrders = useDeferredValue(filteredOrders);
@@ -1690,7 +1694,7 @@ export default function StatusControlPage() {
                                   title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
                                 >
                                   {thumb ? (
-                                    <img src={thumb} alt="thumb" className="w-full h-full object-cover" />
+                                    <img src={thumb} alt="thumb" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                   ) : (
                                     <DeptIcon className="w-5 h-5" />
                                   )}
@@ -2032,3 +2036,9 @@ export default function StatusControlPage() {
     </div>
   );
 }
+
+// Lazy load do modal pesado para aliviar o carregamento inicial do /status
+const CardDetalhesPedido = dynamic(() => import("@/components/CardDetalhesPedido").then(m => m.CardDetalhesPedido), {
+  ssr: false,
+  loading: () => null,
+})
