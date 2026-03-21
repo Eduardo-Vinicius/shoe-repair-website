@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback, useDeferredValue, startTransition } from "react"
-import dynamic from "next/dynamic"
+import { useState, useRef, useEffect, useMemo, useCallback, useDeferredValue, startTransition, memo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -40,7 +39,7 @@ import {
   ClipboardCopy
 } from "lucide-react"
 import Link from "next/link"
-import type { PedidoDetalhes } from "@/components/CardDetalhesPedido"
+import { CardDetalhesPedido, type PedidoDetalhes } from "@/components/CardDetalhesPedido"
 import { getStatusColumnsService, getAllStatusColumnsService, getOrdersStatusService, updateOrderStatusService, generateOrderPDFService, getUserInfoService, downloadBlobAsFile, moverPedidoSetorService } from "@/lib/apiService"
 import { toast } from "sonner"
 import { SETORES_CORES, SETORES_NOMES, SETORES } from "@/lib/setores"
@@ -762,65 +761,55 @@ export default function StatusControlPage() {
   const getFirstStatusForSector = (sector: string): string | null => {
     const columnNames = Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns);
 
-    // Mapeamento mais robusto de setores para padrões de coluna
+    if (sector === "atendimento:final") {
+      const final = getAtendimentoFinalStatus();
+      if (final) return final;
+    }
+
     const sectorPatterns = {
-      atendimento: ['atendimento', 'Atendimento', 'ATENDIMENTO'],
+      "atendimento": ['atendimento', 'Atendimento', 'ATENDIMENTO'],
+      "atendimento:inicio": ['atendimento', 'Atendimento', 'ATENDIMENTO'],
       sapataria: ['sapataria', 'Sapataria', 'SAPATARIA'],
       costura: ['costura', 'Costura', 'COSTURA'],
       lavagem: ['lavagem', 'Lavagem', 'LAVAGEM'],
       pintura: ['pintura', 'Pintura', 'PINTURA'],
       montagem: ['montagem', 'Montagem', 'MONTAGEM'],
       acabamento: ['acabamento', 'Acabamento', 'ACABAMENTO']
-    };
+    } as const;
 
     const patterns = sectorPatterns[sector as keyof typeof sectorPatterns];
     if (!patterns) return null;
 
     const todosTokens = ['a fazer', 'afazer', 'to do', 'todo', 'backlog', 'iniciado', 'iniciar'];
 
-    // Agrupa colunas que batem com o setor
     const matches = columnNames.filter(col =>
       patterns.some((p) => col.toLowerCase().includes(p.toLowerCase()))
     );
 
-    // Prefere coluna "A Fazer" do setor
     const todoMatch = matches.find(col =>
       todosTokens.some((t) => col.toLowerCase().includes(t))
     );
     if (todoMatch) return todoMatch;
 
-    // Senão, primeira do setor
     if (matches.length) return matches[0];
+
+    if (sector === "atendimento:final") return getAtendimentoFinalStatus();
 
     return null;
   };
 
   // Função para obter setores disponíveis baseado em todas as colunas (mesmo que não estejam visíveis)
   const getAvailableSectors = () => {
-    const columnNames = Object.keys(allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns);
-    const sectors: { value: string; label: string }[] = [];
-
-    // Mapeamento de setores e seus padrões
-    const sectorDefinitions = [
-      { value: "atendimento", label: "Atendimento", patterns: ['atendimento', 'Atendimento', 'ATENDIMENTO'] },
-      { value: "sapataria", label: "Sapataria", patterns: ['sapataria', 'Sapataria', 'SAPATARIA'] },
-      { value: "costura", label: "Costura", patterns: ['costura', 'Costura', 'COSTURA'] },
-      { value: "lavagem", label: "Lavagem", patterns: ['lavagem', 'Lavagem', 'LAVAGEM'] },
-      { value: "pintura", label: "Pintura", patterns: ['pintura', 'Pintura', 'PINTURA'] },
-      { value: "montagem", label: "Montagem", patterns: ['montagem', 'Montagem', 'MONTAGEM'] },
-      { value: "acabamento", label: "Acabamento", patterns: ['acabamento', 'Acabamento', 'ACABAMENTO'] }
+    return [
+      { value: "atendimento:inicio", label: "Atendimento (início)" },
+      { value: "atendimento:final", label: "Atendimento Final" },
+      { value: "sapataria", label: "Sapataria" },
+      { value: "costura", label: "Costura" },
+      { value: "lavagem", label: "Lavagem" },
+      { value: "pintura", label: "Pintura" },
+      { value: "montagem", label: "Montagem" },
+      { value: "acabamento", label: "Acabamento" },
     ];
-
-    sectorDefinitions.forEach(sector => {
-      const hasSector = sector.patterns.some(pattern =>
-        columnNames.some(col => col.toLowerCase().includes(pattern.toLowerCase()))
-      );
-      if (hasSector) {
-        sectors.push({ value: sector.value, label: sector.label });
-      }
-    });
-
-    return sectors;
   };
 
   const mapStatusToSetorId = (status: string, fallbackSetor?: string | null): string | null => {
@@ -847,36 +836,16 @@ export default function StatusControlPage() {
   }, [allStatusColumns, statusColumns]);
 
   const getMoveOptionsList = useCallback(() => {
-    const columnsToShow = allStatusColumns && Object.keys(allStatusColumns).length ? allStatusColumns : statusColumns;
-    const specialStatuses = Object.keys(columnsToShow).filter((col) => {
-      const lower = col.toLowerCase();
-      return lower.includes("receb") || lower.includes("entreg") || lower.includes("final");
-    });
-
-    const sectorOptions = getAvailableSectors()
-      .map((sector) => ({
-        label: sector.label,
-        status: getFirstStatusForSector(sector.value),
-      }))
-      .filter((opt) => opt.status);
-
-    const rendered = new Set<string>();
+    const sectors = getAvailableSectors();
     const result: Array<{ value: string; label: string }> = [];
-
-    specialStatuses.forEach((col) => {
-      if (rendered.has(col)) return;
-      rendered.add(col);
-      result.push({ value: col, label: getStatusInfo(col).label });
+    sectors.forEach((sector) => {
+      const status = getFirstStatusForSector(sector.value);
+      if (status) {
+        result.push({ value: sector.value, label: sector.label });
+      }
     });
-
-    sectorOptions.forEach((opt) => {
-      if (!opt.status || rendered.has(opt.status)) return;
-      rendered.add(opt.status);
-      result.push({ value: opt.status, label: opt.label });
-    });
-
     return result;
-  }, [allStatusColumns, getAvailableSectors, getFirstStatusForSector, statusColumns]);
+  }, [getAvailableSectors, getFirstStatusForSector]);
 
   const resolveDeptFromSetor = (setorId?: string | null): string | null => {
     if (!setorId) return null;
@@ -1655,233 +1624,27 @@ export default function StatusControlPage() {
                       </div>
                     ) : (
                       <div className="space-y-2.5">
-                        {ordersInColumn.map((order) => {
-                          const isCardExpanded = expandedCards.has(order.id);
-                          const showFullDetails = !compactView || isCardExpanded;
-                          const servicesText = formatServicos(order.servicos || order.serviceType || "");
-                          const serviceBadgesRaw = servicesText
-                            .split(",")
-                            .map((s) => s.trim())
-                            .filter(Boolean);
-                          const serviceBadges = serviceBadgesRaw.slice(0, 2);
-                          const extraServicesCount = Math.max(serviceBadgesRaw.length - 2, 0);
-                          const dept = resolveDeptFromSetor(order.setorAtual) || resolveDeptFromStatus(order.status, order.setorAtual);
-                          const DeptIcon = getDeptIcon(dept) || StatusIcon;
-                          const thumb = getFirstPhotoUrl(order.fotos);
-                          const sla = getSlaInfo(order);
-                          const isOverdue = sla.tone === "red";
-                          const whatsappMessage = `Olá ${order.clientName || "cliente"}, aqui é da Worqera. Pedido #${order.codigo || order.id} está em ${getStatusInfo(order.status).label}. Qualquer dúvida, estamos à disposição!`;
-                          const whatsappHref = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
-                          const accentColor = SETORES_CORES[order.setorAtual || ""] || "#93c5fd";
-                          const createdAtLabel = order.dataCriacao ? new Date(order.dataCriacao).toLocaleDateString('pt-BR') : "";
-                          const expectedLabel = (order.expectedDate || order.dataPrevistaEntrega)
-                            ? new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')
-                            : "";
-
-                          return (
-                            <div
-                              key={order.id}
-                              draggable
-                              onDragStart={(ev) => handleDragStart(ev, order.id)}
-                              onDragEnd={() => setDraggedOrderId(null)}
-                              className={`kanban-card bg-white border border-slate-200/80 rounded-xl p-3 sm:p-4 cursor-move group card-animate-in text-sm shadow-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "bg-rose-50" : ""}`}
-                              style={{ borderLeftWidth: 5, borderLeftColor: isOverdue ? '#f43f5e' : accentColor }}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div
-                                  className="w-11 h-11 rounded-full flex items-center justify-center text-white overflow-hidden shrink-0"
-                                  style={{ backgroundColor: accentColor }}
-                                  title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
-                                >
-                                  {thumb ? (
-                                    <img src={thumb} alt="thumb" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                                  ) : (
-                                    <DeptIcon className="w-5 h-5" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0 space-y-2">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono truncate">
-                                          #{order.codigo || order.id}
-                                        </h4>
-                                        <button
-                                          className="text-slate-400 hover:text-slate-700"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigator.clipboard.writeText(order.codigo || order.id);
-                                            toast.success("Número copiado");
-                                          }}
-                                          title="Copiar número"
-                                        >
-                                          <ClipboardCopy className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                      <p className="text-[11px] text-slate-500">{createdAtLabel}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {typeof order.prioridade === 'number' && order.prioridade === 1 && (
-                                        <Badge className="bg-red-500 text-white h-6 px-2">Alta</Badge>
-                                      )}
-                                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50 truncate max-w-[140px]">
-                                        {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
-                                      </Badge>
-                                    </div>
-                                  </div>
-
-                                  <div className="space-y-1">
-                                    <p className="text-[13px] text-slate-900 font-semibold line-clamp-1">{order.clientName}</p>
-                                    <p className="text-[12px] text-slate-600 line-clamp-1">{order.modeloTenis}</p>
-                                  </div>
-
-                                  <div className="flex items-center gap-2 text-[11px]">
-                                    <Badge className={`${isOverdue ? "bg-rose-500 text-white" : "bg-emerald-100 text-emerald-700"} text-[10px] px-2 py-0.5`}>
-                                      {isOverdue ? "Atrasado" : "Previsto"}
-                                    </Badge>
-                                    {expectedLabel && (
-                                      <span className={isOverdue ? "text-rose-600 font-semibold" : "text-slate-700"}>
-                                        {expectedLabel}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
-                                    <div className="flex flex-wrap gap-1">
-                                      {order.departamentosSelecionados.slice(0, 2).map((dep) => (
-                                        <Badge key={dep.id} variant="outline" className="text-[10px] bg-slate-50 border-slate-200 text-slate-700 px-2 py-0.5">
-                                          {dep.nome || dep.id}
-                                        </Badge>
-                                      ))}
-                                      {order.departamentosSelecionados.length > 2 && (
-                                        <Badge variant="outline" className="text-[10px] bg-slate-50 border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
-                                          +{order.departamentosSelecionados.length - 2}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {serviceBadges.length > 0 && (
-                                    <div className="flex flex-wrap gap-1">
-                                      {serviceBadges.map((svc) => (
-                                        <Badge key={svc} variant="secondary" className="text-[11px] bg-slate-100 text-slate-700 border-slate-200 px-2 py-0.5">
-                                          {svc}
-                                        </Badge>
-                                      ))}
-                                      {extraServicesCount > 0 && (
-                                        <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
-                                          +{extraServicesCount}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {showFullDetails ? (
-                                <div className="mt-3 grid grid-cols-2 gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openMoveDialogForOrder(order, getPreviousStatus(order.status));
-                                    }}
-                                    disabled={!getPreviousStatus(order.status)}
-                                  >
-                                    <ArrowLeft className="w-4 h-4 mr-1" /> Anterior
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="h-8"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openMoveDialogForOrder(order, getNextStatus(order.status));
-                                    }}
-                                    disabled={!getNextStatus(order.status)}
-                                  >
-                                    Próximo <ArrowRight className="w-4 h-4 ml-1" />
-                                  </Button>
-                                  {(() => {
-                                    const nextSame = getNextStatusSameDept(order.status);
-                                    const nextGlobal = getNextStatus(order.status);
-                                    if (!nextSame || nextSame === nextGlobal) return null;
-                                    return (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-8 col-span-2"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openMoveDialogForOrder(order, nextSame);
-                                        }}
-                                      >
-                                        Próx. no setor
-                                      </Button>
-                                    );
-                                  })()}
-                                  <Select
-                                    onValueChange={(val) => {
-                                      openMoveDialogForOrder(order, val);
-                                    }}
-                                  >
-                                    <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
-                                    <SelectContent>
-                                      {getMoveOptionsList().map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value} disabled={opt.value === order.status}>
-                                          {opt.label}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="h-8"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const finalStatus = getAtendimentoFinalStatus();
-                                      if (finalStatus && finalStatus !== order.status) {
-                                        openMoveDialogForOrder(order, finalStatus);
-                                      } else {
-                                        toast.info("Já está no atendimento final");
-                                      }
-                                    }}
-                                    disabled={getAtendimentoFinalStatus() === null || getAtendimentoFinalStatus() === order.status}
-                                  >
-                                    Finalizar <CheckCircle className="w-4 h-4 ml-1" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="mt-3 flex gap-2 w-full">
-                                  <Button
-                                    size="sm"
-                                    className="h-9 flex-1"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openMoveDialogForOrder(order, getNextStatus(order.status) || getNextStatusSameDept(order.status));
-                                    }}
-                                  >
-                                    Mover
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-9 flex-1"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedOrder(order);
-                                      setShowOrderDetails(true);
-                                    }}
-                                  >
-                                    Ver mais
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                        {ordersInColumn.map((order) => (
+                          <KanbanCard
+                            key={order.id}
+                            order={order}
+                            statusInfo={statusInfo}
+                            isCardExpanded={expandedCards.has(order.id)}
+                            compactView={compactView}
+                            justMovedOrderId={justMovedOrderId}
+                            draggedOrderId={draggedOrderId}
+                            handleDragStart={handleDragStart}
+                            handleDragEnd={() => setDraggedOrderId(null)}
+                            openMoveDialogForOrder={openMoveDialogForOrder}
+                            getPreviousStatus={getPreviousStatus}
+                            getNextStatus={getNextStatus}
+                            getNextStatusSameDept={getNextStatusSameDept}
+                            getMoveOptionsList={getMoveOptionsList}
+                            getAtendimentoFinalStatus={getAtendimentoFinalStatus}
+                            setSelectedOrder={(o) => { setSelectedOrder(o); setShowOrderDetails(true); }}
+                            setShowOrderDetails={setShowOrderDetails}
+                          />
+                        ))}
 
                         {ordersInColumn.length === 0 && (
                           <div className="text-center py-8 text-slate-400">
@@ -2037,8 +1800,265 @@ export default function StatusControlPage() {
   );
 }
 
-// Lazy load do modal pesado para aliviar o carregamento inicial do /status
-const CardDetalhesPedido = dynamic(() => import("@/components/CardDetalhesPedido").then(m => m.CardDetalhesPedido), {
-  ssr: false,
-  loading: () => null,
-})
+// Card memoizado para reduzir re-render do board
+const KanbanCard = memo(function KanbanCard(props: {
+  order: Order;
+  statusInfo: ReturnType<typeof getStatusInfo>;
+  isCardExpanded: boolean;
+  compactView: boolean;
+  justMovedOrderId: string | null;
+  draggedOrderId: string | null;
+  handleDragStart: (ev: React.DragEvent<HTMLDivElement>, id: string) => void;
+  handleDragEnd: () => void;
+  openMoveDialogForOrder: (order: Order, targetStatus: string | null) => void;
+  getPreviousStatus: (status: string) => string | null;
+  getNextStatus: (status: string) => string | null;
+  getNextStatusSameDept: (status: string) => string | null;
+  getMoveOptionsList: () => Array<{ value: string; label: string }>;
+  getAtendimentoFinalStatus: () => string | null;
+  setSelectedOrder: (o: Order) => void;
+  setShowOrderDetails: (v: boolean) => void;
+}) {
+  const {
+    order,
+    statusInfo,
+    isCardExpanded,
+    compactView,
+    justMovedOrderId,
+    draggedOrderId,
+    handleDragStart,
+    handleDragEnd,
+    openMoveDialogForOrder,
+    getPreviousStatus,
+    getNextStatus,
+    getNextStatusSameDept,
+    getMoveOptionsList,
+    getAtendimentoFinalStatus,
+    setSelectedOrder,
+    setShowOrderDetails,
+  } = props;
+
+  const showFullDetails = !compactView || isCardExpanded;
+  const servicesText = formatServicos(order.servicos || order.serviceType || "");
+  const serviceBadgesRaw = servicesText
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const serviceBadges = serviceBadgesRaw.slice(0, 2);
+  const extraServicesCount = Math.max(serviceBadgesRaw.length - 2, 0);
+  const dept = resolveDeptFromSetor(order.setorAtual) || resolveDeptFromStatus(order.status, order.setorAtual);
+  const DeptIcon = getDeptIcon(dept) || statusInfo.icon;
+  const thumb = getFirstPhotoUrl(order.fotos);
+  const sla = getSlaInfo(order);
+  const isOverdue = sla.tone === "red";
+  const accentColor = SETORES_CORES[order.setorAtual || ""] || "#93c5fd";
+  const createdAtLabel = order.dataCriacao ? new Date(order.dataCriacao).toLocaleDateString('pt-BR') : "";
+  const expectedLabel = (order.expectedDate || order.dataPrevistaEntrega)
+    ? new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')
+    : "";
+
+  return (
+    <div
+      key={order.id}
+      draggable
+      onDragStart={(ev) => handleDragStart(ev, order.id)}
+      onDragEnd={handleDragEnd}
+      className={`kanban-card bg-white border border-slate-200/80 rounded-xl p-3 sm:p-4 cursor-move group card-animate-in text-sm shadow-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "bg-rose-50" : ""}`}
+      style={{ borderLeftWidth: 5, borderLeftColor: isOverdue ? '#f43f5e' : accentColor }}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="w-11 h-11 rounded-full flex items-center justify-center text-white overflow-hidden shrink-0"
+          style={{ backgroundColor: accentColor }}
+          title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
+        >
+          {thumb ? (
+            <img src={thumb} alt="thumb" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+          ) : (
+            <DeptIcon className="w-5 h-5" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono truncate">
+                  #{order.codigo || order.id}
+                </h4>
+                <button
+                  className="text-slate-400 hover:text-slate-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(order.codigo || order.id);
+                    toast.success("Número copiado");
+                  }}
+                  title="Copiar número"
+                >
+                  <ClipboardCopy className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500">{createdAtLabel}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                <Badge className="bg-red-500 text-white h-6 px-2">Alta</Badge>
+              )}
+              <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50 truncate max-w-[140px]">
+                {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-[13px] text-slate-900 font-semibold line-clamp-1">{order.clientName}</p>
+            <p className="text-[12px] text-slate-600 line-clamp-1">{order.modeloTenis}</p>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px]">
+            <Badge className={`${isOverdue ? "bg-rose-500 text-white" : "bg-emerald-100 text-emerald-700"} text-[10px] px-2 py-0.5`}>
+              {isOverdue ? "Atrasado" : "Previsto"}
+            </Badge>
+            {expectedLabel && (
+              <span className={isOverdue ? "text-rose-600 font-semibold" : "text-slate-700"}>
+                {expectedLabel}
+              </span>
+            )}
+          </div>
+
+          {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {order.departamentosSelecionados.slice(0, 2).map((dep) => (
+                <Badge key={dep.id} variant="outline" className="text-[10px] bg-slate-50 border-slate-200 text-slate-700 px-2 py-0.5">
+                  {dep.nome || dep.id}
+                </Badge>
+              ))}
+              {order.departamentosSelecionados.length > 2 && (
+                <Badge variant="outline" className="text-[10px] bg-slate-50 border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
+                  +{order.departamentosSelecionados.length - 2}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {serviceBadges.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {serviceBadges.map((svc) => (
+                <Badge key={svc} variant="secondary" className="text-[11px] bg-slate-100 text-slate-700 border-slate-200 px-2 py-0.5">
+                  {svc}
+                </Badge>
+              ))}
+              {extraServicesCount > 0 && (
+                <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
+                  +{extraServicesCount}
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showFullDetails ? (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              openMoveDialogForOrder(order, getPreviousStatus(order.status));
+            }}
+            disabled={!getPreviousStatus(order.status)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" /> Anterior
+          </Button>
+          <Button
+            size="sm"
+            className="h-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              openMoveDialogForOrder(order, getNextStatus(order.status));
+            }}
+            disabled={!getNextStatus(order.status)}
+          >
+            Próximo <ArrowRight className="w-4 h-4 ml-1" />
+          </Button>
+          {(() => {
+            const nextSame = getNextStatusSameDept(order.status);
+            const nextGlobal = getNextStatus(order.status);
+            if (!nextSame || nextSame === nextGlobal) return null;
+            return (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 col-span-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openMoveDialogForOrder(order, nextSame);
+                }}
+              >
+                Próx. no setor
+              </Button>
+            );
+          })()}
+          <Select
+            onValueChange={(val) => {
+              openMoveDialogForOrder(order, val);
+            }}
+          >
+            <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
+            <SelectContent>
+              {getMoveOptionsList().map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} disabled={opt.value === order.status}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              const finalStatus = getAtendimentoFinalStatus();
+              if (finalStatus && finalStatus !== order.status) {
+                openMoveDialogForOrder(order, finalStatus);
+              } else {
+                toast.info("Já está no atendimento final");
+              }
+            }}
+            disabled={getAtendimentoFinalStatus() === null || getAtendimentoFinalStatus() === order.status}
+          >
+            Finalizar <CheckCircle className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-3 flex gap-2 w-full">
+          <Button
+            size="sm"
+            className="h-9 flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              openMoveDialogForOrder(order, getNextStatus(order.status) || getNextStatusSameDept(order.status));
+            }}
+          >
+            Mover
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedOrder(order);
+              setShowOrderDetails(true);
+            }}
+          >
+            Ver mais
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+});
+KanbanCard.displayName = "KanbanCard";
