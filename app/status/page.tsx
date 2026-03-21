@@ -186,32 +186,108 @@ const getStatusInfo = (status: string) => {
   };
 }
 
+// Helpers compartilhados (fora do componente para uso no KanbanCard memoizado)
+const formatServicos = (value: unknown): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
+  }
+
+  return String(value);
+};
+
+const resolveDeptFromSetor = (setorId?: string | null): string | null => {
+  if (!setorId) return null;
+  const s = setorId.toLowerCase();
+  if (s.includes("atendimento")) return "atendimento";
+  if (s.includes("sapat")) return "sapataria";
+  if (s.includes("costur")) return "costura";
+  if (s.includes("lavag")) return "lavagem";
+  if (s.includes("pint")) return "pintura";
+  if (s.includes("mont")) return "montagem";
+  if (s.includes("acab")) return "acabamento";
+  return null;
+};
+
+const resolveDeptFromStatus = (status: string, setorId?: string | null): string | null => {
+  const bySetor = resolveDeptFromSetor(setorId);
+  if (bySetor) return bySetor;
+  const s = status?.toLowerCase?.() || "";
+  if (s.includes("atendimento")) return "atendimento";
+  if (s.includes("sapat")) return "sapataria";
+  if (s.includes("costur")) return "costura";
+  if (s.includes("lavag")) return "lavagem";
+  if (s.includes("pint")) return "pintura";
+  if (s.includes("mont")) return "montagem";
+  if (s.includes("acab")) return "acabamento";
+  return null;
+};
+
+const getDeptIcon = (dept: string | null) => {
+  switch (dept) {
+    case "atendimento":
+      return Headphones;
+    case "sapataria":
+      return Hammer;
+    case "costura":
+      return Scissors;
+    case "lavagem":
+      return Droplets;
+    case "pintura":
+      return Paintbrush;
+    case "montagem":
+      return Wrench;
+    case "acabamento":
+      return Sparkles;
+    default:
+      return null;
+  }
+};
+
+const getFirstPhotoUrl = (fotos?: any[]): string | null => {
+  if (!Array.isArray(fotos)) return null;
+  const pick = fotos.find((f) => {
+    if (!f) return false;
+    const val = typeof f === 'string' ? f : (f.url || f.fotoUrl || f.uploadedUrl || f.s3Url || f.location || f.src || "");
+    return typeof val === 'string' && /^https?:\/\//i.test(val.trim());
+  });
+  if (!pick) return null;
+  const val = typeof pick === 'string' ? pick : (pick.url || pick.fotoUrl || pick.uploadedUrl || pick.s3Url || pick.location || pick.src || "");
+  return typeof val === 'string' ? val : null;
+};
+
+const getSlaInfo = (order: { expectedDate?: string; dataPrevistaEntrega?: string }) => {
+  const expectedRaw = order.expectedDate || order.dataPrevistaEntrega;
+  if (!expectedRaw) return { label: "Sem prazo", tone: "gray", className: "bg-slate-100 text-slate-700" };
+  const expected = new Date(expectedRaw).getTime();
+  if (Number.isNaN(expected)) return { label: "Sem prazo", tone: "gray", className: "bg-slate-100 text-slate-700" };
+  const now = Date.now();
+  const diffMs = expected - now;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMs < 0) return { label: "Atrasado", tone: "red", className: "bg-red-100 text-red-700" };
+  if (diffDays <= 1) return { label: "24h", tone: "amber", className: "bg-amber-100 text-amber-700" };
+  return { label: `${diffDays}d`, tone: "green", className: "bg-emerald-100 text-emerald-700" };
+};
+
 export default function StatusControlPage() {
-  const formatServicos = (value: unknown): string => {
-    if (!value) return "";
-    if (typeof value === "string") return value;
-
-    if (Array.isArray(value)) {
-      return value
-        .map((item) => {
-          if (typeof item === "string") return item;
-          if (item && typeof item === "object") {
-            const obj = item as Record<string, unknown>;
-            return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
-          }
-          return "";
-        })
-        .filter(Boolean)
-        .join(", ");
-    }
-
-    if (typeof value === "object") {
-      const obj = value as Record<string, unknown>;
-      return String(obj.nome || obj.name || obj.descricao || obj.id || "").trim();
-    }
-
-    return String(value);
-  };
 
   const [baseStatusColumns, setBaseStatusColumns] = useState<StatusColumn>({});
   const [statusColumns, setStatusColumns] = useState<StatusColumn>({});
@@ -841,59 +917,14 @@ export default function StatusControlPage() {
     sectors.forEach((sector) => {
       const status = getFirstStatusForSector(sector.value);
       if (status) {
-        result.push({ value: sector.value, label: sector.label });
+        // value = status para já enviar o pedido ao primeiro passo do setor
+        result.push({ value: status, label: sector.label });
       }
     });
     return result;
   }, [getAvailableSectors, getFirstStatusForSector]);
 
-  const resolveDeptFromSetor = (setorId?: string | null): string | null => {
-    if (!setorId) return null;
-    const s = setorId.toLowerCase();
-    if (s.includes("atendimento")) return "atendimento";
-    if (s.includes("sapat")) return "sapataria";
-    if (s.includes("costur")) return "costura";
-    if (s.includes("lavag")) return "lavagem";
-    if (s.includes("pint")) return "pintura";
-    if (s.includes("mont")) return "montagem";
-    if (s.includes("acab")) return "acabamento";
-    return null;
-  };
-
-  const resolveDeptFromStatus = (status: string, setorId?: string | null): string | null => {
-    const bySetor = resolveDeptFromSetor(setorId);
-    if (bySetor) return bySetor;
-    const s = status?.toLowerCase?.() || "";
-    if (s.includes("atendimento")) return "atendimento";
-    if (s.includes("sapat")) return "sapataria";
-    if (s.includes("costur")) return "costura";
-    if (s.includes("lavag")) return "lavagem";
-    if (s.includes("pint")) return "pintura";
-    if (s.includes("mont")) return "montagem";
-    if (s.includes("acab")) return "acabamento";
-    return null;
-  };
-
-  const getDeptIcon = (dept: string | null) => {
-    switch (dept) {
-      case "atendimento":
-        return Headphones;
-      case "sapataria":
-        return Hammer;
-      case "costura":
-        return Scissors;
-      case "lavagem":
-        return Droplets;
-      case "pintura":
-        return Paintbrush;
-      case "montagem":
-        return Wrench;
-      case "acabamento":
-        return Sparkles;
-      default:
-        return null;
-    }
-  };
+  
 
   const getOrderTotal = (order: Order) => {
     const val = order.precoTotal ?? order.preco ?? order.price ?? 0;
@@ -902,32 +933,6 @@ export default function StatusControlPage() {
 
   const formatCurrency = (val: number) =>
     val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-  const getSlaInfo = (order: Order) => {
-    const expectedRaw = order.expectedDate || order.dataPrevistaEntrega;
-    if (!expectedRaw) return { label: "Sem prazo", tone: "gray", className: "bg-slate-100 text-slate-700" };
-    const expected = new Date(expectedRaw).getTime();
-    if (Number.isNaN(expected)) return { label: "Sem prazo", tone: "gray", className: "bg-slate-100 text-slate-700" };
-    const now = Date.now();
-    const diffMs = expected - now;
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffMs < 0) return { label: "Atrasado", tone: "red", className: "bg-red-100 text-red-700" };
-    if (diffDays <= 1) return { label: "24h", tone: "amber", className: "bg-amber-100 text-amber-700" };
-    return { label: `${diffDays}d`, tone: "green", className: "bg-emerald-100 text-emerald-700" };
-  };
-
-  const getFirstPhotoUrl = (fotos?: any[]): string | null => {
-    if (!Array.isArray(fotos)) return null;
-    const pick = fotos.find((f) => {
-      if (!f) return false;
-      const val = typeof f === 'string' ? f : (f.url || f.fotoUrl || f.uploadedUrl || f.s3Url || f.location || f.src || "");
-      return typeof val === 'string' && /^https?:\/\//i.test(val.trim());
-    });
-    if (!pick) return null;
-    const val = typeof pick === 'string' ? pick : (pick.url || pick.fotoUrl || pick.uploadedUrl || pick.s3Url || pick.location || pick.src || "");
-    return typeof val === 'string' ? val : null;
-  };
 
   const slugify = (value: string) => {
     return value
@@ -2000,20 +2005,20 @@ const KanbanCard = memo(function KanbanCard(props: {
               </Button>
             );
           })()}
-          <Select
-            onValueChange={(val) => {
-              openMoveDialogForOrder(order, val);
-            }}
-          >
-            <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
-            <SelectContent>
-              {getMoveOptionsList().map((opt) => (
-                <SelectItem key={opt.value} value={opt.value} disabled={opt.value === order.status}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select
+              onValueChange={(val) => {
+                openMoveDialogForOrder(order, val);
+              }}
+            >
+              <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
+              <SelectContent>
+                {getMoveOptionsList().map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} disabled={opt.value === order.status}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           <Button
             size="sm"
             variant="secondary"
