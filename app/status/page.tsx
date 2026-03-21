@@ -2074,31 +2074,6 @@ const KanbanCard = memo(function KanbanCard(props: {
         </div>
       )}
 
-      {!showFullDetails && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {moveOptions.map((opt) => {
-            const targetDept = resolveDeptFromStatus(opt.value);
-            const Icon = getDeptIcon(targetDept);
-            const disabled = opt.value === order.status;
-            return (
-              <Button
-                key={opt.value}
-                size="sm"
-                variant={disabled ? "secondary" : "outline"}
-                className="h-8"
-                disabled={disabled}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openMoveDialogForOrder(order, opt.value);
-                }}
-              >
-                {Icon ? <Icon className="w-4 h-4 mr-1" /> : null}
-                {opt.label}
-              </Button>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 });
