@@ -34,18 +34,19 @@ export interface Pedido {
 }
 
 // ...existing code...
-// Busca cliente por ID
+// Busca cliente por ID (cache leve para não refazer a cada abertura de modal)
 export async function getClienteByIdService(id: string) {
-  const token = localStorage.getItem("token");
-  const response = await fetch(`${API_BASE_URL}/clientes/${id}`, {
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`clientes:${id}`, token);
+
+  const result = await fetchWithCache(`${API_BASE_URL}/clientes/${id}`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-    },
-  });
-  if (!response.ok) throw new Error("Erro ao buscar cliente");
-  return response.json();
+    headers: getAuthHeaders(),
+  }, { cacheKey, ttlMs: 5 * 60_000 });
+
+  const payload = resolveApiPayload(result);
+  if (!payload) throw new Error("Erro ao buscar cliente");
+  return payload;
 }
 
 // Atualiza um cliente

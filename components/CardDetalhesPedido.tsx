@@ -126,12 +126,10 @@ export const CardDetalhesPedido: React.FC<CardDetalhesPedidoProps> = ({ open, on
       try {
         setLoadingCliente(true);
         setErrorCliente("");
-        console.log("Buscando dados do cliente para ID:", pedidoAtual.clientId);
         const clienteData = await getClienteByIdService(pedidoAtual.clientId);
         setCliente(clienteData);
         lastClientFetchRef.current = pedidoAtual.clientId;
       } catch (err: any) {
-        console.error("Erro ao carregar cliente:", err);
         setErrorCliente(err.message || "Erro ao carregar dados do cliente");
         setCliente(null);
       } finally {
