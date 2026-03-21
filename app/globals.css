@@ -164,4 +164,16 @@
     box-shadow: 0 14px 32px rgba(37, 99, 235, 0.25);
     border-color: rgba(37, 99, 235, 0.45);
   }
+
+  /* Kanban cards: smoother hover/drag experience */
+  .kanban-card {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+    will-change: transform, box-shadow;
+  }
+
+  .kanban-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 42px rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.25);
+  }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback, useDeferredValue } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -44,7 +44,6 @@ import { getStatusColumnsService, getAllStatusColumnsService, getOrdersStatusSer
 import { toast } from "sonner"
 import { SETORES_CORES, SETORES_NOMES, SETORES } from "@/lib/setores"
 import { listFuncionariosService, Funcionario } from "@/lib/apiService"
-import { normalize } from "path"
 
 // Interface para as colunas de status
 interface StatusColumn {
@@ -250,6 +249,11 @@ export default function StatusControlPage() {
   const [justMovedOrderId, setJustMovedOrderId] = useState<string | null>(null);
   const loadPromiseRef = useRef<Promise<any> | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // Defer heavy filtering while usuário digita para evitar travamentos
+  const deferredClientFilter = useDeferredValue(clientFilter);
+  const deferredPriorityFilter = useDeferredValue(priorityFilter);
+  const deferredQuickView = useDeferredValue(quickView);
 
   const patternsByDept: Record<string, string[]> = {
     atendimento: ["atendimento"],
@@ -545,8 +549,11 @@ export default function StatusControlPage() {
     }
   };
 
-  const handleDragStart = (orderId: string) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, orderId: string) => {
     setDraggedOrderId(orderId);
+    // Set transfer data to keep drag API happy across browsers
+    e.dataTransfer.setData("text/plain", orderId);
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -984,11 +991,11 @@ export default function StatusControlPage() {
 
   const filteredOrders = useMemo(() => {
     let list = orders;
-    if (priorityFilter === "high") {
+    if (deferredPriorityFilter === "high") {
       list = list.filter((o) => o.prioridade === 1);
     }
 
-    // Presets de visão rápida
+    // Presets de visão rápida com valores deferidos para evitar recalcular a cada tecla
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const endOfToday = new Date();
@@ -996,30 +1003,30 @@ export default function StatusControlPage() {
     const now = Date.now();
     const in24h = now + 24 * 60 * 60 * 1000;
 
-    if (quickView !== "all") {
+    if (deferredQuickView !== "all") {
       list = list.filter((o) => {
         const expectedRaw = o.expectedDate || o.dataPrevistaEntrega;
-        if (!expectedRaw) return quickView === "high" ? o.prioridade === 1 : false;
+        if (!expectedRaw) return deferredQuickView === "high" ? o.prioridade === 1 : false;
         const expected = new Date(expectedRaw).getTime();
-        if (Number.isNaN(expected)) return quickView === "high" ? o.prioridade === 1 : false;
+        if (Number.isNaN(expected)) return deferredQuickView === "high" ? o.prioridade === 1 : false;
 
-        if (quickView === "today") {
+        if (deferredQuickView === "today") {
           return expected >= startOfToday.getTime() && expected <= endOfToday.getTime();
         }
-        if (quickView === "overdue") {
+        if (deferredQuickView === "overdue") {
           return expected < startOfToday.getTime();
         }
-        if (quickView === "due24") {
+        if (deferredQuickView === "due24") {
           return expected >= startOfToday.getTime() && expected <= in24h;
         }
-        if (quickView === "high") {
+        if (deferredQuickView === "high") {
           return o.prioridade === 1;
         }
         return true;
       });
     }
 
-    const clientTerm = clientFilter.trim().toLowerCase();
+    const clientTerm = deferredClientFilter.trim().toLowerCase();
     if (clientTerm) {
       list = list.filter((o) =>
         (o.clientName || "").toLowerCase().includes(clientTerm) ||
@@ -1029,7 +1036,10 @@ export default function StatusControlPage() {
       );
     }
     return list;
-  }, [orders, priorityFilter, clientFilter, quickView]);
+  }, [orders, deferredPriorityFilter, deferredClientFilter, deferredQuickView]);
+
+  // Defer listagem filtrada para evitar renderizações pesadas durante digitação
+  const deferredFilteredOrders = useDeferredValue(filteredOrders);
 
   const dueSoonCount = useMemo(() => {
     const now = Date.now();
@@ -1097,7 +1107,7 @@ export default function StatusControlPage() {
       grouped[columnName] = [];
     });
 
-    for (const order of filteredOrders) {
+    for (const order of deferredFilteredOrders) {
       if (!grouped[order.status]) {
         grouped[order.status] = [];
       }
@@ -1105,7 +1115,7 @@ export default function StatusControlPage() {
     }
 
     return grouped;
-  }, [filteredStatusColumns, filteredOrders]);
+  }, [filteredStatusColumns, deferredFilteredOrders]);
 
   const getNextStatus = (currentStatus: string) => {
     const columnNames = Object.keys(filteredStatusColumns);
@@ -1558,7 +1568,7 @@ export default function StatusControlPage() {
                 <Card
                   id={getColumnDomId(columnName)}
                   key={columnName}
-                  className={`border border-white/50 shadow-[0_10px_35px_-18px_rgba(15,23,42,0.6)] hover:shadow-[0_18px_48px_-18px_rgba(59,130,246,0.55)] transition-all duration-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 backdrop-blur w-full max-w-full min-w-0 sm:min-w-0 snap-start hover:-translate-y-1 ${isDropTarget ? "ring-2 ring-sky-400 shadow-2xl scale-[1.01]" : ""}`}
+                  className={`border border-slate-200 bg-white w-full max-w-full min-w-0 sm:min-w-0 snap-start ${isDropTarget ? "ring-2 ring-sky-400" : ""}`}
                   onDragOver={handleDragOver}
                   onDragEnter={() => handleDragEnter(columnName)}
                   onDragLeave={() => handleDragLeave(columnName)}
@@ -1597,7 +1607,7 @@ export default function StatusControlPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-3 sm:p-4 min-h-[20rem] bg-white/90 backdrop-blur">
+                  <CardContent className="p-3 sm:p-4 bg-white">
                     {isCollapsed ? (
                       <div className="space-y-2 text-sm text-slate-700">
                         {ordersInColumn.length ? (
@@ -1663,8 +1673,9 @@ export default function StatusControlPage() {
                             <div
                               key={order.id}
                               draggable
-                              onDragStart={() => handleDragStart(order.id)}
-                              className={`bg-white/95 border rounded-xl p-4 cursor-move transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "ring-2 ring-red-300 border-red-200 bg-rose-50" : "border-slate-200/80 hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200"}`}
+                              onDragStart={(ev) => handleDragStart(ev, order.id)}
+                              onDragEnd={() => setDraggedOrderId(null)}
+                              className={`kanban-card bg-white/95 border rounded-xl p-4 cursor-move transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "ring-2 ring-red-300 border-red-200 bg-rose-50" : "border-slate-200/80 hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200"}`}
                               style={{ borderLeftWidth: 6, borderLeftColor: SETORES_CORES[order.setorAtual || ''] || '#94a3b8' }}
                             >
                               <div className="flex flex-col gap-3">
