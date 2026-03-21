@@ -924,6 +924,18 @@ export default function StatusControlPage() {
     return result;
   }, [getAvailableSectors, getFirstStatusForSector]);
 
+  const sectorTransferOptions = useMemo(
+    () =>
+      getAvailableSectors()
+        .map((sector) => ({
+          value: sector.value,
+          label: sector.label,
+          targetStatus: getFirstStatusForSector(sector.value),
+        }))
+        .filter((opt) => Boolean(opt.targetStatus)),
+    [getAvailableSectors, getFirstStatusForSector]
+  );
+
   
 
   const getOrderTotal = (order: Order) => {
@@ -1291,7 +1303,7 @@ export default function StatusControlPage() {
 
               <div className="sm:w-48">
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Mover para
+                  Próximo passo
                 </label>
                 <Select value={selectedSector} onValueChange={setSelectedSector}>
                   <SelectTrigger className="h-9 border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
@@ -1331,7 +1343,7 @@ export default function StatusControlPage() {
                 className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-6 sm:mt-0 mt-2"
               >
                 <Move className="w-4 h-4 mr-2" />
-                Mover
+                Próximo passo
               </Button>
             </div>
 
@@ -1646,6 +1658,7 @@ export default function StatusControlPage() {
                             getNextStatusSameDept={getNextStatusSameDept}
                             getMoveOptionsList={getMoveOptionsList}
                             getAtendimentoFinalStatus={getAtendimentoFinalStatus}
+                            sectorTransferOptions={sectorTransferOptions}
                             setSelectedOrder={(o) => { setSelectedOrder(o); setShowOrderDetails(true); }}
                             setShowOrderDetails={setShowOrderDetails}
                           />
@@ -1821,6 +1834,7 @@ const KanbanCard = memo(function KanbanCard(props: {
   getNextStatusSameDept: (status: string) => string | null;
   getMoveOptionsList: () => Array<{ value: string; label: string }>;
   getAtendimentoFinalStatus: () => string | null;
+  sectorTransferOptions: Array<{ value: string; label: string; targetStatus: string | null }>;
   setSelectedOrder: (o: Order) => void;
   setShowOrderDetails: (v: boolean) => void;
 }) {
@@ -1839,6 +1853,7 @@ const KanbanCard = memo(function KanbanCard(props: {
     getNextStatusSameDept,
     getMoveOptionsList,
     getAtendimentoFinalStatus,
+    sectorTransferOptions,
     setSelectedOrder,
     setShowOrderDetails,
   } = props;
@@ -1982,11 +1997,11 @@ const KanbanCard = memo(function KanbanCard(props: {
             className="h-8"
             onClick={(e) => {
               e.stopPropagation();
-              openMoveDialogForOrder(order, getNextStatus(order.status));
+              openMoveDialogForOrder(order, getNextStatusSameDept(order.status) || getNextStatus(order.status));
             }}
-            disabled={!getNextStatus(order.status)}
+            disabled={!getNextStatus(order.status) && !getNextStatusSameDept(order.status)}
           >
-            Próximo <ArrowRight className="w-4 h-4 ml-1" />
+            Próximo passo <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
           {(() => {
             const nextSame = getNextStatusSameDept(order.status);
@@ -2011,7 +2026,7 @@ const KanbanCard = memo(function KanbanCard(props: {
               openMoveDialogForOrder(order, val);
             }}
           >
-            <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
+            <SelectTrigger className="h-8 w-full text-left">Mover status</SelectTrigger>
             <SelectContent>
               {moveOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value} disabled={opt.value === order.status}>
@@ -2020,6 +2035,25 @@ const KanbanCard = memo(function KanbanCard(props: {
               ))}
             </SelectContent>
           </Select>
+          {sectorTransferOptions.length > 0 && (
+            <Select
+              onValueChange={(sectorValue) => {
+                const target = sectorTransferOptions.find((opt) => opt.value === sectorValue);
+                if (target?.targetStatus) {
+                  openMoveDialogForOrder(order, target.targetStatus);
+                }
+              }}
+            >
+              <SelectTrigger className="h-8 w-full text-left">Mover para setor</SelectTrigger>
+              <SelectContent>
+                {sectorTransferOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button
             size="sm"
             variant="secondary"
@@ -2062,17 +2096,36 @@ const KanbanCard = memo(function KanbanCard(props: {
           </div>
         </div>
       ) : (
-        <div className="mt-3 flex gap-2 w-full">
+        <div className="mt-3 flex gap-2 w-full items-center">
           <Button
             size="sm"
             className="h-9 flex-1"
             onClick={(e) => {
               e.stopPropagation();
-              openMoveDialogForOrder(order, getNextStatus(order.status) || getNextStatusSameDept(order.status));
+              openMoveDialogForOrder(order, getNextStatusSameDept(order.status) || getNextStatus(order.status));
             }}
           >
-            Mover
+            Próximo passo
           </Button>
+          {sectorTransferOptions.length > 0 && (
+            <Select
+              onValueChange={(sectorValue) => {
+                const target = sectorTransferOptions.find((opt) => opt.value === sectorValue);
+                if (target?.targetStatus) {
+                  openMoveDialogForOrder(order, target.targetStatus);
+                }
+              }}
+            >
+              <SelectTrigger className="h-9 flex-1 text-left">Mover setor</SelectTrigger>
+              <SelectContent>
+                {sectorTransferOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button
             size="sm"
             variant="outline"
