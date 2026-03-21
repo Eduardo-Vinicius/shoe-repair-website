@@ -1668,6 +1668,11 @@ export default function StatusControlPage() {
                           const isOverdue = sla.tone === "red";
                           const whatsappMessage = `Olá ${order.clientName || "cliente"}, aqui é da Worqera. Pedido #${order.codigo || order.id} está em ${getStatusInfo(order.status).label}. Qualquer dúvida, estamos à disposição!`;
                           const whatsappHref = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
+                          const accentColor = SETORES_CORES[order.setorAtual || ""] || "#93c5fd";
+                          const createdAtLabel = order.dataCriacao ? new Date(order.dataCriacao).toLocaleDateString('pt-BR') : "";
+                          const expectedLabel = (order.expectedDate || order.dataPrevistaEntrega)
+                            ? new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')
+                            : "";
 
                           return (
                             <div
@@ -1675,104 +1680,98 @@ export default function StatusControlPage() {
                               draggable
                               onDragStart={(ev) => handleDragStart(ev, order.id)}
                               onDragEnd={() => setDraggedOrderId(null)}
-                              className={`kanban-card bg-white/95 border rounded-xl p-4 cursor-move transition-all duration-200 group card-animate-in text-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "ring-2 ring-red-300 border-red-200 bg-rose-50" : "border-slate-200/80 hover:shadow-[0_12px_28px_-16px_rgba(59,130,246,0.45)] hover:border-sky-200"}`}
-                              style={{ borderLeftWidth: 6, borderLeftColor: SETORES_CORES[order.setorAtual || ''] || '#94a3b8' }}
+                              className={`kanban-card bg-white border border-slate-200/80 rounded-xl p-3 sm:p-4 cursor-move group card-animate-in text-sm shadow-sm ${justMovedOrderId === order.id ? "card-just-moved" : ""} ${draggedOrderId === order.id ? "dragging-card" : ""} ${isOverdue ? "bg-rose-50" : ""}`}
+                              style={{ borderLeftWidth: 5, borderLeftColor: isOverdue ? '#f43f5e' : accentColor }}
                             >
-                              <div className="flex flex-col gap-3">
-                                <div className="flex items-start gap-3">
-                                  <div
-                                    className="w-10 h-10 rounded-full flex items-center justify-center text-white overflow-hidden shrink-0"
-                                    style={{ backgroundColor: SETORES_CORES[order.setorAtual || ''] || '#64748b' }}
-                                    title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
-                                  >
-                                    {thumb ? (
-                                      <img src={thumb} alt="thumb" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <DeptIcon className="w-4 h-4" />
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className="w-11 h-11 rounded-full flex items-center justify-center text-white overflow-hidden shrink-0"
+                                  style={{ backgroundColor: accentColor }}
+                                  title={SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || ''}
+                                >
+                                  {thumb ? (
+                                    <img src={thumb} alt="thumb" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <DeptIcon className="w-5 h-5" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-2">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono truncate">
+                                          #{order.codigo || order.id}
+                                        </h4>
+                                        <button
+                                          className="text-slate-400 hover:text-slate-700"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(order.codigo || order.id);
+                                            toast.success("Número copiado");
+                                          }}
+                                          title="Copiar número"
+                                        >
+                                          <ClipboardCopy className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                      <p className="text-[11px] text-slate-500">{createdAtLabel}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {typeof order.prioridade === 'number' && order.prioridade === 1 && (
+                                        <Badge className="bg-red-500 text-white h-6 px-2">Alta</Badge>
+                                      )}
+                                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50 truncate max-w-[140px]">
+                                        {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
+                                      </Badge>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <p className="text-[13px] text-slate-900 font-semibold line-clamp-1">{order.clientName}</p>
+                                    <p className="text-[12px] text-slate-600 line-clamp-1">{order.modeloTenis}</p>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 text-[11px]">
+                                    <Badge className={`${isOverdue ? "bg-rose-500 text-white" : "bg-emerald-100 text-emerald-700"} text-[10px] px-2 py-0.5`}>
+                                      {isOverdue ? "Atrasado" : "Previsto"}
+                                    </Badge>
+                                    {expectedLabel && (
+                                      <span className={isOverdue ? "text-rose-600 font-semibold" : "text-slate-700"}>
+                                        {expectedLabel}
+                                      </span>
                                     )}
                                   </div>
-                                  <div className="flex flex-col gap-2 items-end">
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="min-w-0">
-                                        <div className="flex items-start justify-between gap-2">
-                                          <div className="flex items-center gap-1 min-w-0">
-                                            <h4 className="font-semibold text-slate-900 leading-tight text-[13px] font-mono truncate max-w-[120px]">
-                                              #{order.codigo || order.id}
-                                            </h4>
-                                            <Button
-                                            size="icon"
-                                            variant="ghost"
-                                              className="h-6 w-6 text-slate-500 hover:text-slate-800 shrink-0"
-                                            draggable={false}
-                                            onMouseDown={(e) => { e.stopPropagation(); }}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              navigator.clipboard.writeText(order.codigo || order.id);
-                                              toast.success("Número copiado");
-                                            }}
-                                            title="Copiar número"
-                                          >
-                                            <ClipboardCopy className="w-4 h-4" />
-                                            </Button>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            {typeof order.prioridade === 'number' && order.prioridade === 1 && (
-                                              <Badge className="bg-red-500 text-white shrink-0">Alta</Badge>
-                                            )}
-                                            <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-700 bg-slate-50 shrink-0 max-w-[140px] truncate">
-                                              {SETORES_NOMES[order.setorAtual || ''] || order.setorAtual || dept || ''}
-                                            </Badge>
-                                          </div>
-                                        </div>
-                                        <div className="text-[11px] text-slate-500">{new Date(order.dataCriacao).toLocaleDateString('pt-BR')}</div>
-                                      </div>
-                                    </div>
 
-                                    <p className="text-[13px] text-slate-900 font-medium line-clamp-1">{order.clientName}</p>
-                                    <p className="text-[12px] text-slate-600 line-clamp-1">{order.modeloTenis}</p>
-
-                                    <div className="flex items-center gap-2 text-[11px]">
-                                      <Badge className={`${isOverdue ? "bg-red-600 text-white" : "bg-emerald-100 text-emerald-700"} text-[10px] px-2 py-0.5`}>
-                                        {isOverdue ? "Atrasado" : "Previsto"}
-                                      </Badge>
-                                      {(order.expectedDate || order.dataPrevistaEntrega) && (
-                                        <span className={isOverdue ? "text-rose-600 font-semibold" : "text-slate-600"}>
-                                          {new Date(order.expectedDate || order.dataPrevistaEntrega).toLocaleDateString('pt-BR')}
-                                        </span>
+                                  {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {order.departamentosSelecionados.slice(0, 2).map((dep) => (
+                                        <Badge key={dep.id} variant="outline" className="text-[10px] bg-slate-50 border-slate-200 text-slate-700 px-2 py-0.5">
+                                          {dep.nome || dep.id}
+                                        </Badge>
+                                      ))}
+                                      {order.departamentosSelecionados.length > 2 && (
+                                        <Badge variant="outline" className="text-[10px] bg-slate-50 border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
+                                          +{order.departamentosSelecionados.length - 2}
+                                        </Badge>
                                       )}
                                     </div>
+                                  )}
 
-                                    {Array.isArray(order.departamentosSelecionados) && order.departamentosSelecionados.length > 0 && (
-                                      <div className="flex flex-wrap gap-1">
-                                        {order.departamentosSelecionados.slice(0, 2).map((dep) => (
-                                          <Badge key={dep.id} variant="outline" className="text-[10px] bg-slate-50 border-slate-200 text-slate-700 px-2 py-0.5">
-                                            {dep.nome || dep.id}
-                                          </Badge>
-                                        ))}
-                                        {order.departamentosSelecionados.length > 2 && (
-                                          <Badge variant="outline" className="text-[10px] bg-slate-50 border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
-                                            +{order.departamentosSelecionados.length - 2}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    )}
-                                    {serviceBadges.length > 0 && (
-                                      <div className="flex flex-wrap gap-1">
-                                        {serviceBadges.map((svc) => (
-                                          <Badge key={svc} variant="secondary" className="text-[11px] bg-slate-100 text-slate-700 border-slate-200 px-2 py-0.5">
-                                            {svc}
-                                          </Badge>
-                                        ))}
-                                        {extraServicesCount > 0 && (
-                                          <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
-                                            +{extraServicesCount}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
+                                  {serviceBadges.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {serviceBadges.map((svc) => (
+                                        <Badge key={svc} variant="secondary" className="text-[11px] bg-slate-100 text-slate-700 border-slate-200 px-2 py-0.5">
+                                          {svc}
+                                        </Badge>
+                                      ))}
+                                      {extraServicesCount > 0 && (
+                                        <Badge variant="outline" className="text-[10px] bg-white border-dashed border-slate-200 text-slate-500 px-2 py-0.5">
+                                          +{extraServicesCount}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
- 
                               </div>
 
                               {showFullDetails ? (
@@ -1851,7 +1850,7 @@ export default function StatusControlPage() {
                                   </Button>
                                 </div>
                               ) : (
-                                <div className="mt-2 flex gap-2 w-full">
+                                <div className="mt-3 flex gap-2 w-full">
                                   <Button
                                     size="sm"
                                     className="h-9 flex-1"
