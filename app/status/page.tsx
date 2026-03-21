@@ -1844,6 +1844,7 @@ const KanbanCard = memo(function KanbanCard(props: {
   } = props;
 
   const showFullDetails = !compactView || isCardExpanded;
+  const moveOptions = getMoveOptionsList();
   const servicesText = formatServicos(order.servicos || order.serviceType || "");
   const serviceBadgesRaw = servicesText
     .split(",")
@@ -2005,20 +2006,20 @@ const KanbanCard = memo(function KanbanCard(props: {
               </Button>
             );
           })()}
-            <Select
-              onValueChange={(val) => {
-                openMoveDialogForOrder(order, val);
-              }}
-            >
-              <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
-              <SelectContent>
-                {getMoveOptionsList().map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value} disabled={opt.value === order.status}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <Select
+            onValueChange={(val) => {
+              openMoveDialogForOrder(order, val);
+            }}
+          >
+            <SelectTrigger className="h-8 w-full text-left">Mover…</SelectTrigger>
+            <SelectContent>
+              {moveOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} disabled={opt.value === order.status}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             size="sm"
             variant="secondary"
@@ -2036,6 +2037,29 @@ const KanbanCard = memo(function KanbanCard(props: {
           >
             Finalizar <CheckCircle className="w-4 h-4 ml-1" />
           </Button>
+          <div className="col-span-2 flex flex-wrap gap-2 mt-1">
+            {moveOptions.map((opt) => {
+              const targetDept = resolveDeptFromStatus(opt.value);
+              const Icon = getDeptIcon(targetDept);
+              const disabled = opt.value === order.status;
+              return (
+                <Button
+                  key={opt.value}
+                  size="sm"
+                  variant={disabled ? "secondary" : "outline"}
+                  className="h-8"
+                  disabled={disabled}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openMoveDialogForOrder(order, opt.value);
+                  }}
+                >
+                  {Icon ? <Icon className="w-4 h-4 mr-1" /> : null}
+                  {opt.label}
+                </Button>
+              );
+            })}
+          </div>
         </div>
       ) : (
         <div className="mt-3 flex gap-2 w-full">
@@ -2061,6 +2085,32 @@ const KanbanCard = memo(function KanbanCard(props: {
           >
             Ver mais
           </Button>
+        </div>
+      )}
+
+      {!showFullDetails && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {moveOptions.map((opt) => {
+            const targetDept = resolveDeptFromStatus(opt.value);
+            const Icon = getDeptIcon(targetDept);
+            const disabled = opt.value === order.status;
+            return (
+              <Button
+                key={opt.value}
+                size="sm"
+                variant={disabled ? "secondary" : "outline"}
+                className="h-8"
+                disabled={disabled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openMoveDialogForOrder(order, opt.value);
+                }}
+              >
+                {Icon ? <Icon className="w-4 h-4 mr-1" /> : null}
+                {opt.label}
+              </Button>
+            );
+          })}
         </div>
       )}
     </div>
