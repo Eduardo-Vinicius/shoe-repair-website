@@ -1975,10 +1975,10 @@ const KanbanCard = memo(function KanbanCard(props: {
       </div>
 
       {showFullDetails ? (
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 items-center min-w-0">
           <Button
             size="sm"
-            className="h-9 w-full"
+            className="h-9 w-full md:w-auto md:min-w-0"
             onClick={(e) => {
               e.stopPropagation();
               openMoveDialogForOrder(order, getNextStatusSameDept(order.status) || getNextStatus(order.status));
@@ -1996,7 +1996,7 @@ const KanbanCard = memo(function KanbanCard(props: {
                 }
               }}
             >
-              <SelectTrigger className="h-9 w-full text-left">Mover setor</SelectTrigger>
+              <SelectTrigger className="h-9 w-full md:w-auto md:flex-1 text-left min-w-0">Mover setor</SelectTrigger>
               <SelectContent>
                 {sectorTransferOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
@@ -2006,14 +2006,14 @@ const KanbanCard = memo(function KanbanCard(props: {
               </SelectContent>
             </Select>
           ) : (
-            <Button size="sm" variant="outline" className="h-9 w-full" disabled>
+            <Button size="sm" variant="outline" className="h-9 w-full md:w-auto" disabled>
               Setores indisponíveis
             </Button>
           )}
           <Button
             size="sm"
             variant="outline"
-            className="h-9 w-full"
+            className="h-9 w-full md:w-auto md:min-w-0"
             onClick={(e) => {
               e.stopPropagation();
               setSelectedOrder(order);
@@ -2024,10 +2024,10 @@ const KanbanCard = memo(function KanbanCard(props: {
           </Button>
         </div>
       ) : (
-        <div className="mt-3 flex flex-col sm:flex-row gap-2 w-full items-stretch sm:items-center">
+        <div className="mt-3 flex flex-col md:flex-row gap-2 w-full items-stretch md:items-center min-w-0">
           <Button
             size="sm"
-            className="h-9 w-full sm:flex-1"
+            className="h-9 w-full md:flex-1 md:w-auto"
             onClick={(e) => {
               e.stopPropagation();
               openMoveDialogForOrder(order, getNextStatusSameDept(order.status) || getNextStatus(order.status));
@@ -2045,7 +2045,7 @@ const KanbanCard = memo(function KanbanCard(props: {
                 }
               }}
             >
-              <SelectTrigger className="h-9 w-full sm:flex-1 text-left">Mover setor</SelectTrigger>
+              <SelectTrigger className="h-9 w-full md:flex-1 md:w-auto text-left min-w-0">Mover setor</SelectTrigger>
               <SelectContent>
                 {sectorTransferOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
@@ -2055,14 +2055,14 @@ const KanbanCard = memo(function KanbanCard(props: {
               </SelectContent>
             </Select>
           ) : (
-            <Button size="sm" variant="outline" className="h-9 w-full sm:flex-1" disabled>
+            <Button size="sm" variant="outline" className="h-9 w-full md:flex-1 md:w-auto" disabled>
               Setores indisponíveis
             </Button>
           )}
           <Button
             size="sm"
             variant="outline"
-            className="h-9 w-full sm:flex-1"
+            className="h-9 w-full md:flex-1 md:w-auto"
             onClick={(e) => {
               e.stopPropagation();
               setSelectedOrder(order);
