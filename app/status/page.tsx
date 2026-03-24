@@ -1244,29 +1244,31 @@ export default function StatusControlPage() {
       {/* Header Minimalista */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <img src="/worqera_icon.png" alt="Worqera" className="w-8 h-8" />
-              <div>
-                <h1 className="text-xl font-semibold text-slate-800">Worqera • Controle de Status</h1>
-                <p className="text-xs text-slate-500">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-3 sm:py-0 sm:h-16">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+              <img src="/worqera_icon.png" alt="Worqera" className="w-8 h-8 shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-semibold text-slate-800 leading-tight break-words">
+                  Worqera • Controle de Status
+                </h1>
+                <p className="text-xs text-slate-500 leading-tight truncate sm:whitespace-nowrap">
                   {userInfo ? (
-                    userInfo.role === 'admin' ? 
-                      'Administrador' : 
-                      `${userInfo.role} • ${Object.keys(filteredStatusColumns).length} colunas`
+                    userInfo.role === 'admin'
+                      ? 'Administrador'
+                      : `${userInfo.role} • ${Object.keys(filteredStatusColumns).length} colunas`
                   ) : (
                     'Gestão de pedidos'
                   )}
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-between sm:justify-end gap-3 flex-wrap">
               <div className="hidden sm:flex items-center space-x-4 text-sm">
                 <div className="text-center">
                   <p className="text-slate-500">Total</p>
                   <p className="font-semibold text-slate-800">{orders.length}</p>
                 </div>
-                <div className="w-px h-8 bg-slate-200"></div>
+                <div className="w-px h-8 bg-slate-200" />
                 <div className="text-center">
                   <p className="text-slate-500">Ativos</p>
                   <p className="font-semibold text-blue-600">
@@ -1275,7 +1277,7 @@ export default function StatusControlPage() {
                 </div>
               </div>
               <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-800">
+                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-800 whitespace-nowrap">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar
                 </Button>
