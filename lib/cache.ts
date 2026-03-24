@@ -1,5 +1,17 @@
 const STORAGE_PREFIX = "srw-cache:v1:";
 
+function getTenantSlugForCache(): string {
+  if (typeof document !== "undefined" && document?.body?.dataset?.tenant) {
+    return document.body.dataset.tenant as string;
+  }
+  if (typeof window !== "undefined" && window.location?.hostname) {
+    const host = window.location.hostname.toLowerCase();
+    const slug = host.split(".")[0] || host;
+    return slug || "anon";
+  }
+  return "anon";
+}
+
 type CacheEntry = {
   expiresAt: number;
   value: any;
@@ -78,7 +90,8 @@ function deleteCache(key: string) {
 }
 
 export function buildCacheKey(key: string, token?: string | null) {
-  return `${token || "anon"}:${key}`;
+  const tenant = getTenantSlugForCache();
+  return `${tenant}:${token || "anon"}:${key}`;
 }
 
 export function invalidateCacheByPrefix(prefixes: string | string[]) {
