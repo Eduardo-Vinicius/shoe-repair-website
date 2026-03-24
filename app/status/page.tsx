@@ -315,6 +315,7 @@ export default function StatusControlPage() {
   const [moveTargetSetorId, setMoveTargetSetorId] = useState<string | null>(null);
   const [movedByName, setMovedByName] = useState<string>("");
   const [movedByNote, setMovedByNote] = useState<string>("");
+  const [moveDialogSubmitting, setMoveDialogSubmitting] = useState(false);
   const [showDeptOnly, setShowDeptOnly] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<"all" | "high">("all");
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
@@ -1069,6 +1070,12 @@ export default function StatusControlPage() {
   }, [moveDialogOpen, moveTargetSetorId]);
 
   useEffect(() => {
+    if (!moveDialogOpen) {
+      setMoveDialogSubmitting(false);
+    }
+  }, [moveDialogOpen]);
+
+  useEffect(() => {
     if (!compactView) {
       setExpandedCards(new Set());
     }
@@ -1774,35 +1781,51 @@ export default function StatusControlPage() {
                   setMoveDialogOpen(false);
                   setMoveOrderId(null);
                   setMoveNewStatus(null);
+                  setMoveDialogSubmitting(false);
                 }}
+                disabled={moveDialogSubmitting}
               >
                 Cancelar
               </Button>
               <Button
                 onClick={async () => {
-                  if (moveOrderId && moveNewStatus) {
-                    const nome = movedByName.trim();
-                    if (!nome) {
-                      toast.error("Informe o nome do funcionário.");
-                      return;
-                    }
-                    const userDept = (userInfo?.departamento || "").toLowerCase().trim();
-                    const targetDept = resolveDeptFromStatus(moveNewStatus, moveTargetSetorId);
-                    const crossDept = userInfo?.role !== 'admin' && userDept && targetDept && targetDept !== userDept;
-                    if (crossDept && !movedByNote.trim()) {
-                      toast.error("Adicione uma observação ao mover para outro setor.");
-                      return;
-                    }
-                    await updateOrderStatus(moveOrderId, moveNewStatus, nome, movedByNote);
+                  if (!moveOrderId || !moveNewStatus) return;
+
+                  const nome = movedByName.trim();
+                  const note = movedByNote.trim();
+                  if (!nome) {
+                    toast.error("Informe o nome do funcionário.");
+                    return;
                   }
-                  setMoveDialogOpen(false);
-                  setMoveOrderId(null);
-                  setMoveNewStatus(null);
-                  setDraggedOrderId(null);
+                  const userDept = (userInfo?.departamento || "").toLowerCase().trim();
+                  const targetDept = resolveDeptFromStatus(moveNewStatus, moveTargetSetorId);
+                  const crossDept = userInfo?.role !== 'admin' && userDept && targetDept && targetDept !== userDept;
+                  if (crossDept && !note) {
+                    toast.error("Adicione uma observação ao mover para outro setor.");
+                    return;
+                  }
+
+                  setMoveDialogSubmitting(true);
+                  try {
+                    await updateOrderStatus(moveOrderId, moveNewStatus, nome, note);
+                    setMoveDialogOpen(false);
+                    setMoveOrderId(null);
+                    setMoveNewStatus(null);
+                    setDraggedOrderId(null);
+                  } finally {
+                    setMoveDialogSubmitting(false);
+                  }
                 }}
-                disabled={!moveNewStatus}
+                disabled={!moveNewStatus || moveDialogSubmitting}
               >
-                Confirmar
+                {moveDialogSubmitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Movendo...
+                  </span>
+                ) : (
+                  "Confirmar"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
