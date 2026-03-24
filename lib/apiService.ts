@@ -1,5 +1,4 @@
 import { buildCacheKey, fetchWithCache, invalidateCacheByPrefix } from "./cache";
-import { resolveTenantFromHost } from "./tenants";
 
 export interface ServicoPedido {
   preco: number;
@@ -65,9 +64,13 @@ export async function updateClienteService(id: string, cliente: Partial<{
   complemento: string;
   observacoes: string;
 }>) {
+  const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/clientes/${id}`, {
     method: "PUT",
-    headers: getAuthHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
     body: JSON.stringify(cliente),
   });
   if (!response.ok) throw new Error("Erro ao atualizar cliente");
@@ -85,21 +88,6 @@ export async function getPedidoByIdService(id: string) {
 // Normalize to avoid trailing slashes that can cause double // in paths
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/+$/, "")
 
-function getCurrentTenantSlug(): string {
-  if (typeof document !== "undefined" && document?.body?.dataset?.tenant) {
-    return document.body.dataset.tenant;
-  }
-  if (typeof window !== "undefined" && window.location?.hostname) {
-    try {
-      return resolveTenantFromHost(window.location.hostname).slug;
-    } catch {
-      const host = window.location.hostname.toLowerCase();
-      return host.split(".")[0] || host || "worqera";
-    }
-  }
-  return process.env.NEXT_PUBLIC_DEFAULT_TENANT || "worqera";
-}
-
 function getAuthToken() {
   return localStorage.getItem("token");
 }
@@ -114,7 +102,6 @@ function getAuthHeaders(contentType = "application/json", options: { requireAuth
   const headers: Record<string, string> = {
     "Cache-Control": "no-store",
     "Pragma": "no-cache",
-    "X-Tenant": getCurrentTenantSlug(),
   };
 
   if (contentType) {
@@ -431,7 +418,10 @@ export async function createPedidoService(pedido: {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos`, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
     body: JSON.stringify(pedido),
   });
   if (!response.ok) throw new Error("Erro ao criar pedido");
@@ -458,7 +448,10 @@ export async function createClienteService(cliente: {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/clientes`, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
     body: JSON.stringify(cliente),
   });
   if (!response.ok) throw new Error("Erro ao criar cliente");
@@ -484,7 +477,7 @@ export async function getClientesService(forceRefresh = false) {
 export async function loginService(email: string, password: string) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-Tenant": getCurrentTenantSlug() },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password })
   })
   if (!response.ok) throw new Error("Email ou senha incorretos");
@@ -567,7 +560,10 @@ export async function updateOrderStatusService(orderId: string, newStatus: strin
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos/${orderId}/status`, {
     method: "PATCH",
-    headers: getAuthHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
     body: JSON.stringify({ status: newStatus, funcionarioNome, observacao }),
   });
   
@@ -596,7 +592,10 @@ export async function updateOrderService(orderId: string, orderData: {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos/${orderId}`, {
     method: "PATCH",
-    headers: getAuthHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
     body: JSON.stringify(orderData),
   });
   
@@ -645,7 +644,6 @@ export async function apiFetch(
   options: RequestInit = {}
 ) {
   const headers: Record<string, string> = {
-    "X-Tenant": getCurrentTenantSlug(),
     ...(options.headers as Record<string, string> || {}),
   }
   
@@ -680,7 +678,10 @@ export async function getProximoSetorService(pedidoId: string) {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_BASE_URL}/pedidos/${pedidoId}/proximo-setor`, {
     method: "GET",
-    headers: getAuthHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -706,7 +707,10 @@ export async function moverPedidoSetorService(
 
   const response = await fetch(`${API_BASE_URL}/pedidos/${pedidoId}/mover-setor`, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
