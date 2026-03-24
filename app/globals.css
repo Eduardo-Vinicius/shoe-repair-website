@@ -5,26 +5,26 @@
 
 :root {
   /* Updated color tokens to match shoe repair business design brief */
-  --background: oklch(1 0 0); /* #ffffff */
-  --foreground: oklch(0.205 0 0); /* #1f2937 */
-  --card: oklch(0.985 0 0); /* #f8fafc */
-  --card-foreground: oklch(0.205 0 0); /* #1f2937 */
-  --popover: oklch(1 0 0); /* #ffffff */
-  --popover-foreground: oklch(0.205 0 0); /* #1f2937 */
-  /* Worqera brand palette */
-  --primary: #2563eb; /* Blue 600 */
+  --background: var(--brand-bg, oklch(1 0 0)); /* #ffffff */
+  --foreground: var(--brand-text, oklch(0.205 0 0)); /* #1f2937 */
+  --card: var(--brand-bg, oklch(0.985 0 0)); /* #f8fafc */
+  --card-foreground: var(--brand-text, oklch(0.205 0 0)); /* #1f2937 */
+  --popover: var(--brand-bg, oklch(1 0 0)); /* #ffffff */
+  --popover-foreground: var(--brand-text, oklch(0.205 0 0)); /* #1f2937 */
+  /* Worqera brand palette (tenant-overridable via CSS vars) */
+  --primary: var(--brand-primary, #2563eb);
   --primary-foreground: #ffffff;
-  --secondary: #0ea5e9; /* Sky 500 */
+  --secondary: var(--brand-accent, #0ea5e9);
   --secondary-foreground: #ffffff;
-  --muted: oklch(0.985 0 0); /* #f8fafc */
+  --muted: var(--brand-muted, oklch(0.985 0 0));
   --muted-foreground: oklch(0.439 0 0); /* #6b7280 */
-  --accent: #14b8a6; /* Teal 500 */
+  --accent: var(--brand-accent, #14b8a6);
   --accent-foreground: #ffffff;
   --destructive: oklch(0.577 0.245 27.325); /* #dc2626 */
   --destructive-foreground: oklch(1 0 0); /* #ffffff */
   --border: oklch(0.922 0 0); /* #e5e7eb */
   --input: oklch(0.97 0 0); /* #f1f5f9 */
-  --ring: #93c5fd; /* Sky 300 */
+  --ring: color-mix(in srgb, var(--primary) 40%, #93c5fd);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
