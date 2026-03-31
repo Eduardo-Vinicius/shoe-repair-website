@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Loader2, Search, Upload, X, Plus, Minus } from "lucide-react"
 import Link from "next/link"
 import { createPedidoService, getClientesService, getStatusColumnsService, getPedidoIdFromCreateResponse, uploadPedidoFotosService } from "@/lib/apiService"
@@ -55,39 +54,6 @@ const departmentFlowGroups = [
   { id: "sapataria", label: "Sapataria", options: [{ id: "sapataria", label: "Sapataria" }] },
   { id: "acabamento", label: "Acabamento", options: [{ id: "acabamento", label: "Acabamento" }] },
   { id: "atendimento", label: "Atendimento", options: [{ id: "atendimento", label: "Atendimento" }] },
-];
-
-const flowTemplates = [
-  {
-    id: "limpeza-express",
-    name: "Limpeza Express",
-    description: "Lavagem completa com entrega rápida",
-    department: "lavagem",
-    prioridade: "1",
-    flowOptions: ["lavagem-completa"],
-    services: ["limpeza-completa"],
-    observation: "Priorizar secagem acelerada",
-  },
-  {
-    id: "pintura-premium",
-    name: "Pintura Premium",
-    description: "Pintura completa com acabamento",
-    department: "pintura",
-    prioridade: "1",
-    flowOptions: ["pintura-completa", "acabamento-full"],
-    services: ["pintura", "acabamento"],
-    observation: "Garantir cura mínima de 24h",
-  },
-  {
-    id: "reparo-classico",
-    name: "Reparo Clássico",
-    description: "Sapataria + costura",
-    department: "sapataria",
-    prioridade: "2",
-    flowOptions: ["sapataria-completa", "costura-completa"],
-    services: ["reparo", "costura"],
-    observation: "Refazer palmilha se necessário",
-  },
 ];
 
 // Interface para serviços selecionados
@@ -446,33 +412,6 @@ export default function NewOrderPage() {
     }
   };
 
-  const applyTemplate = (templateId: string) => {
-    const tpl = flowTemplates.find(t => t.id === templateId);
-    if (!tpl) return;
-
-    setFormData((prev) => ({
-      ...prev,
-      department: "atendimento", // mantém atendimento como setor inicial
-    }));
-
-    setPrioridade(tpl.prioridade);
-    setFlowObservation(tpl.observation);
-    setSelectedFlowOptions(["atendimento", ...tpl.flowOptions.filter((id) => id !== "atendimento")]);
-
-    const services = tpl.services
-      .map(id => {
-        const base = availableServices.find((s) => s.id === id);
-        if (!base) return null;
-        return { id: base.id, name: base.name, price: base.suggestedPrice, description: tpl.name } as SelectedService;
-      })
-      .filter(Boolean) as SelectedService[];
-
-    setSelectedServices(services);
-    const servicesTotal = services.reduce((sum, s) => sum + s.price, 0);
-    setTotalPrice(servicesTotal + (hasWarranty ? warrantyPrice : 0));
-    updateSignalValue(servicesTotal + (hasWarranty ? warrantyPrice : 0));
-  };
-
   // Função para remover acessório
   const removeAccessory = (accessory: string) => {
     setSelectedAccessories(prev => prev.filter(acc => acc !== accessory));
@@ -752,24 +691,6 @@ export default function NewOrderPage() {
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-8">
-                  <div className="space-y-3">
-                    <Label>Templates rápidos</Label>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {flowTemplates.map((tpl) => (
-                        <Card key={tpl.id} className="border-slate-200 hover:border-slate-300 cursor-pointer" onClick={() => applyTemplate(tpl.id)}>
-                          <CardContent className="p-4 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <p className="font-semibold text-slate-800 text-sm">{tpl.name}</p>
-                              <Badge variant="outline" className="text-[10px]">{tpl.prioridade === "1" ? "Alta" : "Normal"}</Badge>
-                            </div>
-                            <p className="text-xs text-slate-600">{tpl.description}</p>
-                            <div className="text-[11px] text-slate-500">Depto: {tpl.department}</div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Client Selection */}
                   <div className="space-y-2">
                     <Label htmlFor="client">Cliente *</Label>
