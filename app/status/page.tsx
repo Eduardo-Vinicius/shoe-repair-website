@@ -390,12 +390,14 @@ export default function StatusControlPage() {
 
       const setorLabel = order.setorAtual ? (SETORES_NOMES[order.setorAtual] || order.setorAtual) : null;
 
-      return (
+      const match =
         findMatch(order.status) ||
         findMatch(setorLabel) ||
-        findMatch(order.setorAtual) ||
-        (columnNames.length ? columnNames[0] : null)
-      );
+        findMatch(order.setorAtual);
+
+      // Se não houver coluna compatível visível, preserve o status/setor atual
+      // para permitir que filtros removam o pedido da visão do setor atual.
+      return match || order.status || order.setorAtual || null;
     },
     [statusColumns]
   );
@@ -462,12 +464,13 @@ export default function StatusControlPage() {
 
         const setorLabel = order.setorAtual ? (SETORES_NOMES[order.setorAtual] || order.setorAtual) : null;
 
-        return (
+        const match =
           findMatch(order.status) ||
           findMatch(setorLabel) ||
-          findMatch(order.setorAtual) ||
-          (columnNames.length ? columnNames[0] : null)
-        );
+          findMatch(order.setorAtual);
+
+        // Se não houver match visível, mantém status original para ser filtrado
+        return match || order.status || order.setorAtual || null;
       };
 
       const normalizedOrders = (ordersData || []).map((order: Order) => {
