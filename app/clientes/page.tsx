@@ -13,6 +13,33 @@ import Link from "next/link"
 import { getClientesService, updateClienteService } from "@/lib/apiService"
 import { toast } from "sonner"
 
+const maskCpf = (value?: string) => {
+  const digits = (value || "").replace(/\D/g, "");
+  if (digits.length !== 11) return value || "-";
+  return `***.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+};
+
+const maskPhone = (value?: string) => {
+  const digits = (value || "").replace(/\D/g, "");
+  if (digits.length < 8) return value || "-";
+  return `(**) *****-${digits.slice(-4)}`;
+};
+
+const maskEmail = (value?: string) => {
+  if (!value || !value.includes("@")) return value || "-";
+  const [local, domain] = value.split("@");
+  const visible = local.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(local.length - visible.length, 1))}@${domain}`;
+};
+
+const maskAddress = (logradouro?: string, numero?: string, bairro?: string, cidade?: string, estado?: string) => {
+  const cityState = [cidade, estado].filter(Boolean).join(" - ");
+  const district = bairro ? `${bairro}` : "Bairro não informado";
+  const streetHint = logradouro ? `${logradouro.split(" ")[0]}...` : "Endereço oculto";
+  const numberHint = numero ? `nº ${String(numero).slice(-2).padStart(2, "*")}` : "nº **";
+  return `${streetHint}, ${numberHint} - ${district}${cityState ? `, ${cityState}` : ""}`;
+};
+
 export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [clients, setClients] = useState<any[]>([]);
@@ -161,24 +188,23 @@ export default function ClientsPage() {
                         <div className="flex items-start gap-3">
                           <div className="min-w-0">
                             <h3 className="text-lg font-semibold break-words">{client.nomeCompleto}</h3>
-                            <p className="text-sm text-muted-foreground">CPF: {client.cpf}</p>
+                            <p className="text-sm text-muted-foreground">CPF: {maskCpf(client.cpf)}</p>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                           <div className="flex items-center gap-2 break-words">
                             <Phone className="w-4 h-4 text-muted-foreground" />
-                            <span className="break-all">{client.telefone}</span>
+                            <span className="break-all">{maskPhone(client.telefone)}</span>
                           </div>
                           <div className="flex items-center gap-2 break-words">
                             <Mail className="w-4 h-4 text-muted-foreground" />
-                            <span className="break-all">{client.email}</span>
+                            <span className="break-all">{maskEmail(client.email)}</span>
                           </div>
                           <div className="flex items-start gap-2 col-span-1 md:col-span-2">
                             <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                             <span className="break-words">
-                              {client.logradouro}, {client.numero} - {client.bairro}, {client.cidade} - {client.estado} {client.cep}
-                              {client.complemento ? `, ${client.complemento}` : ""}
+                              {maskAddress(client.logradouro, client.numero, client.bairro, client.cidade, client.estado)}
                             </span>
                           </div>
                           {client.observacoes && (

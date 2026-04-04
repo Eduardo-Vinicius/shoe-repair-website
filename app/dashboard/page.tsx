@@ -10,7 +10,7 @@ const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Worqera"
 import Cookies from "js-cookie"
 import Link from "next/link"
 
-const ENABLE_FLOW_SCREEN = false
+const ENABLE_FLOW_SCREEN = true
 const ENABLE_EMAIL_AUDIT_SCREEN = false
 
 // Interfaces para tipagem dos dados da API
