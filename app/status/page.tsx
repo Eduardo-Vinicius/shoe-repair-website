@@ -580,13 +580,12 @@ export default function StatusControlPage() {
 
       const currentOrder = orders.find((o) => o.id === orderId);
       const setorAtual = currentOrder?.setorAtual;
-      const setorLabel = setorAtual ? (SETORES_NOMES[setorAtual] || setorAtual) : "";
-      const newStatusLower = newStatus.toLowerCase();
-      const stayingSameSector = setorLabel && newStatusLower.includes(setorLabel.toLowerCase());
+      const targetSetorId = mapStatusToSetorId(newStatus, setorAtual || null);
+      const changingSetor = Boolean(targetSetorId && setorAtual && targetSetorId !== setorAtual);
 
-      // Atualiza no backend
-      const updatedOrder = stayingSameSector && setorAtual
-        ? await moverPedidoSetorService(orderId, setorAtual, nome, note, newStatus)
+      // Só usa mover-setor quando o status realmente muda de setor.
+      const updatedOrder = changingSetor && targetSetorId
+        ? await moverPedidoSetorService(orderId, targetSetorId, nome, note, newStatus)
         : await updateOrderStatusService(orderId, newStatus, nome, note);
 
       const merged = {
@@ -900,6 +899,7 @@ export default function StatusControlPage() {
     if (s.includes("costur")) return SETORES.COSTURA;
     if (s.includes("lavag")) return SETORES.LAVAGEM;
     if (s.includes("pint")) return SETORES.PINTURA;
+    if (s.includes("mont")) return "montagem";
     if (s.includes("acab")) return SETORES.ACABAMENTO;
     if (fallbackSetor) return fallbackSetor;
     return null;
@@ -1061,11 +1061,26 @@ export default function StatusControlPage() {
 
   useEffect(() => {
     if (moveDialogOpen && moveTargetSetorId) {
+      let active = true;
       setFuncionariosLoading(true);
+      setFuncionariosSetor([]);
       listFuncionariosService({ setorId: moveTargetSetorId, ativo: true })
-        .then((list) => setFuncionariosSetor(list || []))
-        .catch(() => setFuncionariosSetor([]))
-        .finally(() => setFuncionariosLoading(false));
+        .then((list) => {
+          if (!active) return;
+          setFuncionariosSetor(list || []);
+        })
+        .catch(() => {
+          if (!active) return;
+          setFuncionariosSetor([]);
+        })
+        .finally(() => {
+          if (!active) return;
+          setFuncionariosLoading(false);
+        });
+
+      return () => {
+        active = false;
+      };
     } else if (!moveDialogOpen) {
       setFuncionariosSetor([]);
       setFuncionariosLoading(false);
@@ -1786,6 +1801,7 @@ export default function StatusControlPage() {
                   setMoveDialogOpen(false);
                   setMoveOrderId(null);
                   setMoveNewStatus(null);
+                  setMoveTargetSetorId(null);
                   setMoveDialogSubmitting(false);
                 }}
                 disabled={moveDialogSubmitting}
@@ -1816,6 +1832,7 @@ export default function StatusControlPage() {
                     setMoveDialogOpen(false);
                     setMoveOrderId(null);
                     setMoveNewStatus(null);
+                    setMoveTargetSetorId(null);
                     setDraggedOrderId(null);
                   } finally {
                     setMoveDialogSubmitting(false);
