@@ -807,3 +807,211 @@ export async function getUserInfoService() {
     }
   }
 }
+
+// --- Email Audit & Tracking ---
+export interface EmailLog {
+  id: string;
+  codigoPedido: string;
+  pedidoId: string;
+  nomeCliente: string;
+  emailCliente: string;
+  assunto: string;
+  tipo: 'confirmacao' | 'atualizacao' | 'conclusao' | 'coleta' | 'notificacao' | 'outro';
+  status: 'sucesso' | 'erro' | 'pendente';
+  dataSolicitacao: string;
+  dataEnvio?: string;
+  duracaoMs?: number;
+  mensagemErro?: string;
+  pdfUrl?: string;
+  tentativas: number;
+  ultimaTentativa?: string;
+}
+
+export interface EmailLogsResponse {
+  data: EmailLog[];
+  nextToken?: string;
+  count: number;
+  total?: number;
+}
+
+export interface EmailSummary {
+  totalEnviados: number;
+  totalErros: number;
+  totalPendentes: number;
+  taxaDeErro: number;
+  totalPorTipo: Record<string, number>;
+  totalPorStatus: Record<string, number>;
+  duracionMediaMs?: number;
+}
+
+export interface EmailStatistics {
+  periodo: {
+    dataInicio: string;
+    dataFim: string;
+  };
+  resumo: EmailSummary;
+  topClientesNoErro: Array<{
+    email: string;
+    totalErros: number;
+    ultimoErro: string;
+  }>;
+  topTiposErro: Array<{
+    mensagemErro: string;
+    frequencia: number;
+  }>;
+  evolucaoTempo: Array<{
+    data: string;
+    enviados: number;
+    erros: number;
+    pendentes: number;
+  }>;
+}
+
+/**
+ * Busca logs de emails com filtros e paginação
+ */
+export async function getEmailLogsService(params: {
+  email?: string;
+  pedidoId?: string;
+  codigoPedido?: string;
+  status?: 'sucesso' | 'erro' | 'pendente';
+  tipo?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  limit?: number;
+  lastKey?: string;
+} = {}): Promise<EmailLogsResponse> {
+  const token = getAuthToken();
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === "string" && value.trim() === "") return;
+    if (key === "limit" && typeof value === "number" && value <= 0) return;
+    query.append(key, String(value));
+  });
+
+  const qs = query.toString();
+
+  const response = await fetch(`${API_BASE_URL}/emails/logs${qs ? `?${qs}` : ""}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar logs de emails");
+  }
+
+  const result = await response.json();
+  const payload = resolveApiPayload(result);
+
+  return {
+    data: Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [],
+    nextToken: payload?.nextToken || payload?.lastKey,
+    count: payload?.count || (Array.isArray(payload?.data) ? payload.data.length : Array.isArray(payload) ? payload.length : 0),
+    total: payload?.total,
+  };
+}
+
+/**
+ * Busca resumo/estatísticas gerais de emails
+ */
+export async function getEmailSummaryService(): Promise<EmailSummary> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${API_BASE_URL}/emails/logs/resumo`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar resumo de emails");
+  }
+
+  const result = await response.json();
+  return resolveApiPayload(result);
+}
+
+/**
+ * Busca últimos emails enviados para um endereço de email específico
+ */
+export async function getEmailsUltimosService(email: string, limit = 10): Promise<EmailLog[]> {
+  const token = getAuthToken();
+  const query = new URLSearchParams();
+  query.append("limit", String(limit));
+
+  const response = await fetch(`${API_BASE_URL}/emails/logs/ultimos/${encodeURIComponent(email)}?${query.toString()}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar últimos emails");
+  }
+
+  const result = await response.json();
+  const payload = resolveApiPayload(result);
+  return Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+}
+
+/**
+ * Busca emails de um pedido específico
+ */
+export async function getEmailsByPedidoService(pedidoId: string): Promise<EmailLog[]> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${API_BASE_URL}/emails/logs/pedido/${pedidoId}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar emails do pedido");
+  }
+
+  const result = await response.json();
+  const payload = resolveApiPayload(result);
+  return Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+}
+
+/**
+ * Busca estatísticas detalhadas de emails (erros, evolução temporal, etc)
+ */
+export async function getEmailStatisticsService(params: {
+  dataInicio?: string;
+  dataFim?: string;
+  dias?: number;
+} = {}): Promise<EmailStatistics> {
+  const token = getAuthToken();
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === "string" && value.trim() === "") return;
+    query.append(key, String(value));
+  });
+
+  const qs = query.toString();
+
+  const response = await fetch(`${API_BASE_URL}/emails/estatisticas${qs ? `?${qs}` : ""}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Erro ao buscar estatísticas de emails");
+  }
+
+  const result = await response.json();
+  return resolveApiPayload(result);
+}
