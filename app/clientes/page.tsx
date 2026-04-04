@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Search, Plus, Phone, Mail, MapPin, ArrowLeft, Edit } from "lucide-react"
 import Link from "next/link"
-
 import { getClientesService, updateClienteService } from "@/lib/apiService"
 import { toast } from "sonner"
 
