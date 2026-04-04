@@ -10,6 +10,9 @@ const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Worqera"
 import Cookies from "js-cookie"
 import Link from "next/link"
 
+const ENABLE_FLOW_SCREEN = false
+const ENABLE_EMAIL_AUDIT_SCREEN = false
+
 // Interfaces para tipagem dos dados da API
 interface DashboardStats {
   totalClients: number
@@ -343,45 +346,49 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-orange-800">
-                  <BarChart3 className="w-6 h-6 mr-3 text-orange-600" />
-                  Controle de Status
-                </CardTitle>
-                <CardDescription className="text-orange-600">
-                  Gerenciar status dos pedidos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/status" className="block">
-                  <Button variant="outline" className="w-full border-orange-300 text-orange-700 hover:bg-orange-50">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Ver Status
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            {ENABLE_FLOW_SCREEN && (
+              <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-orange-800">
+                    <BarChart3 className="w-6 h-6 mr-3 text-orange-600" />
+                    Controle de Status
+                  </CardTitle>
+                  <CardDescription className="text-orange-600">
+                    Gerenciar status dos pedidos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link href="/status" className="block">
+                    <Button variant="outline" className="w-full border-orange-300 text-orange-700 hover:bg-orange-50">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Ver Status
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
 
-            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-rose-50 to-rose-100 hover:from-rose-100 hover:to-rose-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-rose-800">
-                  <Mail className="w-6 h-6 mr-3 text-rose-600" />
-                  Auditoria de Emails
-                </CardTitle>
-                <CardDescription className="text-rose-600">
-                  Acompanhar emails enviados e erros
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/emails" className="block">
-                  <Button variant="outline" className="w-full border-rose-300 text-rose-700 hover:bg-rose-50">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Abrir auditoria
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            {ENABLE_EMAIL_AUDIT_SCREEN && (
+              <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-rose-50 to-rose-100 hover:from-rose-100 hover:to-rose-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-rose-800">
+                    <Mail className="w-6 h-6 mr-3 text-rose-600" />
+                    Auditoria de Emails
+                  </CardTitle>
+                  <CardDescription className="text-rose-600">
+                    Acompanhar emails enviados e erros
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link href="/emails" className="block">
+                    <Button variant="outline" className="w-full border-rose-300 text-rose-700 hover:bg-rose-50">
+                      <Mail className="w-4 h-4 mr-2" />
+                      Abrir auditoria
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-teal-50 to-teal-100 hover:from-teal-100 hover:to-teal-200">
               <CardHeader className="pb-3">
