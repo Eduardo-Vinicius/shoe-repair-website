@@ -570,7 +570,13 @@ export default function StatusControlPage() {
     [normalizeOrderToColumns, refetchOrders, resolveColumnForOrder, statusColumns]
   );
 
-  const updateOrderStatus = async (orderId: string, newStatus: string, movedByName?: string, note?: string) => {
+  const updateOrderStatus = async (
+    orderId: string,
+    newStatus: string,
+    movedByName?: string,
+    note?: string,
+    targetSetorIdOverride?: string | null,
+  ) => {
     try {
       const nome = (movedByName || userInfo?.nome || "").trim();
       if (!nome) {
@@ -580,7 +586,7 @@ export default function StatusControlPage() {
 
       const currentOrder = orders.find((o) => o.id === orderId);
       const setorAtual = currentOrder?.setorAtual;
-      const targetSetorId = mapStatusToSetorId(newStatus, setorAtual || null);
+      const targetSetorId = targetSetorIdOverride || mapStatusToSetorId(newStatus);
       const changingSetor = Boolean(targetSetorId && setorAtual && targetSetorId !== setorAtual);
 
       // Só usa mover-setor quando o status realmente muda de setor.
@@ -660,7 +666,7 @@ export default function StatusControlPage() {
       return; // mesma coluna, nenhuma ação
     }
 
-    const inferredSetor = mapStatusToSetorId(status) || order?.setorAtual || null;
+    const inferredSetor = mapStatusToSetorId(status);
     setMoveDialogOpen(true);
     setMoveOrderId(draggedOrderId);
     setMoveNewStatus(status);
@@ -817,7 +823,8 @@ export default function StatusControlPage() {
         setMoveDialogOpen(true);
         setMoveOrderId(foundOrder.id);
         setMoveNewStatus(nextStatus);
-        setMoveTargetSetorId(mapStatusToSetorId(nextStatus) || foundOrder.setorAtual || null);
+        const explicitSetor = normalizeSectorOptionToSetorId(selectedSector);
+        setMoveTargetSetorId(explicitSetor || mapStatusToSetorId(nextStatus));
         setMovedByName(userInfo?.nome || "");
         setMovedByNote("");
       } else {
@@ -903,6 +910,15 @@ export default function StatusControlPage() {
     if (s.includes("acab")) return SETORES.ACABAMENTO;
     if (fallbackSetor) return fallbackSetor;
     return null;
+  };
+
+  const normalizeSectorOptionToSetorId = (sectorValue?: string | null): string | null => {
+    if (!sectorValue) return null;
+    if (sectorValue === "atendimento:inicio") return SETORES.ATENDIMENTO_INICIAL;
+    if (sectorValue === "atendimento:final") return SETORES.ATENDIMENTO_FINAL;
+    if (Object.values(SETORES).includes(sectorValue as any)) return sectorValue;
+    if (sectorValue === "montagem") return "montagem";
+    return mapStatusToSetorId(sectorValue);
   };
 
   const getAtendimentoFinalStatus = useCallback(() => {
@@ -1171,7 +1187,7 @@ export default function StatusControlPage() {
     return currentIndex > 0 ? columnNames[currentIndex - 1] : null;
   };
 
-  const openMoveDialogForOrder = (order: Order, targetStatus: string | null) => {
+  const openMoveDialogForOrder = (order: Order, targetStatus: string | null, explicitSetorId?: string | null) => {
     if (!targetStatus) {
       toast.error("Não há próximo status disponível");
       return;
@@ -1179,7 +1195,8 @@ export default function StatusControlPage() {
     setMoveDialogOpen(true);
     setMoveOrderId(order.id);
     setMoveNewStatus(targetStatus);
-    setMoveTargetSetorId(mapStatusToSetorId(targetStatus, order.setorAtual || null));
+    const normalizedExplicit = normalizeSectorOptionToSetorId(explicitSetorId);
+    setMoveTargetSetorId(normalizedExplicit || mapStatusToSetorId(targetStatus));
     setMovedByName(userInfo?.nome || "");
     setMovedByNote("");
   };
@@ -1828,7 +1845,7 @@ export default function StatusControlPage() {
 
                   setMoveDialogSubmitting(true);
                   try {
-                    await updateOrderStatus(moveOrderId, moveNewStatus, nome, note);
+                    await updateOrderStatus(moveOrderId, moveNewStatus, nome, note, moveTargetSetorId);
                     setMoveDialogOpen(false);
                     setMoveOrderId(null);
                     setMoveNewStatus(null);
@@ -1872,7 +1889,7 @@ const KanbanCard = memo(function KanbanCard(props: {
   draggedOrderId: string | null;
   handleDragStart: (ev: React.DragEvent<HTMLDivElement>, id: string) => void;
   handleDragEnd: () => void;
-  openMoveDialogForOrder: (order: Order, targetStatus: string | null) => void;
+  openMoveDialogForOrder: (order: Order, targetStatus: string | null, explicitSetorId?: string | null) => void;
   getPreviousStatus: (status: string) => string | null;
   getNextStatus: (status: string) => string | null;
   getNextStatusSameDept: (status: string) => string | null;
@@ -2037,7 +2054,7 @@ const KanbanCard = memo(function KanbanCard(props: {
               onValueChange={(sectorValue) => {
                 const target = sectorTransferOptions.find((opt) => opt.value === sectorValue);
                 if (target?.targetStatus) {
-                  openMoveDialogForOrder(order, target.targetStatus);
+                  openMoveDialogForOrder(order, target.targetStatus, sectorValue);
                 }
               }}
             >
@@ -2086,7 +2103,7 @@ const KanbanCard = memo(function KanbanCard(props: {
               onValueChange={(sectorValue) => {
                 const target = sectorTransferOptions.find((opt) => opt.value === sectorValue);
                 if (target?.targetStatus) {
-                  openMoveDialogForOrder(order, target.targetStatus);
+                  openMoveDialogForOrder(order, target.targetStatus, sectorValue);
                 }
               }}
             >
