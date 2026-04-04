@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User, Monitor, IdCard, BarChart4 } from "lucide-react"
+import { Users, Package, Clock, CheckCircle, Search, LogOut, Plus, BarChart3, TrendingUp, Calendar, AlertTriangle, Settings, User, Monitor, IdCard, BarChart4, Mail } from "lucide-react"
 import { apiFetch, getDashboardService } from "@/lib/apiService"
 import { SETORES_CORES, SETORES_NOMES } from "@/lib/setores"
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Worqera"
@@ -358,6 +358,26 @@ export default function DashboardPage() {
                   <Button variant="outline" className="w-full border-orange-300 text-orange-700 hover:bg-orange-50">
                     <BarChart3 className="w-4 h-4 mr-2" />
                     Ver Status
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg bg-gradient-to-br from-rose-50 to-rose-100 hover:from-rose-100 hover:to-rose-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-rose-800">
+                  <Mail className="w-6 h-6 mr-3 text-rose-600" />
+                  Auditoria de Emails
+                </CardTitle>
+                <CardDescription className="text-rose-600">
+                  Acompanhar emails enviados e erros
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/emails" className="block">
+                  <Button variant="outline" className="w-full border-rose-300 text-rose-700 hover:bg-rose-50">
+                    <Mail className="w-4 h-4 mr-2" />
+                    Abrir auditoria
                   </Button>
                 </Link>
               </CardContent>
