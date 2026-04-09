@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Search, Plus, Phone, Mail, MapPin, ArrowLeft, Edit } from "lucide-react"
+import { Search, Plus, Phone, Mail, MapPin, ArrowLeft, Edit, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { getClientesService, updateClienteService } from "@/lib/apiService"
 import { toast } from "sonner"
@@ -133,12 +133,20 @@ export default function ClientsPage() {
               </Link>
               <h1 className="text-xl font-bold font-serif">Clientes</h1>
             </div>
-            <Link href="/clientes/novo">
-              <Button variant="secondary" size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Cliente
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/status">
+                <Button variant="secondary" size="sm">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Kanban
+                </Button>
+              </Link>
+              <Link href="/clientes/novo">
+                <Button variant="secondary" size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Cliente
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
