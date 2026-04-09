@@ -133,7 +133,10 @@ const PEDIDOS_CACHE_PREFIXES = [
   "setores:estatisticas",
   "metrics:resumo",
   "metrics:departamentos",
+  "metrics:financeiro",
   "metrics:atrasos",
+  "metrics:funcionarios",
+  "metrics:overview",
 ];
 
 const CLIENTES_CACHE_PREFIXES = ["clientes"];
@@ -161,37 +164,158 @@ export interface Funcionario {
   updatedAt?: string;
 }
 
-// --- Métricas ---
-export async function getMetricsResumoService() {
-  const token = getAuthToken();
-  const cacheKey = buildCacheKey("metrics:resumo", token);
-  const result = await fetchWithCache(`${API_BASE_URL}/metrics/resumo`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  }, { cacheKey, ttlMs: 60_000 });
+export type MetricsPeriodo = "7d" | "15d" | "30d" | "90d" | "180d" | "1y";
 
-  return resolveApiPayload(result);
+export interface MetricsBaseFilters {
+  periodo?: MetricsPeriodo;
+  dataInicio?: string;
+  dataFim?: string;
 }
 
-export async function getMetricsDepartamentosService() {
-  const token = getAuthToken();
-  const cacheKey = buildCacheKey("metrics:departamentos", token);
-  const result = await fetchWithCache(`${API_BASE_URL}/metrics/departamentos`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  }, { cacheKey, ttlMs: 60_000 });
-
-  return resolveApiPayload(result);
+export interface MetricsPeriodoInfo {
+  inicio: string;
+  fim: string;
+  referencia?: string;
 }
 
-export async function getMetricsFuncionariosService(limit = 10) {
+export interface MetricsResumo {
+  total: number;
+  abertos: number;
+  finalizados: number;
+  atrasados: number;
+  noPrazo?: number;
+  taxaAtraso?: number;
+  periodo?: MetricsPeriodoInfo;
+}
+
+export interface MetricsDepartamento {
+  setorId: string;
+  setorNome?: string;
+  total: number;
+}
+
+export interface MetricsFuncionario {
+  funcionarioNome: string;
+  total: number;
+}
+
+export interface MetricsAtrasoItem {
+  id: string;
+  codigo?: string;
+  status: string;
+  funcionarioAtual?: string | null;
+  dataPrevistaEntrega: string;
+  diasAtraso?: number;
+}
+
+export interface MetricsAtrasos {
+  totalAtrasados: number;
+  atrasoMedioMs?: number;
+  atrasoMedioHoras?: number;
+  itens: MetricsAtrasoItem[];
+}
+
+export interface MetricsFinanceiroResumo {
+  totalPedidos: number;
+  pedidosFinalizados: number;
+  pedidosEmAberto: number;
+  receitaPrevista: number;
+  receitaRecebida: number;
+  receitaPendente: number;
+  despesas: number;
+  lucroPrevisto: number;
+  lucroRealizado: number;
+  margemPrevista: number;
+  ticketMedio: number;
+}
+
+export interface MetricsFinanceiroReceitaPorStatus {
+  status: string;
+  pedidos: number;
+  receitaPrevista: number;
+  receitaRecebida: number;
+}
+
+export interface MetricsFinanceiroTopServico {
+  servico: string;
+  pedidos: number;
+  receita: number;
+}
+
+export interface MetricsFinanceiroEvolucaoDiaria {
+  data: string;
+  pedidos: number;
+  receitaPrevista: number;
+  receitaRecebida: number;
+}
+
+export interface MetricsFinanceiro {
+  periodo: MetricsPeriodoInfo;
+  resumo: MetricsFinanceiroResumo;
+  receitaPorStatus: MetricsFinanceiroReceitaPorStatus[];
+  topServicos: MetricsFinanceiroTopServico[];
+  evolucaoDiaria: MetricsFinanceiroEvolucaoDiaria[];
+}
+
+export interface MetricsFuncionariosPedidos {
+  funcionarioNome: string;
+  pedidosComParticipacao: number;
+  pedidosFinalizados: number;
+}
+
+export interface MetricsFuncionariosMaisRapidos {
+  funcionarioNome: string;
+  etapasConcluidas: number;
+  pedidosComTempo: number;
+  tempoTotalMs: number;
+  tempoMedioMs: number;
+  tempoMedioHoras: number;
+}
+
+export interface MetricsFuncionariosDesempenho {
+  periodo: MetricsPeriodoInfo;
+  topFuncionariosPorPedidos: MetricsFuncionariosPedidos[];
+  topFuncionariosMaisRapidos: MetricsFuncionariosMaisRapidos[];
+}
+
+export interface MetricsOverview {
+  resumo: MetricsResumo;
+  atrasos: MetricsAtrasos;
+  financeiro: MetricsFinanceiro;
+  funcionarios: MetricsFuncionariosDesempenho;
+}
+
+export interface MetricsFinanceiroFilters extends MetricsBaseFilters {
+  limitServicos?: number;
+}
+
+export interface MetricsFuncionariosFilters extends MetricsBaseFilters {
+  limit?: number;
+}
+
+function buildMetricsQuery<T extends object>(params: T) {
   const query = new URLSearchParams();
-  if (typeof limit === "number") query.append("limit", String(limit));
-  const qs = query.toString();
-  const token = getAuthToken();
-  const cacheKey = buildCacheKey(`metrics:funcionarios:${limit ?? "all"}`, token);
 
-  const result = await fetchWithCache(`${API_BASE_URL}/metrics/funcionarios${qs ? `?${qs}` : ""}`, {
+  Object.entries(params as Record<string, string | number | undefined | null>).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (typeof value === "string" && value.trim() === "") return;
+    query.append(key, String(value));
+  });
+
+  const qs = query.toString();
+  return {
+    queryString: qs,
+    suffix: qs ? `?${qs}` : "",
+    cacheSuffix: qs || "default",
+  };
+}
+
+// --- Métricas ---
+export async function getMetricsResumoService(filters: MetricsBaseFilters = {}): Promise<MetricsResumo> {
+  const { suffix, cacheSuffix } = buildMetricsQuery(filters);
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`metrics:resumo:${cacheSuffix}`, token);
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/resumo${suffix}`, {
     method: "GET",
     headers: getAuthHeaders(),
   }, { cacheKey, ttlMs: 60_000 });
@@ -199,13 +323,78 @@ export async function getMetricsFuncionariosService(limit = 10) {
   return resolveApiPayload(result);
 }
 
-export async function getMetricsAtrasosService() {
+export async function getMetricsDepartamentosService(filters: MetricsBaseFilters = {}): Promise<MetricsDepartamento[]> {
+  const { suffix, cacheSuffix } = buildMetricsQuery(filters);
   const token = getAuthToken();
-  const cacheKey = buildCacheKey("metrics:atrasos", token);
-  const result = await fetchWithCache(`${API_BASE_URL}/metrics/atrasos`, {
+  const cacheKey = buildCacheKey(`metrics:departamentos:${cacheSuffix}`, token);
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/departamentos${suffix}`, {
     method: "GET",
     headers: getAuthHeaders(),
   }, { cacheKey, ttlMs: 60_000 });
+
+  const payload = resolveApiPayload(result);
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function getMetricsFuncionariosService(params: number | MetricsFuncionariosFilters = 10): Promise<MetricsFuncionario[]> {
+  const normalized = typeof params === "number" ? { limit: params } : params;
+  const { suffix, cacheSuffix } = buildMetricsQuery(normalized);
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`metrics:funcionarios:${cacheSuffix}`, token);
+
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/funcionarios${suffix}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  }, { cacheKey, ttlMs: 60_000 });
+
+  const payload = resolveApiPayload(result);
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function getMetricsAtrasosService(filters: MetricsBaseFilters = {}): Promise<MetricsAtrasos> {
+  const { suffix, cacheSuffix } = buildMetricsQuery(filters);
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`metrics:atrasos:${cacheSuffix}`, token);
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/atrasos${suffix}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  }, { cacheKey, ttlMs: 60_000 });
+
+  return resolveApiPayload(result);
+}
+
+export async function getMetricsFinanceiroService(filters: MetricsFinanceiroFilters = {}): Promise<MetricsFinanceiro> {
+  const { suffix, cacheSuffix } = buildMetricsQuery(filters);
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`metrics:financeiro:${cacheSuffix}`, token);
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/financeiro${suffix}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  }, { cacheKey, ttlMs: 30_000 });
+
+  return resolveApiPayload(result);
+}
+
+export async function getMetricsFuncionariosDesempenhoService(filters: MetricsFuncionariosFilters = {}): Promise<MetricsFuncionariosDesempenho> {
+  const { suffix, cacheSuffix } = buildMetricsQuery(filters);
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`metrics:funcionarios:desempenho:${cacheSuffix}`, token);
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/funcionarios/desempenho${suffix}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  }, { cacheKey, ttlMs: 30_000 });
+
+  return resolveApiPayload(result);
+}
+
+export async function getMetricsOverviewService(filters: MetricsFinanceiroFilters & MetricsFuncionariosFilters = {}): Promise<MetricsOverview> {
+  const { suffix, cacheSuffix } = buildMetricsQuery(filters);
+  const token = getAuthToken();
+  const cacheKey = buildCacheKey(`metrics:overview:${cacheSuffix}`, token);
+  const result = await fetchWithCache(`${API_BASE_URL}/metrics/overview${suffix}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  }, { cacheKey, ttlMs: 30_000 });
 
   return resolveApiPayload(result);
 }
