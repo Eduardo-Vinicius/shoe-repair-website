@@ -149,7 +149,9 @@ export default function ConsultasPage() {
   const handleViewOrder = (order: any) => {
     const servicosTexto = formatServicos(order.servicos || order.tipoServico || "");
     const fotosValidas = Array.isArray(order.fotos)
-      ? order.fotos.map((foto: unknown) => extractFotoUrl(foto)).filter((foto): foto is string => Boolean(foto))
+      ? (order.fotos as unknown[])
+          .map((foto: unknown) => extractFotoUrl(foto))
+          .filter((foto: string | null): foto is string => Boolean(foto))
       : [];
 
     const pedidoDetalhes: PedidoDetalhes = {
